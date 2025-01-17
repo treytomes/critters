@@ -4,12 +4,19 @@ using System.Text.Json;
 class Settings
 {
     public required WindowSettings Window { get; set; }
+    public required VirtualDisplaySettings VirtualDisplay { get; set; }
 
     public class WindowSettings
     {
         public int Width { get; set; }
         public int Height { get; set; }
         public required string Title { get; set; }
+    }
+
+    public class VirtualDisplaySettings
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
     }
 
     public static Settings Load(string filePath)

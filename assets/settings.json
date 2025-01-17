@@ -3,5 +3,9 @@
 		"width": 1280,
 		"height": 720,
 		"title": "Creatures & Critters"
+	},
+	"virtualDisplay": {
+			"width": 320,
+			"height": 240
 	}
 }
