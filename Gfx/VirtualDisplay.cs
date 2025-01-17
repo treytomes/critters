@@ -1,25 +1,26 @@
+using Gfx;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
 namespace Critters.Gfx
 {
-	public class VirtualDisplay
+	class VirtualDisplay : IDisposable
 	{
 		#region Fields
 
 		private static readonly float[] QuadVertices = 
 		{
-				// Positions     // Texture Coords
-				-1.0f, -1.0f,    0.0f, 1.0f, // Bottom-left
-					1.0f, -1.0f,    1.0f, 1.0f, // Bottom-right
-					1.0f,  1.0f,    1.0f, 0.0f, // Top-right
-				-1.0f,  1.0f,    0.0f, 0.0f  // Top-left
+			// Positions     // Texture Coords
+			-1.0f, -1.0f,    0.0f, 1.0f, // Bottom-left
+			 1.0f, -1.0f,    1.0f, 1.0f, // Bottom-right
+			 1.0f,  1.0f,    1.0f, 0.0f, // Top-right
+			-1.0f,  1.0f,    0.0f, 0.0f  // Top-left
 		};
 
 		private static readonly uint[] QuadIndices =
 		{
-				0, 1, 2,
-				2, 3, 0
+			0, 1, 2,
+			2, 3, 0
 		};
 
 		private readonly int _virtualWidth;
@@ -28,24 +29,24 @@ namespace Critters.Gfx
 		private int _vao;
 		private int _vbo;
 		private int _ebo;
-		private int _shaderProgram;
+		private ShaderProgram _shaderProgram;
 
 		#endregion
 
 		#region Constructors
 
-		public VirtualDisplay(int virtualWidth, int virtualHeight, string vertexShaderSource, string fragmentShaderSource)
+		public VirtualDisplay(Settings.VirtualDisplaySettings settings)
 		{
-				_virtualWidth = virtualWidth;
-				_virtualHeight = virtualHeight;
+				_virtualWidth = settings.Width;
+				_virtualHeight = settings.Height;
 
 				// Compile shaders
-				_shaderProgram = ShaderHelper.CompileShader(vertexShaderSource, fragmentShaderSource);
+				_shaderProgram = new ShaderProgram(settings.VertexShaderPath, settings.FragmentShaderPath);
 
 				// Generate texture
 				_textureId = GL.GenTexture();
 				GL.BindTexture(TextureTarget.Texture2D, _textureId);
-				GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, _virtualWidth, _virtualHeight, 0, PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
+				GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, _virtualWidth, _virtualHeight, 0, PixelFormat.Rgb, PixelType.UnsignedByte, IntPtr.Zero);
 				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
 				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
 
@@ -101,7 +102,7 @@ namespace Critters.Gfx
 		public void UpdatePixels(byte[] pixelData)
 		{
 				GL.BindTexture(TextureTarget.Texture2D, _textureId);
-				GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, _virtualWidth, _virtualHeight, PixelFormat.Rgba, PixelType.UnsignedByte, pixelData);
+				GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, _virtualWidth, _virtualHeight, PixelFormat.Rgb, PixelType.UnsignedByte, pixelData);
 		}
 
 		public void Render(Vector2i windowSize)
@@ -134,7 +135,7 @@ namespace Critters.Gfx
 			GL.Viewport((int)xPadding, (int)yPadding, (int)(_virtualWidth * scale), (int)(_virtualHeight * scale));
 
 			// Use shader and VAO
-			GL.UseProgram(_shaderProgram);
+			_shaderProgram.Use();
 			GL.BindVertexArray(_vao);
 
 			// Bind texture
@@ -147,6 +148,11 @@ namespace Critters.Gfx
 			// Unbind VAO and shader
 			GL.BindVertexArray(0);
 			GL.UseProgram(0);
+		}
+
+		public void Dispose()
+		{
+			_shaderProgram.Dispose();
 		}
 
 		#endregion

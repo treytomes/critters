@@ -1,11 +1,13 @@
 {
-	"window": {
-		"width": 1280,
-		"height": 720,
-		"title": "Creatures & Critters"
+	"Window": {
+		"Width": 1280,
+		"Height": 720,
+		"Title": "Creatures & Critters"
 	},
-	"virtualDisplay": {
-			"width": 320,
-			"height": 240
+	"VirtualDisplay": {
+			"Width": 320,
+			"Height": 240,
+			"VertexShaderPath": "assets/shaders/vertex.glsl",
+			"FragmentShaderPath": "assets/shaders/fragment.glsl"
 	}
 }

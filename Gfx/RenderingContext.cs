@@ -17,7 +17,7 @@ namespace Critters.Gfx
 		public RenderingContext(VirtualDisplay display)
 		{
 			_display = display;
-			_pixelData = new byte[display.Width * display.Height * 4];
+			_pixelData = new byte[display.Width * display.Height * 3];
 		}
 
 		#endregion
@@ -26,11 +26,10 @@ namespace Critters.Gfx
 
 		public void SetPixel(int x, int y, Color color)
 		{
-			int index = (y * _display.Width + x) * 4;
+			int index = (y * _display.Width + x) * 3;
 			_pixelData[index] = color.Red;
 			_pixelData[index + 1] = color.Green;
 			_pixelData[index + 2] = color.Blue;
-			_pixelData[index + 3] = 255;
 			_isDirty = true;
 		}
 

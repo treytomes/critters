@@ -19,9 +19,7 @@ namespace Critters
       };
 
       using var window = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
-      var vertexShaderSource = File.ReadAllText("assets/shaders/vertex.glsl");
-      var fragmentShaderSource = File.ReadAllText("assets/shaders/fragment.glsl");
-      var virtualDisplay = new VirtualDisplay(settings.VirtualDisplay.Width, settings.VirtualDisplay.Height, vertexShaderSource, fragmentShaderSource);
+      using var virtualDisplay = new VirtualDisplay(settings.VirtualDisplay);
 
       // Example: Fill with a test pattern
       var palette = new Palette();
