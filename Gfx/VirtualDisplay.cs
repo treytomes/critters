@@ -133,7 +133,7 @@ namespace Critters.Gfx
 
 			// Set the viewport with padding
 			GL.Viewport((int)xPadding, (int)yPadding, (int)(_virtualWidth * scale), (int)(_virtualHeight * scale));
-
+			
 			// Use shader and VAO
 			_shaderProgram.Use();
 			GL.BindVertexArray(_vao);

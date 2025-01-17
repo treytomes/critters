@@ -24,6 +24,22 @@ namespace Critters.Gfx
 
 		#region Methods
 
+		public void Fill(Color color)
+		{
+			for (int i = 0; i < _pixelData.Length; i += 3)
+			{
+				_pixelData[i] = color.Red;
+				_pixelData[i + 1] = color.Green;
+				_pixelData[i + 2] = color.Blue;
+			}
+			_isDirty = true;
+		}
+
+		public void Clear()
+		{
+			Fill(new Color(0, 0, 0));
+		}
+
 		public void SetPixel(int x, int y, Color color)
 		{
 			int index = (y * _display.Width + x) * 3;
