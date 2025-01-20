@@ -1,63 +1,62 @@
 using OpenTK.Graphics.OpenGL4;
 
-namespace Gfx
+namespace Critters.Gfx;
+
+class Shader : IDisposable
 {
-	class Shader : IDisposable
+	public readonly int Id;
+	public readonly ShaderType Type;
+	private bool disposedValue;
+
+	public Shader(ShaderType type, string source)
 	{
-		public readonly int Id;
-		public readonly ShaderType Type;
-		private bool disposedValue;
+		Type = type;
+		Id = GL.CreateShader(type);
+		GL.ShaderSource(Id, source);
+		GL.CompileShader(Id);
+		CheckShaderCompileStatus();
+	}
 
-		public Shader(ShaderType type, string source)
+	public static Shader FromFile(ShaderType type, string path)
+	{
+		var source = File.ReadAllText(path);
+		return new Shader(type, source);
+	}
+
+	private void CheckShaderCompileStatus()
+	{
+		GL.GetShader(Id, ShaderParameter.CompileStatus, out int status);
+		if (status == 0)
 		{
-			Type = type;
-			Id = GL.CreateShader(type);
-			GL.ShaderSource(Id, source);
-			GL.CompileShader(Id);
-			CheckShaderCompileStatus();
+			var infoLog = GL.GetShaderInfoLog(Id);
+			throw new Exception($"Shader compilation failed: {infoLog}");
 		}
+	}
 
-		public static Shader FromFile(ShaderType type, string path)
+	protected virtual void Dispose(bool disposing)
+	{
+		if (!disposedValue)
 		{
-			var source = File.ReadAllText(path);
-			return new Shader(type, source);
-		}
-
-    private void CheckShaderCompileStatus()
-    {
-			GL.GetShader(Id, ShaderParameter.CompileStatus, out int status);
-			if (status == 0)
+			if (disposing)
 			{
-				var infoLog = GL.GetShaderInfoLog(Id);
-				throw new Exception($"Shader compilation failed: {infoLog}");
+					// TODO: dispose managed state (managed objects)
 			}
-    }
 
-		protected virtual void Dispose(bool disposing)
-		{
-			if (!disposedValue)
-			{
-				if (disposing)
-				{
-						// TODO: dispose managed state (managed objects)
-				}
-
-				GL.DeleteShader(Id);
-				disposedValue = true;
-			}
+			GL.DeleteShader(Id);
+			disposedValue = true;
 		}
+	}
 
-		~Shader()
-		{
-		    // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-		    Dispose(disposing: false);
-		}
+	~Shader()
+	{
+			// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+			Dispose(disposing: false);
+	}
 
-		public void Dispose()
-		{
-				// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-				Dispose(disposing: true);
-				GC.SuppressFinalize(this);
-		}
+	public void Dispose()
+	{
+			// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
 	}
 }

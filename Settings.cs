@@ -1,5 +1,6 @@
-using System.IO.Pipelines;
 using System.Text.Json;
+
+namespace Critters;
 
 class Settings
 {

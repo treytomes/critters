@@ -1,7 +1,6 @@
-namespace Critters.IO
+namespace Critters.IO;
+
+interface IResourceLoader
 {
-	interface IResourceLoader
-	{
-		object Load(string resourcePath);
-	}
+	object Load(string resourcePath);
 }
