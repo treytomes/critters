@@ -1,15 +1,24 @@
 using System.Collections;
+using OpenTK.Graphics.OpenGL4;
 
 namespace Critters.Gfx
 {
 	/// <summary>
 	/// Generate a palette with 6 increments each of red, green, and blue.
 	/// </summary>
-	class Palette : IReadOnlyList<Color>
+	class Palette : IReadOnlyList<Color>, IDisposable
 	{
+		#region Constants
+
+		private const int PALETTE_SIZE = 256;
+
+		#endregion
+
 		#region Fields
 
+		public readonly int Id;
 		private readonly List<Color> _colors;
+		private bool disposedValue;
 
 		#endregion
 
@@ -17,6 +26,7 @@ namespace Critters.Gfx
 
 		public Palette()
 		{
+			// Generate the colors.
 			const int BITS = 6;
 			_colors = new List<Color>();
 			for (var r = 0; r < BITS; r++) {
@@ -36,19 +46,57 @@ namespace Critters.Gfx
 					}
 				}
 			}
+
+			while (_colors.Count < PALETTE_SIZE)
+			{
+				_colors.Add(new Color(0, 0, 0));
+			}
+
+			// Generate the reference texture.
+			Id = GL.GenTexture();
+			if (Id == 0)
+			{
+				throw new Exception("Unable to generate palette texture.");
+			}
+
+			GL.BindTexture(TextureTarget.Texture2D, Id);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+
+			// Populate palette data
+			var paletteData = new byte[PALETTE_SIZE * 3];
+			for (int i = 0; i < PALETTE_SIZE; i++)
+			{
+				var color = _colors[i];
+				paletteData[i * 3] = color.Red;
+				paletteData[i * 3 + 1] = color.Green;
+				paletteData[i * 3 + 2] = color.Blue;
+			}
+
+			// Update the palette texture
+			GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, 256, 1, 0, PixelFormat.Rgb, PixelType.UnsignedByte, paletteData);
 		}
 
 		#endregion
 
 		#region Properties
 
+		/// <summary>
+		/// Retrieve the color associated with a palette index.
+		/// </summary>
 		public Color this[int index] => _colors[index];
 
-		public Color this[int r6, int g6, int b6] {
+		/// <summary>
+		/// Retrieve the palette index associated with a radial RGB value.
+		/// </summary>
+		/// <param name="r6">0-5</param>
+		/// <param name="g6">0-5</param>
+		/// <param name="b6">0-5</param>
+		/// <returns></returns>
+		public byte this[byte r6, byte g6, byte b6] {
 			get
 			{
-				var index = GetIndex(r6, g6, b6);
-				return _colors[index];
+				return (byte)(r6 * 6 * 6 + g6 * 6 + b6);
 			}
 		}
 
@@ -58,11 +106,38 @@ namespace Critters.Gfx
 
 		#region Methods
 
-		public int GetIndex(int r6, int g6, int b6) => r6 * 6 * 6 + g6 * 6 + b6;
-
 		public IEnumerator<Color> GetEnumerator() => _colors.GetEnumerator();
 		
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposedValue)
+			{
+				if (disposing)
+				{
+					// Dispose managed state (managed objects)
+				}
+
+				// Dispose unmanaged state.
+				GL.DeleteTexture(Id);
+
+				disposedValue = true;
+			}
+		}
+
+		~Palette()
+		{
+			// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+			Dispose(disposing: false);
+		}
+
+		public void Dispose()
+		{
+				// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+				Dispose(disposing: true);
+				GC.SuppressFinalize(this);
+		}
 
 		#endregion
 	}

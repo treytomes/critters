@@ -23,6 +23,7 @@ namespace Critters.Gfx
 			2, 3, 0
 		};
 
+		public readonly Palette Palette;
 		private readonly int _virtualWidth;
 		private readonly int _virtualHeight;
 		private int _textureId;
@@ -30,6 +31,7 @@ namespace Critters.Gfx
 		private int _vbo;
 		private int _ebo;
 		private ShaderProgram _shaderProgram;
+		private bool disposedValue;
 
 		#endregion
 
@@ -45,8 +47,14 @@ namespace Critters.Gfx
 
 				// Generate texture
 				_textureId = GL.GenTexture();
+				if (_textureId == 0)
+				{
+					throw new Exception("Failed to generate texture.");
+				}
+
 				GL.BindTexture(TextureTarget.Texture2D, _textureId);
-				GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, _virtualWidth, _virtualHeight, 0, PixelFormat.Rgb, PixelType.UnsignedByte, IntPtr.Zero);
+				GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.R8, _virtualWidth, _virtualHeight, 0, PixelFormat.Red, PixelType.UnsignedByte, IntPtr.Zero);
+
 				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
 				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
 
@@ -73,6 +81,8 @@ namespace Critters.Gfx
 				GL.EnableVertexAttribArray(1);
 
 				GL.BindVertexArray(0);
+
+				Palette = new Palette();
 		}
 
 		#endregion
@@ -101,8 +111,8 @@ namespace Critters.Gfx
 
 		public void UpdatePixels(byte[] pixelData)
 		{
-				GL.BindTexture(TextureTarget.Texture2D, _textureId);
-				GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, _virtualWidth, _virtualHeight, PixelFormat.Rgb, PixelType.UnsignedByte, pixelData);
+			GL.BindTexture(TextureTarget.Texture2D, _textureId);
+			GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, _virtualWidth, _virtualHeight, PixelFormat.Red, PixelType.UnsignedByte, pixelData);
 		}
 
 		public void Render(Vector2i windowSize)
@@ -138,9 +148,15 @@ namespace Critters.Gfx
 			_shaderProgram.Use();
 			GL.BindVertexArray(_vao);
 
+			// Bind _paletteTextureId to the uPalette sampler2d shader variable.
+			GL.ActiveTexture(TextureUnit.Texture1);
+			GL.BindTexture(TextureTarget.Texture2D, Palette.Id);
+			GL.Uniform1(_shaderProgram.GetUniformLocation("uPalette"), 1);
+
 			// Bind texture
 			GL.ActiveTexture(TextureUnit.Texture0);
 			GL.BindTexture(TextureTarget.Texture2D, _textureId);
+			GL.Uniform1(_shaderProgram.GetUniformLocation("uTexture"), 0);
 
 			// Draw quad
 			GL.DrawElements(PrimitiveType.Triangles, QuadIndices.Length, DrawElementsType.UnsignedInt, 0);
@@ -150,11 +166,39 @@ namespace Critters.Gfx
 			GL.UseProgram(0);
 		}
 
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposedValue)
+			{
+				if (disposing)
+				{
+					_shaderProgram.Dispose();
+					Palette.Dispose();
+				}
+
+				GL.DeleteTexture(_textureId);
+				GL.DeleteBuffer(_ebo);
+				GL.DeleteBuffer(_vao);
+				GL.DeleteBuffer(_vbo);
+
+				disposedValue = true;
+			}
+		}
+
+		~VirtualDisplay()
+		{
+			// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+			Dispose(disposing: false);
+		}
+
 		public void Dispose()
 		{
-			_shaderProgram.Dispose();
+			// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
 		}
 
 		#endregion
+
 	}
 }

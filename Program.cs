@@ -1,4 +1,5 @@
-﻿using Critters.Gfx;
+﻿using Critter.Gfx;
+using Critters.Gfx;
 using Critters.IO;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -42,14 +43,14 @@ namespace Critters
       //   }
       // }
 
-      // // Example: Display an image.
-      // rc.Fill(palette[4, 0, 0]);
+      // Example: Display an image.
+      rc.Fill(palette[1, 1, 0]);
       // for (int y = 0; y < image.Height; y++)
       // {
       //   for (int x = 0; x < image.Width; x++)
       //   {
       //     var pixel = image.GetPixel(x, y);
-      //     if (pixel.R == 0)
+      //     if (pixel.Red == 0)
       //     {
       //       rc.SetPixel(x, y, palette[0, 0, 4]);
       //     }
@@ -59,6 +60,14 @@ namespace Critters
       //     }
       //   }
       // }
+
+      // rc.DrawImage(image, 100, 100);
+
+      var tiles = new TileSet<Bitmap>(new Bitmap(image), 8, 8);
+      tiles[65].Draw(rc, 100, 100, palette[5, 5, 5], palette[0, 0, 4]);
+
+      var font = new Font(tiles);
+      font.WriteString(rc, "Hello world!", 150, 120, palette[5, 4, 3], palette[0, 0, 0]);
 
       window.RenderFrame += (FrameEventArgs e) =>
       {

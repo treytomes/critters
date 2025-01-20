@@ -34,6 +34,11 @@ namespace Gfx
 			GL.UseProgram(Id);
 		}
 
+		public int GetUniformLocation(string name)
+		{
+			return GL.GetUniformLocation(Id, name);
+		}
+
     private void CheckProgramLinkStatus()
     {
         GL.GetProgram(Id, GetProgramParameterName.LinkStatus, out int status);

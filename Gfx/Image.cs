@@ -1,14 +1,21 @@
-using OpenTK.Mathematics;
+using Critter.Gfx;
 
 namespace Critters.Gfx
 {
-	class Image
+	/// <summary>
+	/// An image is filled with RGB pixel data.
+	/// </summary>
+	class Image : IImage<Image, Color>
 	{
+		#region Constants
+
+		private const int BPP = 3;
+
+		#endregion
+
 		#region Fields
 
-		private readonly int _width;
-		private readonly int _height;
-		private readonly byte[] _data;
+		public readonly byte[] Data;
 
 		#endregion
 
@@ -16,28 +23,27 @@ namespace Critters.Gfx
 
 		public Image(int width, int height, byte[] data)
 		{
-			_width = width;
-			_height = height;
-			_data = data;
+			Width = width;
+			Height = height;
+			Data = data;
 		}
 
 		#endregion
 
 		#region Properties
-		
-		public int Width
-		{
-			get
-			{
-				return _width;
-			}
-		}
 
-		public int Height
+		public int Width { get; }
+		public int Height { get; }
+
+		public Color this[int x, int y]
 		{
 			get
 			{
-				return _height;
+				return GetPixel(x, y);
+			}
+			set
+			{
+				SetPixel(x, y, value);
 			}
 		}
 
@@ -45,11 +51,54 @@ namespace Critters.Gfx
 
 		#region Methods
 
-		public Color4 GetPixel(int x, int y)
-		{
-			int index = (y * _width + x) * 4;
+		// public void Draw(RenderingContext rc, int x, int y)
+		// {
+		// 	var srcIndex = 0;
+		// 	var dstIndex = (y * rc.Width + x) * BPP;
+		// 	var len = Width * BPP;
+		// 	for (var dy = 0; dy < Height; dy++)
+		// 	{
+		// 		Array.Copy(Data, srcIndex, rc.Data, dstIndex, len);
+		// 		srcIndex += len;
+		// 		dstIndex += rc.Width * BPP;
+		// 	}
+		// }
 
-			return new Color4(_data[index], _data[index + 1], _data[index + 2], _data[index + 3]);
+		public Color GetPixel(int x, int y)
+		{
+			var index = (y * Width + x) * BPP;
+			return new Color(Data[index], Data[index + 1], Data[index + 2]);
+		}
+
+		public void SetPixel(int x, int y, Color color)
+		{
+			var index = (y * Width + x) * BPP;
+			Data[index] = (byte)(color.Red * 255);
+			Data[index + 1] = (byte)(color.Green * 255);
+			Data[index + 2] = (byte)(color.Blue * 255);
+		}
+
+		/// <summary>
+		/// Create a new image from a rectangle of this image.
+		/// </summary>
+		public Image Crop(int x, int y, int width, int height)
+		{
+			var data = new byte[width * height * BPP];
+
+			for (var i = 0; i < height; i++)
+			{
+				for (var j = 0; j < width; j++)
+				{
+					var color = GetPixel(x + j, y + i);
+					var index = (i * width + j) * BPP;
+
+					data[index] = color.Red;
+					data[index + 1] = color.Green;
+					data[index + 2] = color.Blue;
+				}
+			}
+
+			return new Image(width, height, data);
 		}
 
 		#endregion
