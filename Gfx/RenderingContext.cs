@@ -1,3 +1,5 @@
+using OpenTK.Mathematics;
+
 namespace Critters.Gfx;
 
 class RenderingContext
@@ -30,10 +32,27 @@ class RenderingContext
 
 	public int Width => _display.Width;
 	public int Height => _display.Height;
+	public Palette Palette => _display.Palette;
 
 	#endregion
 
 	#region Methods
+
+	/// <summary>
+	/// Convert actual screen coordinates to virtual coordinates.
+	/// </summary>
+	public Vector2 ActualToVirtualPoint(Vector2 actualPoint)
+	{
+		return _display.ActualToVirtualPoint(actualPoint);
+	}
+
+	/// <summary>
+	/// Convert virtual coordinates to actual screen coordinates.
+	/// </summary>
+	public Vector2 VirtualToActualPoint(Vector2 virtualPoint)
+	{
+		return _display.VirtualToActualPoint(virtualPoint);
+	}
 
 	public void Fill(byte paletteIndex)
 	{
@@ -52,6 +71,10 @@ class RenderingContext
 	public void SetPixel(int x, int y, byte paletteIndex)
 	{
 		int index = (y * _display.Width + x) * BPP;
+		if (index < 0 || index >= Data.Length)
+		{
+			return;
+		}
 		Data[index] = paletteIndex;
 		_isDirty = true;
 	}

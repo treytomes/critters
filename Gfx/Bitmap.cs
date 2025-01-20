@@ -1,3 +1,5 @@
+using OpenTK.Graphics.ES20;
+
 namespace Critters.Gfx;
 
 /// <summary>
@@ -32,7 +34,7 @@ class Bitmap : IImage<Bitmap, bool>
 			for (var x = 0; x < Width; x++)
 			{
 				var color = image.GetPixel(x, y);
-				Data[y * Width + x] = color.Red > 0 || color.Green > 0 || color.Blue > 0;
+				Data[y * Width + x] = color > 0;
 			}
 		}
 	}
@@ -67,14 +69,47 @@ class Bitmap : IImage<Bitmap, bool>
 
 	#region Methods
 
+	/// <summary>
+	/// Draw a bitmap with the set foreground and background colors.
+	/// A value of 255 in either color indicates transparent.
+	/// </summary>
 	public void Draw(RenderingContext rc, int x, int y, byte fgColor, byte bgColor)
 	{
 		for (var dy = 0; dy < Height; dy++)
 		{
+			if (y + dy < 0)
+			{
+				continue;
+			}
+			if (y + dy >= rc.Height)
+			{
+				break;
+			}
 			for (var dx = 0; dx < Width; dx++)
 			{
+				if (x + dx < 0)
+				{
+					continue;
+				}
+				if (x + dx >= rc.Width)
+				{
+					break;
+				}
 				var value = GetPixel(dx, dy);
-				rc.SetPixel(x + dx, y + dy, value ? fgColor : bgColor);
+				if (value)
+				{
+					if (fgColor < 255)
+					{
+						rc.SetPixel(x + dx, y + dy, fgColor);
+					}
+				}
+				else
+				{
+					if (bgColor < 255)
+					{
+						rc.SetPixel(x + dx, y + dy, bgColor);
+					}
+				}
 			}
 		}
 	}

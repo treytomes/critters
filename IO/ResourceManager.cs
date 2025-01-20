@@ -39,7 +39,7 @@ class ResourceManager
 		{
 			var path = GetResourcePath(relativePath);
 			var loader = GetResourceLoader<T>();
-			var resource = loader.Load(path);
+			var resource = loader.Load(this, path);
 			_resources.Add(key, resource);
 			return (T)resource;
 		}

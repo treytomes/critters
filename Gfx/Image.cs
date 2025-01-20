@@ -1,9 +1,9 @@
 namespace Critters.Gfx;
 
 /// <summary>
-/// An image is filled with RGB pixel data.
+/// An image is filled with palette-indexed pixel data.
 /// </summary>
-class Image : IImage<Image, Color>
+class Image : IImage<Image, byte>
 {
 	#region Constants
 
@@ -33,7 +33,7 @@ class Image : IImage<Image, Color>
 	public int Width { get; }
 	public int Height { get; }
 
-	public Color this[int x, int y]
+	public byte this[int x, int y]
 	{
 		get
 		{
@@ -49,31 +49,91 @@ class Image : IImage<Image, Color>
 
 	#region Methods
 
+	// public void Draw(RenderingContext rc, int x, int y)
+	// {
+	// 	if (x + Width < 0 || y + Height < 0 || x >= rc.Width || y >= rc.Height)
+	// 	{
+	// 		// The image is completely offscreen.
+	// 		return;
+	// 	}
+
+	// 	var srcIndex = 0;
+	// 	var dstIndex = (y * rc.Width + x) * BPP;
+	// 	var len = Width * BPP;
+	// 	if (x + len > rc.Width)
+	// 	{
+	// 		len = rc.Width - x;
+	// 	}
+
+	// 	for (var dy = 0; dy < Height; dy++)
+	// 	{
+	// 		if (y + dy >= rc.Height)
+	// 		{
+	// 			break;
+	// 		}
+			
+	// 		Array.Copy(Data, srcIndex, rc.Data, dstIndex, len);
+	// 		srcIndex += len;
+	// 		dstIndex += rc.Width * BPP;
+	// 	}
+	// }
+
+
+	/// <summary>
+	/// A value of 255 in either color indicates transparent.
+	/// </summary>
 	public void Draw(RenderingContext rc, int x, int y)
 	{
-		var srcIndex = 0;
-		var dstIndex = (y * rc.Width + x) * BPP;
-		var len = Width * BPP;
 		for (var dy = 0; dy < Height; dy++)
 		{
-			Array.Copy(Data, srcIndex, rc.Data, dstIndex, len);
-			srcIndex += len;
-			dstIndex += rc.Width * BPP;
+			if (y + dy < 0)
+			{
+				continue;
+			}
+			if (y + dy >= rc.Height)
+			{
+				break;
+			}
+			for (var dx = 0; dx < Width; dx++)
+			{
+				if (x + dx < 0)
+				{
+					continue;
+				}
+				if (x + dx >= rc.Width)
+				{
+					break;
+				}
+				var color = GetPixel(dx, dy);
+				if (color < 255)
+				{
+					rc.SetPixel(x + dx, y + dy, color);
+				}
+			}
 		}
 	}
 
-	public Color GetPixel(int x, int y)
+	public void Recolor(byte oldPaletteIndex, byte newPaletteIndex)
 	{
-		var index = (y * Width + x) * BPP;
-		return new Color(Data[index], Data[index + 1], Data[index + 2]);
+		for (var i = 0; i < Data.Length; i++)
+		{
+			if (Data[i] == oldPaletteIndex)
+			{
+				Data[i] = newPaletteIndex;
+			}
+		}
 	}
 
-	public void SetPixel(int x, int y, Color color)
+	public byte GetPixel(int x, int y)
 	{
 		var index = (y * Width + x) * BPP;
-		Data[index] = (byte)(color.Red * 255);
-		Data[index + 1] = (byte)(color.Green * 255);
-		Data[index + 2] = (byte)(color.Blue * 255);
+		return Data[index];
+	}
+
+	public void SetPixel(int x, int y, byte color)
+	{
+		var index = (y * Width + x) * BPP;
+		Data[index] = color;
 	}
 
 	/// <summary>
@@ -89,10 +149,7 @@ class Image : IImage<Image, Color>
 			{
 				var color = GetPixel(x + j, y + i);
 				var index = (i * width + j) * BPP;
-
-				data[index] = color.Red;
-				data[index + 1] = color.Green;
-				data[index + 2] = color.Blue;
+				data[index] = color;
 			}
 		}
 

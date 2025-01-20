@@ -1,0 +1,29 @@
+using Critters.Events;
+using Critters.Gfx;
+using Critters.IO;
+
+namespace Critters.States;
+
+class ImageTestState : GameState
+{
+  #region Fields
+
+  private Image? _image;
+
+  #endregion
+
+  #region Methods
+
+  public override void Load(ResourceManager resources, EventBus eventBus)
+  {
+    _image = resources.Load<Image>("oem437_8.png");
+  }
+
+  public override void Render(RenderingContext rc, GameTime gameTime)
+  {
+    rc.Fill(rc.Palette[1, 1, 0]);
+    _image!.Draw(rc, 100, 100);
+  }
+
+  #endregion
+}

@@ -1,4 +1,3 @@
-using Gfx;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -8,7 +7,7 @@ class VirtualDisplay : IDisposable
 {
 	#region Fields
 
-	private static readonly float[] QuadVertices = 
+	private static readonly float[] _quadVertices = 
 	{
 		// Positions     // Texture Coords
 		-1.0f, -1.0f,    0.0f, 1.0f, // Bottom-left
@@ -17,7 +16,7 @@ class VirtualDisplay : IDisposable
 		-1.0f,  1.0f,    0.0f, 0.0f  // Top-left
 	};
 
-	private static readonly uint[] QuadIndices =
+	private static readonly uint[] _quadIndices =
 	{
 		0, 1, 2,
 		2, 3, 0
@@ -29,13 +28,16 @@ class VirtualDisplay : IDisposable
 	private int _ebo;
 	private ShaderProgram _shaderProgram;
 	private readonly Texture _texture;
+	private float _scale = 1.0f;
+	private Vector2 _padding = Vector2.Zero;
+	
 	private bool _disposedValue;
 
 	#endregion
 
 	#region Constructors
 
-	public VirtualDisplay(Settings.VirtualDisplaySettings settings)
+	public VirtualDisplay(Vector2i windowSize, Settings.VirtualDisplaySettings settings)
 	{
 		// Compile shaders
 		_shaderProgram = new ShaderProgram(settings.VertexShaderPath, settings.FragmentShaderPath);
@@ -66,11 +68,11 @@ class VirtualDisplay : IDisposable
 
 		// Bind vertex buffer
 		GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
-		GL.BufferData(BufferTarget.ArrayBuffer, QuadVertices.Length * sizeof(float), QuadVertices, BufferUsageHint.StaticDraw);
+		GL.BufferData(BufferTarget.ArrayBuffer, _quadVertices.Length * sizeof(float), _quadVertices, BufferUsageHint.StaticDraw);
 
 		// Bind element buffer
 		GL.BindBuffer(BufferTarget.ElementArrayBuffer, _ebo);
-		GL.BufferData(BufferTarget.ElementArrayBuffer, QuadIndices.Length * sizeof(uint), QuadIndices, BufferUsageHint.StaticDraw);
+		GL.BufferData(BufferTarget.ElementArrayBuffer, _quadIndices.Length * sizeof(uint), _quadIndices, BufferUsageHint.StaticDraw);
 
 		// Set vertex attribute pointers
 		GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
@@ -82,6 +84,7 @@ class VirtualDisplay : IDisposable
 		GL.BindVertexArray(0);
 
 		Palette = new Palette();
+		Resize(windowSize);
 	}
 
 	#endregion
@@ -92,43 +95,60 @@ class VirtualDisplay : IDisposable
 
 	public int Height => _texture.Height;
 
+	public float Scale => _scale;
+
 	#endregion
 
 	#region Methods
 
+	/// <summary>
+	/// Convert actual screen coordinates to virtual coordinates.
+	/// </summary>
+	public Vector2 ActualToVirtualPoint(Vector2 actualPoint)
+	{
+		return (actualPoint - _padding) / _scale;
+	}
+
+	/// <summary>
+	/// Convert virtual coordinates to actual screen coordinates.
+	/// </summary>
+	public Vector2 VirtualToActualPoint(Vector2 virtualPoint)
+	{
+		return virtualPoint * _scale + _padding;
+	}
+	
 	public void UpdatePixels(byte[] pixelData)
 	{
 		_texture.Data = pixelData;
 	}
 
-	public void Render(Vector2i windowSize)
+	public void Resize(Vector2i windowSize)
 	{
-		GL.Clear(ClearBufferMask.ColorBufferBit);
-
 		// Calculate aspect ratios.
 		var virtualAspect = (float)_texture.Width / _texture.Height;
 		var windowAspect = (float)windowSize.X / windowSize.Y;
 
-		// Calculate scaling factors
-		float scale;
-		var xPadding = 0f;
-		var yPadding = 0f;
-
+		// Calculate scaling factors.
 		if (windowAspect > virtualAspect)
 		{
 			// Window is wider than the virtual display
-			scale = (float)windowSize.Y / _texture.Height;
-			xPadding = (windowSize.X - _texture.Width * scale) / 2f;
+			_scale = (float)windowSize.Y / _texture.Height;
+			_padding = new Vector2((windowSize.X - _texture.Width * _scale) / 2f, 0);
 		}
 		else
 		{
 			// Window is taller than the virtual display
-			scale = (float)windowSize.X / _texture.Width;
-			yPadding = (windowSize.Y - _texture.Height * scale) / 2f;
+			_scale = (float)windowSize.X / _texture.Width;
+			_padding = new Vector2(0, (windowSize.Y - _texture.Height * _scale) / 2f);
 		}
 
 		// Set the viewport with padding
-		GL.Viewport((int)xPadding, (int)yPadding, (int)(_texture.Width * scale), (int)(_texture.Height * scale));
+		GL.Viewport((int)_padding.X, (int)_padding.Y, (int)(_texture.Width * _scale), (int)(_texture.Height * _scale));
+	}
+
+	public void Render()
+	{
+		GL.Clear(ClearBufferMask.ColorBufferBit);
 		
 		// Use shader and VAO
 		_shaderProgram.Use();
@@ -145,7 +165,7 @@ class VirtualDisplay : IDisposable
 		GL.Uniform1(_shaderProgram.GetUniformLocation("uTexture"), 0);
 
 		// Draw quad
-		GL.DrawElements(PrimitiveType.Triangles, QuadIndices.Length, DrawElementsType.UnsignedInt, 0);
+		GL.DrawElements(PrimitiveType.Triangles, _quadIndices.Length, DrawElementsType.UnsignedInt, 0);
 
 		// Unbind VAO and shader
 		GL.BindVertexArray(0);

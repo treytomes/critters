@@ -2,5 +2,5 @@ namespace Critters.IO;
 
 interface IResourceLoader
 {
-	object Load(string resourcePath);
+	object Load(ResourceManager resources, string resourcePath);
 }
