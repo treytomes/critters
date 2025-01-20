@@ -16,7 +16,7 @@ namespace Critters.Gfx
 
 		#region Fields
 
-		public readonly int Id;
+		private readonly Texture _texture;
 		private readonly List<Color> _colors;
 		private bool disposedValue;
 
@@ -52,34 +52,25 @@ namespace Critters.Gfx
 				_colors.Add(new Color(0, 0, 0));
 			}
 
-			// Generate the reference texture.
-			Id = GL.GenTexture();
-			if (Id == 0)
-			{
-				throw new Exception("Unable to generate palette texture.");
-			}
-
-			GL.BindTexture(TextureTarget.Texture2D, Id);
-			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-
-			// Populate palette data
-			var paletteData = new byte[PALETTE_SIZE * 3];
+			// Populate palette data.
+			var data = new byte[PALETTE_SIZE * 3];
 			for (int i = 0; i < PALETTE_SIZE; i++)
 			{
 				var color = _colors[i];
-				paletteData[i * 3] = color.Red;
-				paletteData[i * 3 + 1] = color.Green;
-				paletteData[i * 3 + 2] = color.Blue;
+				data[i * 3] = color.Red;
+				data[i * 3 + 1] = color.Green;
+				data[i * 3 + 2] = color.Blue;
 			}
-
-			// Update the palette texture
-			GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb, 256, 1, 0, PixelFormat.Rgb, PixelType.UnsignedByte, paletteData);
+			
+			_texture = new Texture(PALETTE_SIZE, 1, false);
+			_texture.Data = data;
 		}
 
 		#endregion
 
 		#region Properties
+
+		public int Id => _texture.Id;
 
 		/// <summary>
 		/// Retrieve the color associated with a palette index.
@@ -117,10 +108,10 @@ namespace Critters.Gfx
 				if (disposing)
 				{
 					// Dispose managed state (managed objects)
+					_texture?.Dispose();
 				}
 
 				// Dispose unmanaged state.
-				GL.DeleteTexture(Id);
 
 				disposedValue = true;
 			}

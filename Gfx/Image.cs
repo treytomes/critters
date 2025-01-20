@@ -9,7 +9,7 @@ namespace Critters.Gfx
 	{
 		#region Constants
 
-		private const int BPP = 3;
+		private const int BPP = 1;
 
 		#endregion
 
@@ -51,18 +51,18 @@ namespace Critters.Gfx
 
 		#region Methods
 
-		// public void Draw(RenderingContext rc, int x, int y)
-		// {
-		// 	var srcIndex = 0;
-		// 	var dstIndex = (y * rc.Width + x) * BPP;
-		// 	var len = Width * BPP;
-		// 	for (var dy = 0; dy < Height; dy++)
-		// 	{
-		// 		Array.Copy(Data, srcIndex, rc.Data, dstIndex, len);
-		// 		srcIndex += len;
-		// 		dstIndex += rc.Width * BPP;
-		// 	}
-		// }
+		public void Draw(RenderingContext rc, int x, int y)
+		{
+			var srcIndex = 0;
+			var dstIndex = (y * rc.Width + x) * BPP;
+			var len = Width * BPP;
+			for (var dy = 0; dy < Height; dy++)
+			{
+				Array.Copy(Data, srcIndex, rc.Data, dstIndex, len);
+				srcIndex += len;
+				dstIndex += rc.Width * BPP;
+			}
+		}
 
 		public Color GetPixel(int x, int y)
 		{

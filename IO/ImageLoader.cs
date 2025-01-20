@@ -4,10 +4,13 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Critters.IO
 {
+	/// <summary>
+	/// The image is loaded with 24-bit RGB colors, then compressed into the radial palette.
+	/// </summary>
 	class ImageLoader : IResourceLoader
 	{
 		private const int SRC_BPP = 4;
-		private const int DST_BPP = 3;
+		private const int DST_BPP = 1;
 
 		public object Load(string path)
 		{
@@ -22,11 +25,19 @@ namespace Critters.IO
         image.CopyPixelDataTo(pixels0);
 
 				var pixels1 = new byte[image.Width * image.Height * DST_BPP];
-				for (var n = 0; n < pixels0.Length; n += SRC_BPP)
+				for (int n0 = 0, n1 = 0; n0 < pixels0.Length; n0 += SRC_BPP, n1++)
 				{
-					pixels1[n / SRC_BPP * DST_BPP] = pixels0[n];
-					pixels1[n / SRC_BPP * DST_BPP + 1] = pixels0[n + 1];
-					pixels1[n / SRC_BPP * DST_BPP + 2] = pixels0[n + 2];
+					var r = pixels0[n0];
+					var g = pixels0[n0 + 1];
+					var b = pixels0[n0 + 2];
+
+					var r6 = (byte)(r / (255.0 / 5));
+					var g6 = (byte)(g / (255.0 / 5));
+					var b6 = (byte)(b / (255.0 / 5));
+
+					var index = (byte)(r6 * 6 * 6 + g6 * 6 + b6);
+
+					pixels1[n1] = index;
 				}
 
 				return new Image(image.Width, image.Height, pixels1);

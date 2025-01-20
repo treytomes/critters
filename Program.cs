@@ -61,13 +61,13 @@ namespace Critters
       //   }
       // }
 
-      // rc.DrawImage(image, 100, 100);
+      image.Draw(rc, 100, 100);
 
-      var tiles = new TileSet<Bitmap>(new Bitmap(image), 8, 8);
-      tiles[65].Draw(rc, 100, 100, palette[5, 5, 5], palette[0, 0, 4]);
+      // var tiles = new TileSet<Bitmap>(new Bitmap(image), 8, 8);
+      // tiles[65].Draw(rc, 100, 100, palette[5, 5, 5], palette[0, 0, 4]);
 
-      var font = new Font(tiles);
-      font.WriteString(rc, "Hello world!", 150, 120, palette[5, 4, 3], palette[0, 0, 0]);
+      // var font = new Font(tiles);
+      // font.WriteString(rc, "Hello world!", 150, 120, palette[5, 4, 3], palette[0, 0, 0]);
 
       window.RenderFrame += (FrameEventArgs e) =>
       {

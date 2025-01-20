@@ -24,14 +24,12 @@ namespace Critters.Gfx
 		};
 
 		public readonly Palette Palette;
-		private readonly int _virtualWidth;
-		private readonly int _virtualHeight;
-		private int _textureId;
 		private int _vao;
 		private int _vbo;
 		private int _ebo;
 		private ShaderProgram _shaderProgram;
-		private bool disposedValue;
+		private readonly Texture _texture;
+		private bool _disposedValue;
 
 		#endregion
 
@@ -39,71 +37,60 @@ namespace Critters.Gfx
 
 		public VirtualDisplay(Settings.VirtualDisplaySettings settings)
 		{
-				_virtualWidth = settings.Width;
-				_virtualHeight = settings.Height;
+			// Compile shaders
+			_shaderProgram = new ShaderProgram(settings.VertexShaderPath, settings.FragmentShaderPath);
 
-				// Compile shaders
-				_shaderProgram = new ShaderProgram(settings.VertexShaderPath, settings.FragmentShaderPath);
+			// Generate texture
+			_texture = new Texture(settings.Width, settings.Height, true);
 
-				// Generate texture
-				_textureId = GL.GenTexture();
-				if (_textureId == 0)
-				{
-					throw new Exception("Failed to generate texture.");
-				}
+			// Create VAO, VBO, and EBO
+			_vao = GL.GenVertexArray();
+			if (_vao == 0)
+			{
+				throw new Exception("Unable to generate vertex array.");
+			}
 
-				GL.BindTexture(TextureTarget.Texture2D, _textureId);
-				GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.R8, _virtualWidth, _virtualHeight, 0, PixelFormat.Red, PixelType.UnsignedByte, IntPtr.Zero);
+			_vbo = GL.GenBuffer();
+			if (_vbo == 0)
+			{
+				throw new Exception("Unable to generate vertex buffer.");
+			}
 
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+			_ebo = GL.GenBuffer();
+			if (_ebo == 0)
+			{
+				throw new Exception("Unable to generate element buffer.");
+			}
 
-				// Create VAO, VBO, and EBO
-				_vao = GL.GenVertexArray();
-				_vbo = GL.GenBuffer();
-				_ebo = GL.GenBuffer();
+			GL.BindVertexArray(_vao);
 
-				GL.BindVertexArray(_vao);
+			// Bind vertex buffer
+			GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
+			GL.BufferData(BufferTarget.ArrayBuffer, QuadVertices.Length * sizeof(float), QuadVertices, BufferUsageHint.StaticDraw);
 
-				// Bind vertex buffer
-				GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
-				GL.BufferData(BufferTarget.ArrayBuffer, QuadVertices.Length * sizeof(float), QuadVertices, BufferUsageHint.StaticDraw);
+			// Bind element buffer
+			GL.BindBuffer(BufferTarget.ElementArrayBuffer, _ebo);
+			GL.BufferData(BufferTarget.ElementArrayBuffer, QuadIndices.Length * sizeof(uint), QuadIndices, BufferUsageHint.StaticDraw);
 
-				// Bind element buffer
-				GL.BindBuffer(BufferTarget.ElementArrayBuffer, _ebo);
-				GL.BufferData(BufferTarget.ElementArrayBuffer, QuadIndices.Length * sizeof(uint), QuadIndices, BufferUsageHint.StaticDraw);
+			// Set vertex attribute pointers
+			GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
+			GL.EnableVertexAttribArray(0);
 
-				// Set vertex attribute pointers
-				GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-				GL.EnableVertexAttribArray(0);
+			GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
+			GL.EnableVertexAttribArray(1);
 
-				GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
-				GL.EnableVertexAttribArray(1);
+			GL.BindVertexArray(0);
 
-				GL.BindVertexArray(0);
-
-				Palette = new Palette();
+			Palette = new Palette();
 		}
 
 		#endregion
 
 		#region Properties
 
-		public int Width
-		{
-			get
-			{
-				return _virtualWidth;
-			}
-		}
+		public int Width => _texture.Width;
 
-		public int Height
-		{
-			get
-			{
-				return _virtualHeight;
-			}
-		}
+		public int Height => _texture.Height;
 
 		#endregion
 
@@ -111,16 +98,15 @@ namespace Critters.Gfx
 
 		public void UpdatePixels(byte[] pixelData)
 		{
-			GL.BindTexture(TextureTarget.Texture2D, _textureId);
-			GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, _virtualWidth, _virtualHeight, PixelFormat.Red, PixelType.UnsignedByte, pixelData);
+			_texture.Data = pixelData;
 		}
 
 		public void Render(Vector2i windowSize)
 		{
 			GL.Clear(ClearBufferMask.ColorBufferBit);
 
-			// Calculate aspect ratios
-			var virtualAspect = (float)_virtualWidth / _virtualHeight;
+			// Calculate aspect ratios.
+			var virtualAspect = (float)_texture.Width / _texture.Height;
 			var windowAspect = (float)windowSize.X / windowSize.Y;
 
 			// Calculate scaling factors
@@ -131,18 +117,18 @@ namespace Critters.Gfx
 			if (windowAspect > virtualAspect)
 			{
 				// Window is wider than the virtual display
-				scale = (float)windowSize.Y / _virtualHeight;
-				xPadding = (windowSize.X - _virtualWidth * scale) / 2f;
+				scale = (float)windowSize.Y / _texture.Height;
+				xPadding = (windowSize.X - _texture.Width * scale) / 2f;
 			}
 			else
 			{
 				// Window is taller than the virtual display
-				scale = (float)windowSize.X / _virtualWidth;
-				yPadding = (windowSize.Y - _virtualHeight * scale) / 2f;
+				scale = (float)windowSize.X / _texture.Width;
+				yPadding = (windowSize.Y - _texture.Height * scale) / 2f;
 			}
 
 			// Set the viewport with padding
-			GL.Viewport((int)xPadding, (int)yPadding, (int)(_virtualWidth * scale), (int)(_virtualHeight * scale));
+			GL.Viewport((int)xPadding, (int)yPadding, (int)(_texture.Width * scale), (int)(_texture.Height * scale));
 			
 			// Use shader and VAO
 			_shaderProgram.Use();
@@ -155,7 +141,7 @@ namespace Critters.Gfx
 
 			// Bind texture
 			GL.ActiveTexture(TextureUnit.Texture0);
-			GL.BindTexture(TextureTarget.Texture2D, _textureId);
+			_texture.Bind();
 			GL.Uniform1(_shaderProgram.GetUniformLocation("uTexture"), 0);
 
 			// Draw quad
@@ -168,20 +154,20 @@ namespace Critters.Gfx
 
 		protected virtual void Dispose(bool disposing)
 		{
-			if (!disposedValue)
+			if (!_disposedValue)
 			{
 				if (disposing)
 				{
-					_shaderProgram.Dispose();
-					Palette.Dispose();
+					_shaderProgram?.Dispose();
+					Palette?.Dispose();
+					_texture?.Dispose();
 				}
 
-				GL.DeleteTexture(_textureId);
 				GL.DeleteBuffer(_ebo);
 				GL.DeleteBuffer(_vao);
 				GL.DeleteBuffer(_vbo);
 
-				disposedValue = true;
+				_disposedValue = true;
 			}
 		}
 
