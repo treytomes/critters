@@ -38,13 +38,13 @@ class MouseCursor : IGameComponent
     {
       return;
     }
-    _image?.Draw(rc, (int)_position.X, (int)_position.Y);
+    _image?.Render(rc, (int)_position.X, (int)_position.Y);
   }
 
   private void OnMouseMove(MouseMoveEventArgs e)
   {
     _position = e.Position;
-    Console.WriteLine("Mouse position: {0}, delta: {1}", e.Position, e.Delta);
+    // Console.WriteLine("Mouse position: {0}, delta: {1}", e.Position, e.Delta);
   }
 
   #endregion

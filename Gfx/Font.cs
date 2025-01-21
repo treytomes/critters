@@ -23,7 +23,7 @@ class Font
 	{
 		for (int i = 0; i < text.Length; i++)
 		{
-			_tiles[text[i]].Draw(rc, x + i * 8, y, fg, bg);
+			_tiles[text[i]].Render(rc, x + i * 8, y, fg, bg);
 		}
 	}
 

@@ -22,7 +22,7 @@ class ImageTestState : GameState
   public override void Render(RenderingContext rc, GameTime gameTime)
   {
     rc.Fill(rc.Palette[1, 1, 0]);
-    _image!.Draw(rc, 100, 100);
+    _image!.Render(rc, 100, 100);
   }
 
   #endregion

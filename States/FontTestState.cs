@@ -26,7 +26,7 @@ class FontTestState : GameState
   {
     rc.Fill(rc.Palette[1, 1, 0]);
 
-    _tiles?[1].Draw(rc, 100, 100, rc.Palette[5, 5, 5], 255);
+    _tiles?[1].Render(rc, 100, 100, rc.Palette[5, 5, 5], 255);
 
     _font?.WriteString(rc, "Hello world!", 150, 120, rc.Palette[5, 4, 3], rc.Palette[0, 0, 0]);
   }

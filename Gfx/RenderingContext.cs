@@ -99,17 +99,17 @@ class RenderingContext
 		return Data[index];
 	}
 
-	public void DrawFilledRect(Box2 box, byte paletteIndex)
+	public void RenderFilledRect(Box2 box, byte paletteIndex)
 	{
-		DrawFilledRect(box.Min, box.Max, paletteIndex);
+		RenderFilledRect(box.Min, box.Max, paletteIndex);
 	}
 
-	public void DrawFilledRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)
+	public void RenderFilledRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)
 	{
-		DrawFilledRect((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex);
+		RenderFilledRect((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex);
 	}
 
-	public void DrawFilledRect(int x1, int y1, int x2, int y2, byte paletteIndex)
+	public void RenderFilledRect(int x1, int y1, int x2, int y2, byte paletteIndex)
 	{
 		if (x1 > x2)
 		{
@@ -129,30 +129,30 @@ class RenderingContext
 		}
 	}
 
-	public void DrawRect(Box2 box, byte paletteIndex)
+	public void RenderRect(Box2 box, byte paletteIndex)
 	{
-		DrawRect(box.Min, box.Max, paletteIndex);
+		RenderRect(box.Min, box.Max, paletteIndex);
 	}
 
-	public void DrawRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)
+	public void RenderRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)
 	{
-		DrawRect((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex);
+		RenderRect((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex);
 	}
 
-	public void DrawRect(int x1, int y1, int x2, int y2, byte paletteIndex)
+	public void RenderRect(int x1, int y1, int x2, int y2, byte paletteIndex)
 	{
-		DrawHLine(x1, x2, y1, paletteIndex);
-		DrawHLine(x1, x2, y2, paletteIndex);
-		DrawVLine(x1, y1, y2, paletteIndex);
-		DrawVLine(x2, y1, y2, paletteIndex);
+		RenderHLine(x1, x2, y1, paletteIndex);
+		RenderHLine(x1, x2, y2, paletteIndex);
+		RenderVLine(x1, y1, y2, paletteIndex);
+		RenderVLine(x2, y1, y2, paletteIndex);
 	}
 
-	public void DrawHLine(Vector2 pnt, int len, byte paletteIndex)
+	public void RenderHLine(Vector2 pnt, int len, byte paletteIndex)
 	{
-		DrawHLine((int)pnt.X, (int)(pnt.X + len - 1), (int)pnt.Y, paletteIndex);
+		RenderHLine((int)pnt.X, (int)(pnt.X + len - 1), (int)pnt.Y, paletteIndex);
 	}
 
-	public void DrawHLine(int x1, int x2, int y, byte paletteIndex)
+	public void RenderHLine(int x1, int x2, int y, byte paletteIndex)
 	{
 		if (x1 > x2)
 		{
@@ -165,12 +165,12 @@ class RenderingContext
 		}
 	}
 
-	public void DrawVLine(Vector2 pnt, int len, byte paletteIndex)
+	public void RenderVLine(Vector2 pnt, int len, byte paletteIndex)
 	{
-		DrawVLine((int)pnt.X, (int)pnt.Y, (int)(pnt.Y + len - 1), paletteIndex);
+		RenderVLine((int)pnt.X, (int)pnt.Y, (int)(pnt.Y + len - 1), paletteIndex);
 	}
 
-	public void DrawVLine(int x, int y1, int y2, byte paletteIndex)
+	public void RenderVLine(int x, int y1, int y2, byte paletteIndex)
 	{
 		if (y1 > y2)
 		{
@@ -183,15 +183,15 @@ class RenderingContext
 		}
 	}
 
-	public void DrawLine(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)
+	public void RenderLine(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)
 	{
-		DrawLine((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex);
+		RenderLine((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex);
 	}
 
 	/// <summary>
 	/// Bresenham's line algorithm.
 	/// </summary>
-	public void DrawLine(int x1, int y1, int x2, int y2, byte paletteIndex)
+	public void RenderLine(int x1, int y1, int x2, int y2, byte paletteIndex)
 	{
 		int dx = Math.Abs(x2 - x1);
 		int sx = x1 < x2 ? 1 : -1;
@@ -220,19 +220,19 @@ class RenderingContext
 		}
 	}
 
-	public void DrawCircle(Vector2 center, int radius, byte paletteIndex)
+	public void RenderCircle(Vector2 center, int radius, byte paletteIndex)
 	{
-		DrawCircle((int)center.X, (int)center.Y, radius, paletteIndex);
+		RenderCircle((int)center.X, (int)center.Y, radius, paletteIndex);
 	}
 
-	public void DrawCircle(int xc, int yc, int radius, byte paletteIndex)
+	public void RenderCircle(int xc, int yc, int radius, byte paletteIndex)
 	{
 		int x = 0;
 		int y = radius;
 		int d = 3 - (radius << 1);
 		while (y >= x)
 		{
-			DrawCirclePoints(xc, yc, x, y, paletteIndex);
+			RenderCirclePoints(xc, yc, x, y, paletteIndex);
 			x++;
 
 			// Check for decision parameter and correspondingly update d, x, y.
@@ -248,7 +248,7 @@ class RenderingContext
 		}
 	}
 
-	private void DrawCirclePoints(int xc, int yc, int x, int y, byte paletteIndex)
+	private void RenderCirclePoints(int xc, int yc, int x, int y, byte paletteIndex)
 	{
 		SetPixel(xc + x, yc + y, paletteIndex);
 		SetPixel(xc + x, yc - y, paletteIndex);
@@ -260,14 +260,14 @@ class RenderingContext
 		SetPixel(xc - y, yc - x, paletteIndex);
 	}
 
-	public void DrawFilledCircle(int xc, int yc, int radius, byte paletteIndex)
+	public void RenderFilledCircle(int xc, int yc, int radius, byte paletteIndex)
 	{
 		int x = 0;
 		int y = radius;
 		int d = 3 - (radius << 1);
 		while (y >= x)
 		{
-			DrawFilledCirclePoints(xc, yc, x, y, paletteIndex);
+			RenderFilledCirclePoints(xc, yc, x, y, paletteIndex);
 			x++;
 
 			// Check for decision parameter and correspondingly update d, x, y.
@@ -283,12 +283,12 @@ class RenderingContext
 		}
 	}
 
-	private void DrawFilledCirclePoints(int xc, int yc, int x, int y, byte paletteIndex)
+	private void RenderFilledCirclePoints(int xc, int yc, int x, int y, byte paletteIndex)
 	{
-		DrawHLine(xc - x, xc + x, yc + y, paletteIndex);
-		DrawHLine(xc - x, xc + x, yc - y, paletteIndex);
-		DrawHLine(xc - y, xc + y, yc + x, paletteIndex);
-		DrawHLine(xc - y, xc + y, yc - x, paletteIndex);
+		RenderHLine(xc - x, xc + x, yc + y, paletteIndex);
+		RenderHLine(xc - x, xc + x, yc - y, paletteIndex);
+		RenderHLine(xc - y, xc + y, yc + x, paletteIndex);
+		RenderHLine(xc - y, xc + y, yc - x, paletteIndex);
 	}
 
 	public void FloodFill(Vector2 pnt, byte paletteIndex)

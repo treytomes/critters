@@ -1,3 +1,5 @@
+using OpenTK.Mathematics;
+
 namespace Critters.Gfx;
 
 /// <summary>
@@ -49,7 +51,7 @@ class Image : IImage<Image, byte>
 
 	#region Methods
 
-	// public void Draw(RenderingContext rc, int x, int y)
+	// public void Render(RenderingContext rc, int x, int y)
 	// {
 	// 	if (x + Width < 0 || y + Height < 0 || x >= rc.Width || y >= rc.Height)
 	// 	{
@@ -79,10 +81,15 @@ class Image : IImage<Image, byte>
 	// }
 
 
+	public void Render(RenderingContext rc, Vector2 position)
+	{
+		Render(rc, (int)position.X, (int)position.Y);
+	}
+
 	/// <summary>
 	/// A value of 255 in either color indicates transparent.
 	/// </summary>
-	public void Draw(RenderingContext rc, int x, int y)
+	public void Render(RenderingContext rc, int x, int y)
 	{
 		for (var dy = 0; dy < Height; dy++)
 		{

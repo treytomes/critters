@@ -6,7 +6,7 @@ using OpenTK.Windowing.Common;
 
 namespace Critters.States;
 
-class MainMenuState : GameState
+class RasterGraphicsTestState : GameState
 {
 	private bool _hasMouseHover = false;
 	private Box2 _bounds = new Box2(32, 32, 128, 96);

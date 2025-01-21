@@ -1,4 +1,4 @@
-using OpenTK.Graphics.ES20;
+using OpenTK.Mathematics;
 
 namespace Critters.Gfx;
 
@@ -69,11 +69,16 @@ class Bitmap : IImage<Bitmap, bool>
 
 	#region Methods
 
+	public void Render(RenderingContext rc, Vector2 position, byte fgColor, byte bgColor)
+	{
+		Render(rc, (int)position.X, (int)position.Y, fgColor, bgColor);
+	}
+
 	/// <summary>
-	/// Draw a bitmap with the set foreground and background colors.
+	/// Render a bitmap with the set foreground and background colors.
 	/// A value of 255 in either color indicates transparent.
 	/// </summary>
-	public void Draw(RenderingContext rc, int x, int y, byte fgColor, byte bgColor)
+	public void Render(RenderingContext rc, int x, int y, byte fgColor, byte bgColor)
 	{
 		for (var dy = 0; dy < Height; dy++)
 		{
