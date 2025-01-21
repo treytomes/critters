@@ -1,13 +1,14 @@
 {
+	"AssetRoot": "assets",
 	"Window": {
 		"Width": 1280,
 		"Height": 720,
 		"Title": "Creatures & Critters"
 	},
 	"VirtualDisplay": {
-			"Width": 320,
-			"Height": 240,
-			"VertexShaderPath": "assets/shaders/vertex.glsl",
-			"FragmentShaderPath": "assets/shaders/fragment.glsl"
+		"Width": 320,
+		"Height": 240,
+		"VertexShaderPath": "assets/shaders/vertex.glsl",
+		"FragmentShaderPath": "assets/shaders/fragment.glsl"
 	}
 }

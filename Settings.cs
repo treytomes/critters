@@ -4,6 +4,7 @@ namespace Critters;
 
 class Settings
 {
+    public required string AssetRoot { get; set; }
     public required WindowSettings Window { get; set; }
     public required VirtualDisplaySettings VirtualDisplay { get; set; }
 

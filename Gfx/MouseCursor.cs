@@ -22,7 +22,7 @@ class MouseCursor : IGameComponent
     _image = resources.Load<Image>("mouse_cursor.png");
     _image.Recolor(0, 255);
     _image.Recolor(129, 0);
-    Console.WriteLine("mouse colors: {0}", string.Join(',', _image.Data.Distinct().ToArray()));
+    // Console.WriteLine("mouse colors: {0}", string.Join(',', _image.Data.Distinct().ToArray()));
 
     eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
   }

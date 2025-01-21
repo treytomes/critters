@@ -26,7 +26,7 @@ class Program
     using var display = new VirtualDisplay(window.ClientSize, settings.VirtualDisplay);
     var rc = new RenderingContext(display);
 
-    var resources = new ResourceManager("assets");
+    var resources = new ResourceManager(settings.AssetRoot);
     resources.Register<Image, ImageLoader>();
 
     var eventBus = new EventBus();
@@ -35,9 +35,11 @@ class Program
     mouseCursor.Load(resources, eventBus);
 
     var states = new GameStateManager();
+    states.Load(resources, eventBus);
     // states.EnterState(new ImageTestState());
     // states.EnterState(new FontTestState());
-    states.EnterState(new PatternTestState());
+    // states.EnterState(new PatternTestState());
+    states.EnterState(new MainMenuState());
 
     // Occurs when the window is about to close.
     window.Closing += (CancelEventArgs e) => {
