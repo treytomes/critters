@@ -40,7 +40,8 @@ class Program
     // states.EnterState(new FontTestState());
     // states.EnterState(new PatternTestState());
     // states.EnterState(new RasterGraphicsTestState());
-    states.EnterState(new MainMenuState());
+    states.EnterState(new TileMapTestState());
+    // states.EnterState(new MainMenuState());
 
     // Occurs when the window is about to close.
     window.Closing += (CancelEventArgs e) => {
@@ -148,7 +149,8 @@ class Program
     window.UpdateFrame += (FrameEventArgs e) =>
     {
       updateGameTime = updateGameTime.Add(e.Time);
-      // states.Update(e.Time);
+      states.Update(updateGameTime);
+      mouseCursor.Update(updateGameTime);
     };
     
     // Occurs when it is time to render a frame. This is invoked after GameWindow.UpdateFrequency.

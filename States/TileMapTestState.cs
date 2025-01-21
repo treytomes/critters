@@ -1,6 +1,8 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.UI;
+using Critters.World;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
@@ -8,48 +10,67 @@ namespace Critters.States;
 
 class TileMapTestState : GameState
 {
-	private bool _hasMouseHover = false;
-	private Box2 _bounds = new Box2(32, 32, 128, 96);
+	#region Fields
+
+	private Label _cameraLabel;
+	private Label _mouseLabel;
+	private List<UIElement> _ui = new List<UIElement>();
+	private Camera _camera;
+
+	#endregion
+
+	#region Constructors
+
+	public TileMapTestState()
+	{
+		_camera = new Camera();
+		
+		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_ui.Add(_cameraLabel);
+		
+		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_ui.Add(_mouseLabel);
+	}
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		foreach (var ui in _ui)
+		{
+			ui.Load(resources, eventBus);
+		}
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
+		foreach (var ui in _ui)
+		{
+			ui.Unload(resources, eventBus);
+		}
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
 		rc.Clear();
-
-		var segments = 32;
-		var dx = rc.Width / segments;
-		var dy = rc.Height / segments;
-		for (var n = 0; n < segments; n++)
+		foreach (var ui in _ui)
 		{
-			var x1 = 0;
-			var y1 = n * dy;
-			var x2 = (segments - n) * dx;
-			var y2 = 0;
-			rc.RenderLine(x1, y1, x2, y2, rc.Palette[0, 5, 0]);
+			ui.Render(rc, gameTime);
 		}
+	}
 
-		var fillColor = _hasMouseHover ? rc.Palette[0, 1, 4] : rc.Palette[0, 1, 3];
-		var borderColor = _hasMouseHover ? rc.Palette[5, 5, 5] : rc.Palette[4, 4, 4];
-		rc.RenderFilledRect(_bounds, fillColor);
-		rc.RenderRect(_bounds, borderColor);
-
-		rc.RenderCircle(290, 190, 24, rc.Palette[5, 4, 0]);
-		rc.RenderFilledCircle(290, 190, 23, rc.Palette[3, 2, 0]);
-
-		rc.FloodFill(new Vector2(310, 220), rc.Palette[1, 0, 2]);
+	public override void Update(GameTime gameTime)
+	{
+		foreach (var ui in _ui)
+		{
+			ui.Update(gameTime);
+		}
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)
 	{
-		_hasMouseHover = _bounds.ContainsInclusive(e.Position);
+		_mouseLabel.Text = $"Mouse:({(int)e.Position.X},{(int)e.Position.Y})";
 	}
+
+	#endregion
 }

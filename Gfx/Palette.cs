@@ -83,7 +83,8 @@ class Palette : IReadOnlyList<Color>, IDisposable
 	/// <param name="g6">0-5</param>
 	/// <param name="b6">0-5</param>
 	/// <returns></returns>
-	public byte this[byte r6, byte g6, byte b6] {
+	public byte this[byte r6, byte g6, byte b6]
+	{
 		get
 		{
 			return (byte)(r6 * 6 * 6 + g6 * 6 + b6);
@@ -95,6 +96,11 @@ class Palette : IReadOnlyList<Color>, IDisposable
 	#endregion
 
 	#region Methods
+
+	public static byte GetIndex(byte r6, byte g6, byte b6)
+	{
+		return (byte)(r6 * 6 * 6 + g6 * 6 + b6);
+	}
 
 	public IEnumerator<Color> GetEnumerator() => _colors.GetEnumerator();
 	

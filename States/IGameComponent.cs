@@ -9,4 +9,5 @@ interface IGameComponent
   void Load(ResourceManager resources, EventBus eventBus);
   void Unload(ResourceManager resources, EventBus eventBus);
   void Render(RenderingContext rc, GameTime gameTime);
+  void Update(GameTime gameTime);
 }

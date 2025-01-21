@@ -1,10 +1,11 @@
 using Critters.Events;
+using Critters.Gfx;
 using Critters.IO;
 using Critters.States;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
-namespace Critters.Gfx;
+namespace Critters.UI;
 
 class MouseCursor : IGameComponent
 {
@@ -21,7 +22,7 @@ class MouseCursor : IGameComponent
   {
     _image = resources.Load<Image>("mouse_cursor.png");
     _image.Recolor(0, 255);
-    _image.Recolor(129, 0);
+    _image.Recolor(129, Palette.GetIndex(1, 1, 1));
     // Console.WriteLine("mouse colors: {0}", string.Join(',', _image.Data.Distinct().ToArray()));
 
     eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
@@ -39,6 +40,10 @@ class MouseCursor : IGameComponent
       return;
     }
     _image?.Render(rc, (int)_position.X, (int)_position.Y);
+  }
+
+  public void Update(GameTime gameTime)
+  {
   }
 
   private void OnMouseMove(MouseMoveEventArgs e)

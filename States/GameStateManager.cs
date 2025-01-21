@@ -24,13 +24,13 @@ class GameStateManager : IGameComponent
     }
   }
 
-  public GameState CurrentState
+  public GameState? CurrentState
   {
     get
     {
       if (_states.Count == 0)
       {
-        throw new NoStateException();
+        return null;
       }
       return _states[0];
     }
@@ -68,7 +68,12 @@ class GameStateManager : IGameComponent
 
   public void Render(RenderingContext rc, GameTime gameTime)
   {
-    _states[0].Render(rc, gameTime);
+    CurrentState?.Render(rc, gameTime);
+  }
+
+  public void Update(GameTime gameTime)
+  {
+    CurrentState?.Update(gameTime);
   }
 
   #endregion
