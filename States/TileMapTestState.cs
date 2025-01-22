@@ -18,6 +18,8 @@ class TileMapTestState : GameState
 	private Camera _camera;
 	private Level? _level = null;
 
+	private int _buttonId;
+
 	#endregion
 
 	#region Constructors
@@ -35,6 +37,7 @@ class TileMapTestState : GameState
 		var button = new Button(new Vector2(32, 32));
 		var buttonLabel = new Label("Button", new Vector2(0, 0), Palette.GetIndex(0, 0, 0), 255);
 		button.Content = buttonLabel;
+		_buttonId = button.Id;
 
 		_ui.Add(button);
 	}
@@ -64,7 +67,9 @@ class TileMapTestState : GameState
 		{
 			ui.Load(resources, eventBus);
 		}
+
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		eventBus.Subscribe<ButtonPressedEventArgs>(OnButtonPressed);
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
@@ -73,7 +78,9 @@ class TileMapTestState : GameState
 		{
 			ui.Unload(resources, eventBus);
 		}
+
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		eventBus.Unsubscribe<ButtonPressedEventArgs>(OnButtonPressed);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
@@ -99,6 +106,15 @@ class TileMapTestState : GameState
 	private void OnMouseMove(MouseMoveEventArgs e)
 	{
 		_mouseLabel.Text = $"Mouse:({(int)e.Position.X},{(int)e.Position.Y})";
+	}
+
+	private void OnButtonPressed(ButtonPressedEventArgs e)
+	{
+		if (e.ButtonId == _buttonId)
+		{
+			Console.WriteLine($"Button {e.ButtonId} pressed.");
+			_camera.ScrollBy(new Vector2(8, 0));
+		}
 	}
 
 	#endregion

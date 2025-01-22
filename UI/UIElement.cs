@@ -28,18 +28,20 @@ class UIElement : IGameComponent
 	public Vector2 Size { get; protected set; }
 	public Box2 Bounds => new(Position, Position + Size);
 	public Thickness Padding = new(0);
+	public Thickness Margin = new(0);
 
 	public Vector2 AbsolutePosition
 	{
 		get
 		{
+			var position = new Vector2(Margin.Left, Margin.Top) + Position;
 			if (Parent != null)
 			{
-				return Parent.AbsolutePosition + new Vector2(Parent.Padding.Left, Parent.Padding.Top) + Position;
+				return Parent.AbsolutePosition + new Vector2(Parent.Padding.Left, Parent.Padding.Top) + position;
 			}
 			else
 			{
-				return Position;
+				return position;
 			}
 		}
 	}

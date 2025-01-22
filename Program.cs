@@ -78,10 +78,16 @@ class Program
     window.KeyUp += (KeyboardKeyEventArgs e) => {};
 
     // Occurs whenever a OpenTK.Windowing.GraphicsLibraryFramework.MouseButton is clicked.
-    window.MouseDown += (MouseButtonEventArgs e) => {};
+    window.MouseDown += (MouseButtonEventArgs e) =>
+    {
+      eventBus.Publish(e);
+    };
 
     // Occurs whenever a OpenTK.Windowing.GraphicsLibraryFramework.MouseButton is released.
-    window.MouseUp += (MouseButtonEventArgs e) => {};
+    window.MouseUp += (MouseButtonEventArgs e) =>
+    {
+      eventBus.Publish(e);
+    };
 
     // Occurs whenever the mouse cursor enters the window NativeWindow.Bounds.
     // window.MouseEnter += () => {};
