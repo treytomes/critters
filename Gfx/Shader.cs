@@ -39,9 +39,10 @@ class Shader : IDisposable
 		{
 			if (disposing)
 			{
-					// TODO: dispose managed state (managed objects)
+					// Dispose managed state (managed objects).
 			}
 
+			// Dispose unmanaged state.
 			GL.DeleteShader(Id);
 			disposedValue = true;
 		}

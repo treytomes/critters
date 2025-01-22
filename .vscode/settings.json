@@ -4,6 +4,10 @@
     "Croppable",
     "finalizer",
     "glsl",
+    "Newtonsoft",
     "Roguelike"
-  ]
+  ],
+  "editor.tabSize": 2,
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false
 }

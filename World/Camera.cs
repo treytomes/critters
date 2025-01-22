@@ -6,9 +6,10 @@ class Camera
 {
 	#region Constructors
 
-	public Camera()
+	public Camera(Vector2 viewportSize)
 	{
 		Position = Vector2.Zero;
+		ViewportSize = viewportSize;
 	}
 
 	#endregion
@@ -16,6 +17,7 @@ class Camera
 	#region Properties
 
 	public Vector2 Position { get; set; }
+	public Vector2 ViewportSize { get; }
 
 	#endregion
 
@@ -23,17 +25,22 @@ class Camera
 
 	public void ScrollBy(Vector2 delta)
 	{
-		Position += delta;
+		Position += delta.Floor();
 	}
 
 	public void ScrollTo(Vector2 position)
 	{
-		Position = position;
+		Position = position.Floor();
 	}
 
-	public Vector2 Transform(Vector2 position)
+	public Vector2 ScreenToWorld(Vector2 position)
 	{
-		return position - Position;
+		return position + Position - ViewportSize / 2;
+	}
+
+	public Vector2 WorldToScreen(Vector2 position)
+	{
+		return position - Position + ViewportSize / 2;
 	}
 
 	#endregion

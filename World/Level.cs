@@ -33,6 +33,7 @@ class Level
 	{
 		if (!_chunks.TryGetValue((chunkX, chunkY), out var chunk))
 		{
+			Console.WriteLine("Creating chunk: {0}, {1}", chunkX, chunkY);
 			chunk = new Chunk(_chunkSize);
 			_chunks[(chunkX, chunkY)] = chunk;
 		}
@@ -59,6 +60,8 @@ class Level
 	// TODO: If this doesn't work for negatives, use FloorDiv.
 	public Tile? GetTile(Vector2 worldPosition) => GetTile((int)worldPosition.X, (int)worldPosition.Y);
 
+	public Tile? GetTile(float worldX, float worldY) => GetTile((int)worldX, (int)worldY);
+
 	/// <summary>
 	/// Get a tile at a specific world position.
 	/// </summary>
@@ -80,18 +83,23 @@ class Level
 	public void Render(RenderingContext rc, Camera camera)
 	{
 		// Calculate visible tile range.
-		var startX = (int)Math.Floor(camera.Position.X);
-		var startY = (int)Math.Floor(camera.Position.Y);
+		var startPos = ((camera.Position - rc.ViewportSize / 2) / _tileSize).Floor() * _tileSize;
 
-		var endX = startX + rc.Width;
-		var endY = startY + rc.Height;
+		// Render one extra tile around the edges.
+		var endPos = startPos + rc.ViewportSize + Vector2.One * _tileSize;
+		var endX = startPos.X + rc.Width + _tileSize;
+		var endY = startPos.Y + rc.Height + _tileSize;
 
-		for (var y = startY; y < endY; y += _tileSize)
+		for (var y = startPos.Y; y < endPos.Y; y += _tileSize)
 		{
-			for (var x = startX; x < endX; x += _tileSize)
+			for (var x = startPos.X; x < endPos.X; x += _tileSize)
 			{
-				var tile = GetTile(x / _tileSize, y / _tileSize);
-				tile?.Render(rc, new Vector2(x, y)); // Render the tile at the correct screen position.
+				var tileX = x / _tileSize;
+				var tileY = y / _tileSize;
+
+				var screenPos = camera.WorldToScreen(new Vector2(x, y));
+				var tile = GetTile(tileX, tileY);
+				tile?.Render(rc, screenPos); // Render the tile at the correct screen position.
 			}
 		}
 

@@ -5,6 +5,7 @@ using Critters.UI;
 using Critters.World;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.States;
 
@@ -17,6 +18,7 @@ class TileMapTestState : GameState
 	private List<UIElement> _ui = new List<UIElement>();
 	private Camera _camera;
 	private Level? _level = null;
+	private bool _isDraggingCamera = false;
 
 	private int _buttonId;
 
@@ -26,7 +28,7 @@ class TileMapTestState : GameState
 
 	public TileMapTestState()
 	{
-		_camera = new Camera();
+		_camera = new Camera(new Vector2(320, 240));
 		
 		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
 		_ui.Add(_cameraLabel);
@@ -63,12 +65,24 @@ class TileMapTestState : GameState
 			}
 		}
 
+		for (var y = -64; y <= 64; y++)
+		{
+			_level.SetTile(-64, y, tiles.Rock);
+			_level.SetTile(64, y, tiles.Rock);
+		}
+		for (var x = -64; x <= 64; x++)
+		{
+			_level.SetTile(x, -64, tiles.Rock);
+			_level.SetTile(x, 64, tiles.Rock);
+		}
+
 		foreach (var ui in _ui)
 		{
 			ui.Load(resources, eventBus);
 		}
 
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 		eventBus.Subscribe<ButtonPressedEventArgs>(OnButtonPressed);
 	}
 
@@ -80,6 +94,7 @@ class TileMapTestState : GameState
 		}
 
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
 		eventBus.Unsubscribe<ButtonPressedEventArgs>(OnButtonPressed);
 	}
 
@@ -106,6 +121,19 @@ class TileMapTestState : GameState
 	private void OnMouseMove(MouseMoveEventArgs e)
 	{
 		_mouseLabel.Text = $"Mouse:({(int)e.Position.X},{(int)e.Position.Y})";
+
+		if (_isDraggingCamera)
+		{
+			_camera.ScrollBy(e.Delta);
+		}
+	}
+
+	private void OnMouseButton(MouseButtonEventArgs e)
+	{
+		if (e.Button == MouseButton.Middle)
+		{
+			_isDraggingCamera = e.IsPressed;
+		}
 	}
 
 	private void OnButtonPressed(ButtonPressedEventArgs e)

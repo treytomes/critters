@@ -46,6 +46,10 @@ class ContentPresenter : UIElement
 			{
 				if (_content != null)
 				{
+					if (IsLoaded)
+					{
+						_content.Unload(_resourceManager!, _eventBus!);
+					}
 					_content.PropertyChanged -= OnContentPropertyChanged;
 				}
 
@@ -53,6 +57,10 @@ class ContentPresenter : UIElement
 
 				if (_content != null)
 				{
+					if (IsLoaded)
+					{
+						_content.Load(_resourceManager!, _eventBus!);
+					}
 					_content.PropertyChanged += OnContentPropertyChanged;
 					_content.Parent = this;
 				}
@@ -67,17 +75,22 @@ class ContentPresenter : UIElement
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		if (IsLoaded)
+		{
+			return;
+		}
+
 		base.Load(resources, eventBus);
 		Content?.Load(resources, eventBus);
-		if (Content != null)
-		{
-			// TODO: Updating Padding should automatically update Size.  I think.
-			Size = Content.Size + new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
-		}
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
+		if (!IsLoaded)
+		{
+			return;
+		}
+		
 		base.Unload(resources, eventBus);
 		Content?.Unload(resources, eventBus);
 	}
