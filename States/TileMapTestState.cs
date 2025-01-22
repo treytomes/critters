@@ -19,6 +19,13 @@ class TileMapTestState : GameState
 	private Camera _camera;
 	private Level? _level = null;
 	private bool _isDraggingCamera = false;
+	private Vector2 _cameraDelta = Vector2.Zero;
+	private bool _cameraFastMove = false;
+
+	/// <summary>
+	/// Speed is measured in pixels per second.
+	/// </summary>
+	private float _cameraSpeed = 8 * 8; // 8 tiles per second
 
 	private int _buttonId;
 
@@ -36,8 +43,8 @@ class TileMapTestState : GameState
 		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
 		_ui.Add(_mouseLabel);
 
-		var button = new Button(new Vector2(32, 32));
-		var buttonLabel = new Label("Button", new Vector2(0, 0), Palette.GetIndex(0, 0, 0), 255);
+		var button = new Button(new Vector2(32, 32), ButtonStyle.Raised);
+		var buttonLabel = new Label("> Button <", new Vector2(0, 0), Palette.GetIndex(0, 0, 0), 255);
 		button.Content = buttonLabel;
 		_buttonId = button.Id;
 
@@ -81,6 +88,7 @@ class TileMapTestState : GameState
 			ui.Load(resources, eventBus);
 		}
 
+		eventBus.Subscribe<KeyEventArgs>(OnKey);
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 		eventBus.Subscribe<ButtonPressedEventArgs>(OnButtonPressed);
@@ -93,6 +101,7 @@ class TileMapTestState : GameState
 			ui.Unload(resources, eventBus);
 		}
 
+		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
 		eventBus.Unsubscribe<ButtonPressedEventArgs>(OnButtonPressed);
@@ -116,6 +125,46 @@ class TileMapTestState : GameState
 		{
 			ui.Update(gameTime);
 		}
+		_camera.ScrollBy(_cameraDelta * (float)gameTime.ElapsedTime.TotalSeconds * _cameraSpeed * (_cameraFastMove ? 4 : 1));
+		_cameraLabel.Text = $"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})";
+	}
+
+	private void OnKey(KeyEventArgs e)
+	{
+		if (e.IsPressed)
+		{
+			switch (e.Key)
+			{
+				case Keys.W:
+					_cameraDelta = new Vector2(_cameraDelta.X, -1);
+					break;
+				case Keys.S:
+					_cameraDelta = new Vector2(_cameraDelta.X, 1);
+					break;
+				case Keys.A:
+					_cameraDelta = new Vector2(-1, _cameraDelta.Y);
+					break;
+				case Keys.D:
+					_cameraDelta = new Vector2(1, _cameraDelta.Y);
+					break;
+			}
+		}
+		else
+		{
+			switch (e.Key)
+			{
+				case Keys.W:
+				case Keys.S:
+					_cameraDelta = new Vector2(_cameraDelta.X, 0);
+					break;
+				case Keys.A:
+				case Keys.D:
+					_cameraDelta = new Vector2(0, _cameraDelta.Y);
+					break;
+			}
+		}
+
+		_cameraFastMove = e.Shift;
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)
@@ -124,7 +173,7 @@ class TileMapTestState : GameState
 
 		if (_isDraggingCamera)
 		{
-			_camera.ScrollBy(e.Delta);
+			_camera.ScrollBy(-e.Delta);
 		}
 	}
 

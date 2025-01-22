@@ -72,10 +72,16 @@ class Program
     // window.JoystickConnected += (JoystickEventArgs e) => {};
 
     // Occurs whenever a keyboard key is pressed.
-    window.KeyDown += (KeyboardKeyEventArgs e) => {};
+    window.KeyDown += (KeyboardKeyEventArgs e) =>
+		{
+			eventBus.Publish(new KeyEventArgs(e.Key, e.ScanCode, e.Modifiers, e.IsRepeat, true));
+		};
 
     // Occurs whenever a keyboard key is released.
-    window.KeyUp += (KeyboardKeyEventArgs e) => {};
+    window.KeyUp += (KeyboardKeyEventArgs e) =>
+		{
+			eventBus.Publish(new KeyEventArgs(e.Key, e.ScanCode, e.Modifiers, e.IsRepeat, false));
+		};
 
     // Occurs whenever a OpenTK.Windowing.GraphicsLibraryFramework.MouseButton is clicked.
     window.MouseDown += (MouseButtonEventArgs e) =>

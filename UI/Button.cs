@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
@@ -11,13 +10,17 @@ namespace Critters.UI;
 
 // TODO: Button styles for 3D or Flat.
 
+enum ButtonStyle
+{
+	Flat,
+	Raised,
+}
+
 class Button : ContentPresenter
 {
 	#region Constants
 
-	private const int PADDING_H = 8;
-	private const int PADDING_V = 0;
-	private const int SHADOW_OFFSET = 4;
+	private const int SHADOW_OFFSET = 2;
 
 	#endregion
 
@@ -25,6 +28,7 @@ class Button : ContentPresenter
 
 	private static int _nextId = 0;
 	public readonly int Id;
+	private readonly ButtonStyle _style;
 	private bool _hasMouseHover = false;
 	private bool _hasMouseFocus = false;
 	private EventBus? _eventBus = null;
@@ -33,17 +37,25 @@ class Button : ContentPresenter
 
 	#region Constructors
 
-	public Button(Vector2 position)
-		: this(null, position)
+	public Button(Vector2 position, ButtonStyle style = ButtonStyle.Raised)
+		: this(null, position, style)
 	{
 	}
 	
-	public Button(UIElement? parent, Vector2 position)
+	public Button(UIElement? parent, Vector2 position, ButtonStyle style = ButtonStyle.Raised)
 		: base(parent)
 	{
 		Id = _nextId++;
 		Position = position;
-		Padding = new(PADDING_H, PADDING_V);
+		if (_style == ButtonStyle.Flat)
+		{
+			Padding = new(3, 1, 0, 0);
+		}
+		else
+		{
+			Padding = new(8, 10, 8, 10);
+		}
+		_style = style;
 	}
 
 	#endregion
@@ -73,6 +85,34 @@ class Button : ContentPresenter
 
 	protected override void RenderSelf(RenderingContext rc, GameTime gameTime)
 	{
+		if (_style == ButtonStyle.Flat)
+		{
+			RenderFlat(rc, gameTime);
+		}
+		else if (_style == ButtonStyle.Raised)
+		{
+			RenderRaised(rc, gameTime);
+		}
+		
+		Content?.Render(rc, gameTime);
+	}
+
+	private void RenderFlat(RenderingContext rc, GameTime gameTime)
+	{
+		var color = rc.Palette[2, 2, 2];
+		if (_hasMouseFocus)
+		{
+			color = rc.Palette[4, 4, 4];
+		}
+		else if (_hasMouseHover)
+		{
+			color = rc.Palette[3, 3, 3];
+		}
+		rc.RenderFilledRect(AbsoluteBounds, color);
+	}
+
+	private void RenderRaised(RenderingContext rc, GameTime gameTime)
+	{
 		if (!_hasMouseFocus)
 		{
 			// Render the drop-shadow.
@@ -89,7 +129,6 @@ class Button : ContentPresenter
 			color = rc.Palette[3, 3, 3];
 		}
 		rc.RenderFilledRect(AbsoluteBounds, color);
-		Content?.Render(rc, gameTime);
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
@@ -116,7 +155,10 @@ class Button : ContentPresenter
 			{
 				if (_hasMouseHover)
 				{
-					Margin = new(SHADOW_OFFSET, SHADOW_OFFSET, 0, 0);
+					if (_style == ButtonStyle.Raised)
+					{
+						Margin = new(SHADOW_OFFSET, SHADOW_OFFSET, 0, 0);
+					}
 					_hasMouseFocus = true;
 				}
 			}
@@ -126,7 +168,10 @@ class Button : ContentPresenter
 				{
 					_eventBus?.Publish(new ButtonPressedEventArgs(Id));
 				}
-				Margin = new(0);
+				if (_style == ButtonStyle.Raised)
+				{
+					Margin = new(0);
+				}
 				_hasMouseFocus = false;
 			}
 		}

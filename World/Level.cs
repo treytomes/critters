@@ -97,7 +97,7 @@ class Level
 				var tileX = x / _tileSize;
 				var tileY = y / _tileSize;
 
-				var screenPos = camera.WorldToScreen(new Vector2(x, y));
+				var screenPos = camera.WorldToScreen(new Vector2(x, y)).Floor();
 				var tile = GetTile(tileX, tileY);
 				tile?.Render(rc, screenPos); // Render the tile at the correct screen position.
 			}

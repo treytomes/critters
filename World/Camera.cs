@@ -25,12 +25,12 @@ class Camera
 
 	public void ScrollBy(Vector2 delta)
 	{
-		Position += delta.Floor();
+		Position += delta;
 	}
 
 	public void ScrollTo(Vector2 position)
 	{
-		Position = position.Floor();
+		Position = position;
 	}
 
 	public Vector2 ScreenToWorld(Vector2 position)
