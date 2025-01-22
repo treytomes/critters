@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
@@ -9,7 +11,7 @@ namespace Critters.UI;
 
 // TODO: Button styles for 3D or Flat.
 
-class Button : UIElement
+class Button : ContentPresenter
 {
 	#region Constants
 
@@ -23,7 +25,6 @@ class Button : UIElement
 
 	private static int _nextId = 0;
 	public readonly int Id;
-	private UIElement? _content;
 	private bool _hasMouseHover = false;
 	private bool _hasMouseFocus = false;
 	private EventBus? _eventBus = null;
@@ -47,36 +48,15 @@ class Button : UIElement
 
 	#endregion
 
-	#region Properties
-
-	public UIElement? Content
-	{
-		get
-		{
-			return _content;
-		}
-		set
-		{
-			_content = value;
-			if (_content != null)
-			{
-				_content.Parent = this;
-			}
-		}
-	}
-
-	#endregion
-
 	#region Methods
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		base.Load(resources, eventBus);
+
 		if (Content != null)
 		{
 			Content.Load(resources, eventBus);
-
-			// TODO: Updating Padding should automatically update Size.  I think.
-			Size = Content.Size + new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
 		}
 
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
@@ -86,11 +66,12 @@ class Button : UIElement
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
-		Content?.Unload(resources, eventBus);
+		base.Unload(resources, eventBus);
+
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	protected override void RenderSelf(RenderingContext rc, GameTime gameTime)
 	{
 		if (!_hasMouseFocus)
 		{
@@ -109,6 +90,17 @@ class Button : UIElement
 		}
 		rc.RenderFilledRect(AbsoluteBounds, color);
 		Content?.Render(rc, gameTime);
+	}
+
+	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
+	{
+		base.OnPropertyChanged(propertyName);
+
+		if (propertyName == nameof(Content))
+		{
+			var contentSize = Content?.Size ?? Vector2.Zero;
+			Size = contentSize + new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
+		}
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)

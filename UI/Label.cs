@@ -1,5 +1,6 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
+using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
@@ -13,6 +14,8 @@ class Label : UIElement
 
 	private Font? _font;
 	private string _text;
+	private byte _foregroundColor;
+	private byte _backgroundColor;
 
 	#endregion
 
@@ -47,13 +50,42 @@ class Label : UIElement
 			if (_text != value)
 			{
 				_text = value;
-				Size = _font?.MeasureString(Text) ?? Vector2.Zero;
+				OnPropertyChanged();
 			}
 		}
 	}
 
-	public byte ForegroundColor { get; set; }
-	public byte BackgroundColor { get; set; }
+	public byte ForegroundColor
+	{
+		get
+		{
+			return _foregroundColor;
+		}
+		set
+		{
+			if (_foregroundColor != value)
+			{
+				_foregroundColor = value;
+				OnPropertyChanged();
+			}
+		}
+	}
+
+	public byte BackgroundColor
+	{
+		get
+		{
+			return _backgroundColor;
+		}
+		set
+		{
+			if (_backgroundColor != value)
+			{
+				_backgroundColor = value;
+				OnPropertyChanged();
+			}
+		}
+	}
 
 	#endregion
 
@@ -61,6 +93,8 @@ class Label : UIElement
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		base.Load(resources, eventBus);
+
     var image = resources.Load<Image>("oem437_8.png");
 		var bmp = new Bitmap(image);
     var tiles = new GlyphSet<Bitmap>(bmp, 8, 8);
@@ -70,11 +104,24 @@ class Label : UIElement
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
+		base.Unload(resources, eventBus);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
+		base.Render(rc, gameTime);
+
 		_font?.WriteString(rc, Text, AbsolutePosition, ForegroundColor, BackgroundColor);
+	}
+
+	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
+	{
+		base.OnPropertyChanged(propertyName);
+
+		if (propertyName == nameof(Text))
+		{
+			Size = _font?.MeasureString(Text) ?? Vector2.Zero;
+		}
 	}
 
 	#endregion
