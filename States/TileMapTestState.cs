@@ -16,6 +16,7 @@ class TileMapTestState : GameState
 	private Label _mouseLabel;
 	private List<UIElement> _ui = new List<UIElement>();
 	private Camera _camera;
+	private Level? _level = null;
 
 	#endregion
 
@@ -30,10 +31,35 @@ class TileMapTestState : GameState
 		
 		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
 		_ui.Add(_mouseLabel);
+
+		var button = new Button(new Vector2(32, 32));
+		var buttonLabel = new Label("Button", new Vector2(0, 0), Palette.GetIndex(0, 0, 0), 255);
+		button.Content = buttonLabel;
+
+		_ui.Add(button);
 	}
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		var tiles = new TileRepo();
+		tiles.Load(resources, eventBus);
+
+		_level = new Level(64, 8);
+		for (var y = -64; y <= 64; y++)
+		{
+			for (var x = -64; x <= 64; x++)
+			{
+				if ((x % 8 == 0) || (y % 8 == 0))
+				{
+					_level.SetTile(x, y, tiles.Dirt);
+				}
+				else
+				{
+					_level.SetTile(x, y, tiles.Grass);
+				}
+			}
+		}
+
 		foreach (var ui in _ui)
 		{
 			ui.Load(resources, eventBus);
@@ -53,6 +79,9 @@ class TileMapTestState : GameState
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
 		rc.Clear();
+
+		_level?.Render(rc, _camera);
+
 		foreach (var ui in _ui)
 		{
 			ui.Render(rc, gameTime);

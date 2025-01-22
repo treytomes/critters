@@ -40,12 +40,12 @@ class Level
 	}
 
 	// TODO: If this doesn't work for negatives, use FloorDiv.
-	public void SetTile(Vector2 worldPosition, Tile tile) => SetTile((int)worldPosition.X, (int)worldPosition.Y, tile);
+	public void SetTile(Vector2 worldPosition, Tile? tile) => SetTile((int)worldPosition.X, (int)worldPosition.Y, tile);
 
 	/// <summary>
 	/// Set a tile at a specific world position.
 	/// </summary>
-	public void SetTile(int worldX, int worldY, Tile tile)
+	public void SetTile(int worldX, int worldY, Tile? tile)
 	{
 		var chunkX = MathHelper.FloorDiv(worldX, _chunkSize);
 		var chunkY = MathHelper.FloorDiv(worldY, _chunkSize);
@@ -83,18 +83,15 @@ class Level
 		var startX = (int)Math.Floor(camera.Position.X);
 		var startY = (int)Math.Floor(camera.Position.Y);
 
-		var endX = startX + rc.Width / _tileSize;
-		var endY = startY + rc.Height / _tileSize;
+		var endX = startX + rc.Width;
+		var endY = startY + rc.Height;
 
-		for (var y = startY; y < endY; y++)
+		for (var y = startY; y < endY; y += _tileSize)
 		{
-			for (var x = startX; x < endX; x++)
+			for (var x = startX; x < endX; x += _tileSize)
 			{
-				var tile = GetTile(x, y);
-				if (tile != null)
-				{
-					tile.Render(rc, new Vector2(x, y)); // Render the tile at the correct screen position.
-				}
+				var tile = GetTile(x / _tileSize, y / _tileSize);
+				tile?.Render(rc, new Vector2(x, y)); // Render the tile at the correct screen position.
 			}
 		}
 

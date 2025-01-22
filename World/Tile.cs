@@ -7,19 +7,17 @@ class Tile
 {
 	#region Fields
 
-	private byte _foregroundColor;
-	private byte _backgroundColor;
-	private Bitmap _bitmap;
+	public readonly int Id;
+	private readonly IImageRef _image;
 
 	#endregion
 
 	#region Constructors
 
-	public Tile(byte foregroundColor, byte backgroundColor, Bitmap bitmap)
+	public Tile(int id, IImageRef image)
 	{
-		_foregroundColor = foregroundColor;
-		_backgroundColor = backgroundColor;
-		_bitmap = bitmap;
+		Id = id;
+		_image = image;
 	}
 
 	#endregion
@@ -28,7 +26,7 @@ class Tile
 
 	public void Render(RenderingContext rc, Vector2 position)
 	{
-		_bitmap.Render(rc, position, _foregroundColor, _backgroundColor);
+		_image.Render(rc, position);
 	}
 
 	#endregion

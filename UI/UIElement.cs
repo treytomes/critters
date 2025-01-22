@@ -2,6 +2,7 @@ using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
 using Critters.States;
+using OpenTK.Mathematics;
 
 namespace Critters.UI;
 
@@ -11,7 +12,39 @@ namespace Critters.UI;
 /// </summary>
 class UIElement : IGameComponent
 {
+	#region Constructors
+
+	public UIElement(UIElement? parent = null)
+	{
+		Parent = parent;
+	}
+
+	#endregion
+
 	#region Properties
+
+	public UIElement? Parent { get; set; }
+	public Vector2 Position { get; protected set; }
+	public Vector2 Size { get; protected set; }
+	public Box2 Bounds => new(Position, Position + Size);
+	public Thickness Padding = new(0);
+
+	public Vector2 AbsolutePosition
+	{
+		get
+		{
+			if (Parent != null)
+			{
+				return Parent.AbsolutePosition + new Vector2(Parent.Padding.Left, Parent.Padding.Top) + Position;
+			}
+			else
+			{
+				return Position;
+			}
+		}
+	}
+
+	public Box2 AbsoluteBounds => new(AbsolutePosition, AbsolutePosition + Size);
 
 	#endregion
 

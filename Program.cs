@@ -3,6 +3,7 @@ using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
 using Critters.States;
+using Critters.UI;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;

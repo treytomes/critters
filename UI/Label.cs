@@ -1,3 +1,5 @@
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
@@ -10,12 +12,19 @@ class Label : UIElement
 	#region Fields
 
 	private Font? _font;
+	private string _text;
 
 	#endregion
 
 	#region Constructors
 
 	public Label(string text, Vector2 position, byte fgColor, byte bgColor)
+		: this(null, text, position, fgColor, bgColor)
+	{
+	}
+
+	public Label(UIElement? parent, string text, Vector2 position, byte fgColor, byte bgColor)
+		: base(parent)
 	{
 		Text = text;
 		Position = position;
@@ -27,9 +36,22 @@ class Label : UIElement
 
 	#region Properties
 
-	public string Text { get; set; }
-	public Vector2 Position { get; set; }
-	public Box2 Bounds => new(Position, _font?.MeasureString(Text) ?? Vector2.Zero);
+	public string Text
+	{
+		get
+		{
+			return _text;
+		}
+		set
+		{
+			if (_text != value)
+			{
+				_text = value;
+				Size = _font?.MeasureString(Text) ?? Vector2.Zero;
+			}
+		}
+	}
+
 	public byte ForegroundColor { get; set; }
 	public byte BackgroundColor { get; set; }
 
@@ -43,6 +65,7 @@ class Label : UIElement
 		var bmp = new Bitmap(image);
     var tiles = new GlyphSet<Bitmap>(bmp, 8, 8);
     _font = new Font(tiles);
+		Size = _font?.MeasureString(Text) ?? Vector2.Zero;
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
@@ -51,11 +74,7 @@ class Label : UIElement
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
-		_font?.WriteString(rc, Text, Position, ForegroundColor, BackgroundColor);
-	}
-
-	public override void Update(GameTime gameTime)
-	{
+		_font?.WriteString(rc, Text, AbsolutePosition, ForegroundColor, BackgroundColor);
 	}
 
 	#endregion
