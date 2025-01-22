@@ -161,6 +161,11 @@ class Program
     // Occurs when it is time to update a frame. This is invoked before GameWindow.RenderFrame.
     window.UpdateFrame += (FrameEventArgs e) =>
     {
+			if (!states.HasState)
+			{
+				window.Close();
+			}
+
       updateGameTime = updateGameTime.Add(e.Time);
       states.Update(updateGameTime);
       mouseCursor.Update(updateGameTime);

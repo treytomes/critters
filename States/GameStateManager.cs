@@ -44,6 +44,8 @@ class GameStateManager : IGameComponent
   {
     _resources = resources;
     _eventBus = eventBus;
+
+		eventBus.Subscribe<LeaveGameStateEventArgs>(OnLeave);
   }
 
   public void Unload(ResourceManager resources, EventBus eventBus)
@@ -52,6 +54,8 @@ class GameStateManager : IGameComponent
     {
       LeaveState();
     }
+
+		eventBus.Unsubscribe<LeaveGameStateEventArgs>(OnLeave);
   }
 
   public void EnterState(GameState state)
@@ -62,7 +66,7 @@ class GameStateManager : IGameComponent
 
   public void LeaveState()
   {
-    CurrentState.Unload(_resources!, _eventBus!);
+    CurrentState?.Unload(_resources!, _eventBus!);
     _states.RemoveAt(0);
   }
 
@@ -75,6 +79,11 @@ class GameStateManager : IGameComponent
   {
     CurrentState?.Update(gameTime);
   }
+
+	private void OnLeave(LeaveGameStateEventArgs e)
+	{
+		LeaveState();
+	}
 
   #endregion
 }

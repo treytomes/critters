@@ -34,6 +34,7 @@ class TileMapTestState : GameState
 	#region Constructors
 
 	public TileMapTestState()
+		: base()
 	{
 		_camera = new Camera(new Vector2(320, 240));
 		
@@ -53,6 +54,8 @@ class TileMapTestState : GameState
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		base.Load(resources, eventBus);
+
 		var tiles = new TileRepo();
 		tiles.Load(resources, eventBus);
 
@@ -96,6 +99,8 @@ class TileMapTestState : GameState
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
+		base.Unload(resources, eventBus);
+
 		foreach (var ui in _ui)
 		{
 			ui.Unload(resources, eventBus);
@@ -109,6 +114,8 @@ class TileMapTestState : GameState
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
+		base.Render(rc, gameTime);
+
 		rc.Clear();
 
 		_level?.Render(rc, _camera);
@@ -121,6 +128,8 @@ class TileMapTestState : GameState
 
 	public override void Update(GameTime gameTime)
 	{
+		base.Update(gameTime);
+		
 		foreach (var ui in _ui)
 		{
 			ui.Update(gameTime);
@@ -135,6 +144,9 @@ class TileMapTestState : GameState
 		{
 			switch (e.Key)
 			{
+				case Keys.Escape:
+					Leave();
+					break;
 				case Keys.W:
 					_cameraDelta = new Vector2(_cameraDelta.X, -1);
 					break;

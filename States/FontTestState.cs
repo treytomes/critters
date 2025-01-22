@@ -17,6 +17,8 @@ class FontTestState : GameState
 
   public override void Load(ResourceManager resources, EventBus eventBus)
   {
+		base.Load(resources, eventBus);
+
     var image = resources.Load<Image>("oem437_8.png");
     _tiles = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
     _font = new Font(_tiles);
@@ -24,6 +26,8 @@ class FontTestState : GameState
 
   public override void Render(RenderingContext rc, GameTime gameTime)
   {
+		base.Render(rc, gameTime);
+		
     rc.Fill(rc.Palette[1, 1, 0]);
 
     _tiles?[1].Render(rc, 100, 100, rc.Palette[5, 5, 5], 255);

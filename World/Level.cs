@@ -33,7 +33,6 @@ class Level
 	{
 		if (!_chunks.TryGetValue((chunkX, chunkY), out var chunk))
 		{
-			Console.WriteLine("Creating chunk: {0}, {1}", chunkX, chunkY);
 			chunk = new Chunk(_chunkSize);
 			_chunks[(chunkX, chunkY)] = chunk;
 		}
@@ -87,8 +86,6 @@ class Level
 
 		// Render one extra tile around the edges.
 		var endPos = startPos + rc.ViewportSize + Vector2.One * _tileSize;
-		var endX = startPos.X + rc.Width + _tileSize;
-		var endY = startPos.Y + rc.Height + _tileSize;
 
 		for (var y = startPos.Y; y < endPos.Y; y += _tileSize)
 		{

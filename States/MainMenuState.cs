@@ -13,16 +13,22 @@ class MainMenuState : GameState
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		base.Load(resources, eventBus);
+
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
+		base.Unload(resources, eventBus);
+
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
+		base.Render(rc, gameTime);
+		
 		rc.Clear();
 
 		var segments = 32;

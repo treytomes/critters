@@ -6,6 +6,8 @@ class PatternTestState : GameState
 {
   public override void Render(RenderingContext rc, GameTime gameTime)
   {
+		base.Render(rc, gameTime);
+		
     for (int y = 0; y < rc.Height; y++)
     {
       for (int x = 0; x < rc.Width; x++)
