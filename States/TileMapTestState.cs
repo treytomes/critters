@@ -17,7 +17,8 @@ class TileMapTestState : GameState
 	private Label _mouseLabel;
 	private List<UIElement> _ui = new List<UIElement>();
 	private Camera _camera;
-	private Level? _level = null;
+	private TileRepo _tiles;
+	private Level _level;
 	private bool _isDraggingCamera = false;
 	private Vector2 _cameraDelta = Vector2.Zero;
 	private bool _cameraFastMove = false;
@@ -50,40 +51,41 @@ class TileMapTestState : GameState
 		_buttonId = button.Id;
 
 		_ui.Add(button);
+
+		_tiles = new TileRepo();
+		_level = new Level(64, 8);
 	}
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
-		var tiles = new TileRepo();
-		tiles.Load(resources, eventBus);
+		_tiles.Load(resources, eventBus);
 
-		_level = new Level(64, 8);
 		for (var y = -64; y <= 64; y++)
 		{
 			for (var x = -64; x <= 64; x++)
 			{
 				if ((x % 8 == 0) || (y % 8 == 0))
 				{
-					_level.SetTile(x, y, tiles.Dirt);
+					_level.SetTile(x, y, TileRepo.DIRT_ID);
 				}
 				else
 				{
-					_level.SetTile(x, y, tiles.Grass);
+					_level.SetTile(x, y, TileRepo.GRASS_ID);
 				}
 			}
 		}
 
 		for (var y = -64; y <= 64; y++)
 		{
-			_level.SetTile(-64, y, tiles.Rock);
-			_level.SetTile(64, y, tiles.Rock);
+			_level.SetTile(-64, y, TileRepo.ROCK_ID);
+			_level.SetTile(64, y, TileRepo.ROCK_ID);
 		}
 		for (var x = -64; x <= 64; x++)
 		{
-			_level.SetTile(x, -64, tiles.Rock);
-			_level.SetTile(x, 64, tiles.Rock);
+			_level.SetTile(x, -64, TileRepo.ROCK_ID);
+			_level.SetTile(x, 64, TileRepo.ROCK_ID);
 		}
 
 		foreach (var ui in _ui)
@@ -118,7 +120,21 @@ class TileMapTestState : GameState
 
 		rc.Clear();
 
-		_level?.Render(rc, _camera);
+		const int GRID_SPACING = 16;
+		const byte GRID_INTENSITY = 3;
+		var gridColor = Palette.GetIndex(GRID_INTENSITY, GRID_INTENSITY, 0);
+		var gridDeltaX = MathHelper.FloorDiv((int)_camera.Position.X, GRID_SPACING) % GRID_SPACING;
+		var gridDeltaY = MathHelper.FloorDiv((int)_camera.Position.Y, GRID_SPACING) % GRID_SPACING;
+		for (var y = -GRID_SPACING; y < rc.Height + GRID_SPACING; y += GRID_SPACING)
+		{
+			rc.RenderHLine(0, rc.Width - 1, y - gridDeltaY, gridColor);
+		}
+		for (var x = -GRID_SPACING; x < rc.Width + GRID_SPACING; x += GRID_SPACING)
+		{
+			rc.RenderVLine(x - gridDeltaX, 0, rc.Height - 1, gridColor);
+		}
+
+		_level?.Render(rc, _tiles, _camera);
 
 		foreach (var ui in _ui)
 		{

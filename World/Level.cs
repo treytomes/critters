@@ -39,13 +39,13 @@ class Level
 		return chunk;
 	}
 
-	// TODO: If this doesn't work for negatives, use FloorDiv.
-	public void SetTile(Vector2 worldPosition, Tile? tile) => SetTile((int)worldPosition.X, (int)worldPosition.Y, tile);
+	// TODO: If this doesn't work for negative fractions, use FloorDiv.
+	public void SetTile(Vector2 worldPosition, int tileId) => SetTile((int)worldPosition.X, (int)worldPosition.Y, tileId);
 
 	/// <summary>
 	/// Set a tile at a specific world position.
 	/// </summary>
-	public void SetTile(int worldX, int worldY, Tile? tile)
+	public void SetTile(int worldX, int worldY, int tileId)
 	{
 		var chunkX = MathHelper.FloorDiv(worldX, _chunkSize);
 		var chunkY = MathHelper.FloorDiv(worldY, _chunkSize);
@@ -53,18 +53,18 @@ class Level
 		var localY = Math.Abs(worldY % _chunkSize);
 
 		var chunk = GetOrCreateChunk(chunkX, chunkY);
-		chunk.SetTile(localX, localY, tile);
+		chunk.SetTile(localX, localY, tileId);
 	}
 
 	// TODO: If this doesn't work for negatives, use FloorDiv.
-	public Tile? GetTile(Vector2 worldPosition) => GetTile((int)worldPosition.X, (int)worldPosition.Y);
+	public TileRef GetTile(Vector2 worldPosition) => GetTile((int)worldPosition.X, (int)worldPosition.Y);
 
-	public Tile? GetTile(float worldX, float worldY) => GetTile((int)worldX, (int)worldY);
+	public TileRef GetTile(float worldX, float worldY) => GetTile((int)worldX, (int)worldY);
 
 	/// <summary>
 	/// Get a tile at a specific world position.
 	/// </summary>
-	public Tile? GetTile(int worldX, int worldY)
+	public TileRef GetTile(int worldX, int worldY)
 	{
 		var chunkX = MathHelper.FloorDiv(worldX, _chunkSize);
 		var chunkY = MathHelper.FloorDiv(worldY, _chunkSize);
@@ -76,10 +76,10 @@ class Level
 				return chunk.GetTile(localX, localY);
 		}
 
-		return null; // No tile exists.
+		return TileRef.Empty;
 	}
 
-	public void Render(RenderingContext rc, Camera camera)
+	public void Render(RenderingContext rc, TileRepo tiles, Camera camera)
 	{
 		// Calculate visible tile range.
 		var startPos = ((camera.Position - rc.ViewportSize / 2) / _tileSize).Floor() * _tileSize;
@@ -95,8 +95,11 @@ class Level
 				var tileY = y / _tileSize;
 
 				var screenPos = camera.WorldToScreen(new Vector2(x, y)).Floor();
-				var tile = GetTile(tileX, tileY);
-				tile?.Render(rc, screenPos); // Render the tile at the correct screen position.
+				var tileRef = GetTile(tileX, tileY);
+				if (!tileRef.IsEmpty)
+				{
+					tiles.Get(tileRef.TileId).Render(rc, screenPos); // Render the tile at the correct screen position.
+				}
 			}
 		}
 
