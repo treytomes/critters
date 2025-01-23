@@ -1,3 +1,4 @@
+using Critters.IO;
 using OpenTK.Mathematics;
 
 namespace Critters.World;
@@ -17,9 +18,28 @@ class Chunk
 		_tiles = new TileRef[size, size];
 	}
 
+	public Chunk(SerializableChunk chunk)
+	{
+		if (chunk.Size != chunk.Tiles.GetLength(0))
+		{
+			throw new Exception("Invalid chunk size");
+		}
+
+		_tiles = (TileRef[,])chunk.Tiles.Clone();
+	}
+
 	#endregion
 
 	#region Methods
+
+	public SerializableChunk ToSerializable()
+	{
+		return new SerializableChunk()
+		{
+			Size = _tiles.GetLength(0),
+			Tiles = (TileRef[,])_tiles.Clone()
+		};
+	}
 
 	public TileRef GetTile(Vector2 position)
 	{

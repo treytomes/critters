@@ -3,6 +3,7 @@ using Critters.Gfx;
 using Critters.IO;
 using Critters.UI;
 using Critters.World;
+using Newtonsoft.Json;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -62,31 +63,9 @@ class TileMapTestState : GameState
 
 		_tiles.Load(resources, eventBus);
 
-		for (var y = -64; y <= 64; y++)
-		{
-			for (var x = -64; x <= 64; x++)
-			{
-				if ((x % 8 == 0) || (y % 8 == 0))
-				{
-					_level.SetTile(x, y, TileRepo.DIRT_ID);
-				}
-				else
-				{
-					_level.SetTile(x, y, TileRepo.GRASS_ID);
-				}
-			}
-		}
-
-		for (var y = -64; y <= 64; y++)
-		{
-			_level.SetTile(-64, y, TileRepo.ROCK_ID);
-			_level.SetTile(64, y, TileRepo.ROCK_ID);
-		}
-		for (var x = -64; x <= 64; x++)
-		{
-			_level.SetTile(x, -64, TileRepo.ROCK_ID);
-			_level.SetTile(x, 64, TileRepo.ROCK_ID);
-		}
+		_level = Level.Load("sample.json");
+		// _level = LevelBuilder.BuildSample();
+		// _level.Save("sample.json");
 
 		foreach (var ui in _ui)
 		{

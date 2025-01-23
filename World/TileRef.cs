@@ -1,3 +1,6 @@
+
+using Newtonsoft.Json;
+
 namespace Critters.World;
 
 /// <summary>
@@ -14,5 +17,6 @@ public struct TileRef
 	
 	public int TileId { get; set; }
 
+	[JsonIgnore]
 	public bool IsEmpty => TileId == 0;
 }

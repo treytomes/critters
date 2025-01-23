@@ -1,4 +1,6 @@
 using Critters.Gfx;
+using Critters.IO;
+using Newtonsoft.Json;
 using OpenTK.Mathematics;
 
 namespace Critters.World;
@@ -22,9 +24,43 @@ class Level
 		_tileSize = tileSize;
 	}
 
+	private Level(SerializableLevel level)
+	{
+		_chunks = level.Chunks.ToDictionary(kvp => kvp.ChunkPosition.ToVector2i(), kvp => new Chunk(kvp.Chunk));
+		_chunkSize = level.ChunkSize;
+		_tileSize = level.TileSize;
+	}
+
 	#endregion
 
 	#region Methods
+
+	public static Level Load(string path)
+	{
+		var json = File.ReadAllText(path);
+		var info = JsonConvert.DeserializeObject<SerializableLevel>(json);
+		return new Level(info!);
+	}
+
+	public void Save(string path)
+	{
+		var json = JsonConvert.SerializeObject(ToSerializable());
+		File.WriteAllText(path, json);
+	}
+
+	public SerializableLevel ToSerializable()
+	{
+		return new SerializableLevel()
+		{
+			Chunks = _chunks.Select(kvp => new SerializableLevelChunk()
+			{
+				ChunkPosition = new SerializableVector2i(kvp.Key),
+				Chunk = kvp.Value.ToSerializable()
+			}).ToList(),
+			ChunkSize = _chunkSize,
+			TileSize = _tileSize,
+		};
+	}
 
 	/// <summary>
 	/// Access or create a chunk at a given chunk coordinate.
