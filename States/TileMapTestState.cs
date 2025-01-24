@@ -3,12 +3,54 @@ using Critters.Gfx;
 using Critters.IO;
 using Critters.UI;
 using Critters.World;
-using Newtonsoft.Json;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.States;
+
+class MapCursor
+{
+	#region Constants
+
+	private const int MAP_CURSOR_BLINK_SPEED_MS = 300;
+
+	#endregion
+
+	#region Fields
+
+	private Vector2 _position = Vector2.Zero;
+
+	#endregion
+
+	#region Methods
+
+	public void Update(GameTime gameTime)
+	{
+	}
+
+	public void Render(RenderingContext rc, GameTime gameTime, Camera camera)
+	{
+		var mapCursorScreenPosition = camera.WorldToScreen(_position);
+		rc.RenderRect(mapCursorScreenPosition, mapCursorScreenPosition + new Vector2(7, 7), rc.Palette[5, 0, 0]);
+		if ((int)(gameTime.TotalTime.TotalMilliseconds / MAP_CURSOR_BLINK_SPEED_MS) % 2 == 0)
+		{
+			rc.RenderRect(mapCursorScreenPosition - new Vector2(2, 2), mapCursorScreenPosition + new Vector2(7, 7) + new Vector2(2, 2), rc.Palette[5, 0, 0]);
+		}
+	}
+
+	public void MoveTo(Vector2 position)
+	{
+		_position = position;
+	}
+
+	public void MoveBy(Vector2 delta)
+	{
+		_position += delta;
+	}
+
+	#endregion
+}
 
 class TileMapTestState : GameState
 {
@@ -16,6 +58,8 @@ class TileMapTestState : GameState
 
 	private Label _cameraLabel;
 	private Label _mouseLabel;
+	private Button _sampleButton;
+
 	private List<UIElement> _ui = new List<UIElement>();
 	private Camera _camera;
 	private TileRepo _tiles;
@@ -29,7 +73,7 @@ class TileMapTestState : GameState
 	/// </summary>
 	private float _cameraSpeed = 8 * 8; // 8 tiles per second
 
-	private int _buttonId;
+	private MapCursor _mapCursor = new MapCursor();
 
 	#endregion
 
@@ -40,23 +84,24 @@ class TileMapTestState : GameState
 	{
 		_camera = new Camera(new Vector2(320, 240));
 		
+		_tiles = new TileRepo();
+		_level = new Level(64, 8);
+
 		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
 		_ui.Add(_cameraLabel);
 		
 		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
 		_ui.Add(_mouseLabel);
 
-		var button = new Button(new Vector2(32, 32), ButtonStyle.Raised);
-		var buttonLabel = new Label("> Button <", new Vector2(0, 0), Palette.GetIndex(0, 0, 0), 255);
-		button.Content = buttonLabel;
-		_buttonId = button.Id;
-
-		_ui.Add(button);
-
-		_tiles = new TileRepo();
-		_level = new Level(64, 8);
+		_sampleButton = new Button(new Vector2(32, 32), ButtonStyle.Raised);
+		_sampleButton.Content = new Label("> Button <", new Vector2(0, 0), Palette.GetIndex(0, 0, 0), 255);
+		_ui.Add(_sampleButton);
 	}
 
+	#endregion
+
+	#region Methods
+	
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
 		base.Load(resources, eventBus);
@@ -67,6 +112,8 @@ class TileMapTestState : GameState
 		// _level = LevelBuilder.BuildSample();
 		// _level.Save("sample.json");
 
+		_sampleButton.Clicked += OnButtonClicked;
+
 		foreach (var ui in _ui)
 		{
 			ui.Load(resources, eventBus);
@@ -75,12 +122,13 @@ class TileMapTestState : GameState
 		eventBus.Subscribe<KeyEventArgs>(OnKey);
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Subscribe<ButtonPressedEventArgs>(OnButtonPressed);
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
+
+		_sampleButton.Clicked -= OnButtonClicked;
 
 		foreach (var ui in _ui)
 		{
@@ -90,7 +138,6 @@ class TileMapTestState : GameState
 		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Unsubscribe<ButtonPressedEventArgs>(OnButtonPressed);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
@@ -114,6 +161,9 @@ class TileMapTestState : GameState
 		}
 
 		_level?.Render(rc, _tiles, _camera);
+
+		// Render the map cursor.
+		_mapCursor.Render(rc, gameTime, _camera);
 
 		foreach (var ui in _ui)
 		{
@@ -182,6 +232,11 @@ class TileMapTestState : GameState
 		{
 			_camera.ScrollBy(-e.Delta);
 		}
+
+		var worldPos = _camera.ScreenToWorld(e.Position).Floor();
+		const int TILE_SIZE = 8;
+		var tilePos = (worldPos / TILE_SIZE).Floor();
+		_mapCursor.MoveTo(tilePos * TILE_SIZE);
 	}
 
 	private void OnMouseButton(MouseButtonEventArgs e)
@@ -192,13 +247,10 @@ class TileMapTestState : GameState
 		}
 	}
 
-	private void OnButtonPressed(ButtonPressedEventArgs e)
+	private void OnButtonClicked(object? sender, ButtonClickedEventArgs e)
 	{
-		if (e.ButtonId == _buttonId)
-		{
-			Console.WriteLine($"Button {e.ButtonId} pressed.");
-			_camera.ScrollBy(new Vector2(8, 0));
-		}
+		Console.WriteLine($"Button pressed.");
+		_camera.ScrollBy(new Vector2(8, 0));
 	}
 
 	#endregion

@@ -24,14 +24,17 @@ class Button : ContentPresenter
 
 	#endregion
 
+	#region Events
+
+	public event EventHandler<ButtonClickedEventArgs>? Clicked;
+
+	#endregion
+
 	#region Fields
 
-	private static int _nextId = 0;
-	public readonly int Id;
 	private readonly ButtonStyle _style;
 	private bool _hasMouseHover = false;
 	private bool _hasMouseFocus = false;
-	private EventBus? _eventBus = null;
 
 	#endregion
 
@@ -45,7 +48,6 @@ class Button : ContentPresenter
 	public Button(UIElement? parent, Vector2 position, ButtonStyle style = ButtonStyle.Raised)
 		: base(parent)
 	{
-		Id = _nextId++;
 		Position = position;
 		if (_style == ButtonStyle.Flat)
 		{
@@ -73,7 +75,6 @@ class Button : ContentPresenter
 
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseClick);
-		_eventBus = eventBus;
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
@@ -166,7 +167,7 @@ class Button : ContentPresenter
 			{
 				if (_hasMouseFocus && _hasMouseHover)
 				{
-					_eventBus?.Publish(new ButtonPressedEventArgs(Id));
+					Clicked?.Invoke(this, new ButtonClickedEventArgs());
 				}
 				if (_style == ButtonStyle.Raised)
 				{
