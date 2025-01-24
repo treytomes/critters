@@ -33,6 +33,21 @@ readonly struct RadialColor : IEquatable<RadialColor>
 
 	#endregion
 
+	#region Properties
+
+	/// <summary>
+	/// Calculate the palette index for this color.
+	/// </summary>
+	public byte Index
+	{
+		get
+		{
+			return (byte)((Red * 6 * 6) + (Green * 6) + Blue);
+		}
+	}
+
+	#endregion
+
 	#region Methods
 
 	public bool Equals(RadialColor other)
@@ -47,15 +62,7 @@ readonly struct RadialColor : IEquatable<RadialColor>
 
 	public override int GetHashCode()
 	{
-		return GetIndex();
-	}
-
-	/// <summary>
-	/// Calculate the palette index for this color.
-	/// </summary>
-	public byte GetIndex()
-	{
-		return (byte)((Red * 6 * 6) + (Green * 6) + Blue);
+		return Index;
 	}
 
 	public RadialColor Add(RadialColor other)

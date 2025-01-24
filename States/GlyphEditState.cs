@@ -1,226 +1,10 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
 using Critters.UI;
 using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.States;
-
-class SelectableColor : UIElement
-{
-	#region Constants
-
-	private const int SIZE = 10;
-
-	#endregion
-
-	#region Fields
-
-	private RadialColor _baseColor;
-	private RadialColor _offsetColor;
-	private RadialColor _derivedColor;
-	private bool _hasMouseHover = false;
-	private bool _isFocused = false;
-	private bool _isSelected = false;
-
-	#endregion
-
-	#region Constructors
-
-	public SelectableColor(UIElement? parent, Vector2 position, RadialColor offsetColor)
-		: base(parent)
-	{
-		Position = position;
-		Size = new Vector2(SIZE, SIZE);
-		BaseColor = new RadialColor(0, 0, 0);
-		OffsetColor = offsetColor;
-		DerivedColor = _baseColor + _offsetColor;
-	}
-
-	#endregion
-
-	#region Properties
-
-	public RadialColor BaseColor
-	{
-		get
-		{
-			return _baseColor;
-		}
-		set
-		{
-			if (_baseColor != value)
-			{
-				_baseColor = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public RadialColor OffsetColor
-	{
-		get
-		{
-			return _offsetColor;
-		}
-		set
-		{
-			if (_offsetColor != value)
-			{
-				_offsetColor = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public RadialColor DerivedColor
-	{
-		get
-		{
-			return _derivedColor;
-		}
-		private set
-		{
-			if (_derivedColor != value)
-			{
-				_derivedColor = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public bool HasMouseHover
-	{
-		get
-		{
-			return _hasMouseHover;
-		}
-		private set
-		{
-			if (_hasMouseHover != value)
-			{
-				_hasMouseHover = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public bool IsFocused
-	{
-		get
-		{
-			return _isFocused;
-		}
-		private set
-		{
-			if (_isFocused != value)
-			{
-				_isFocused = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public bool IsSelected
-	{
-		get
-		{
-			return _isSelected;
-		}
-		set
-		{
-			if (_isSelected != value)
-			{
-				_isSelected = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	#endregion
-
-	#region Methods
-
-	public override void Load(ResourceManager resources, EventBus eventBus)
-	{
-		base.Load(resources, eventBus);
-
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
-	}
-
-	public override void Unload(ResourceManager resources, EventBus eventBus)
-	{
-		base.Unload(resources, eventBus);
-
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-	}
-
-	public override void Render(RenderingContext rc, GameTime gameTime)
-	{
-		base.Render(rc, gameTime);
-
-		var x = (int)AbsolutePosition.X;
-		var y = (int)AbsolutePosition.Y;
-		var borderColor = Palette.GetIndex(5, 5, 5);
-		if (IsSelected)
-		{
-			borderColor = Palette.GetIndex(5, 0, 0);
-		}
-		else if (HasMouseHover)
-		{
-			borderColor = Palette.GetIndex(5, 3, 0);
-		}
-		rc.RenderRect(x, y, x + SIZE - 1, y + SIZE - 1, borderColor);
-		rc.RenderFilledRect(x + 1, y + 1, x + SIZE - 2, y + SIZE - 2, DerivedColor.GetIndex());
-	}
-
-	private void OnMouseMove(MouseMoveEventArgs e)
-	{
-		HasMouseHover = AbsoluteBounds.ContainsInclusive(e.Position);
-	}
-
-	private void OnMouseButton(MouseButtonEventArgs e)
-	{
-		IsSelected = false;
-
-		if (e.Button == MouseButton.Left)
-		{
-			if (e.IsPressed)
-			{
-				if (HasMouseHover)
-				{
-					IsFocused = true;
-				}
-			}
-			else
-			{
-				if (IsFocused && HasMouseHover)
-				{
-					IsSelected = true;
-				}
-				IsFocused = false;
-			}
-		}
-	}
-
-	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
-	{
-		base.OnPropertyChanged(propertyName);
-
-		if (propertyName == nameof(BaseColor) || propertyName == nameof(OffsetColor))
-		{
-			DerivedColor = BaseColor + OffsetColor;
-		}
-	}
-
-	#endregion
-}
 
 class ColorPicker : UIElement
 {
@@ -229,8 +13,8 @@ class ColorPicker : UIElement
 	private List<SelectableColor> _baseColors = new List<SelectableColor>();
 	private List<SelectableColor> _derivedColors = new List<SelectableColor>();
 	private List<UIElement> _ui = new List<UIElement>();
-	private RadialColor _selectedBaseColor = new RadialColor(0, 0, 0);
-	private RadialColor _selectedDerivedColor = new RadialColor(0, 0, 0);
+	private SelectableColor? _selectedBaseColor = null;
+	private SelectableColor? _selectedDerivedColor = null;
 
 	#endregion
 
@@ -249,8 +33,8 @@ class ColorPicker : UIElement
 		for (byte xc = 0; xc < 6; xc++)
 		{
 			{
-				var x = (int)AbsolutePosition.X + xc * 10;
-				var y = (int)AbsolutePosition.Y;
+				var x = xc * 10;
+				var y = 0;
 				var color = new RadialColor(0, 0, xc);
 				var elem = new SelectableColor(this, new Vector2(x, y), color);
 				_baseColors.Add(elem);
@@ -259,8 +43,8 @@ class ColorPicker : UIElement
 
 			for (byte yc = 0; yc < 6; yc++)
 			{
-				var x = (int)AbsolutePosition.X + xc * 10;
-				var y = (int)AbsolutePosition.Y + 12 + yc * 10;
+				var x = xc * 10;
+				var y = 12 + yc * 10;
 				var color = new RadialColor(xc, yc, 0);
 				var elem = new SelectableColor(this, new Vector2(x, y), color);
 				_derivedColors.Add(elem);
@@ -273,35 +57,11 @@ class ColorPicker : UIElement
 
 	#region Properties
 
-	public RadialColor SelectedBaseColor
+	public RadialColor SelectedColor
 	{
 		get
 		{
-			return _selectedBaseColor;
-		}
-		private set
-		{
-			if (_selectedBaseColor != value)
-			{
-				_selectedBaseColor = value;
-				OnPropertyChanged();
-			}
-		}
-	}
-
-	public RadialColor SelectedDerivedColor
-	{
-		get
-		{
-			return _selectedDerivedColor;
-		}
-		private set
-		{
-			if (_selectedDerivedColor != value)
-			{
-				_selectedDerivedColor = value;
-				OnPropertyChanged();
-			}
+			return _selectedDerivedColor?.DerivedColor ?? new RadialColor(0, 0, 0);
 		}
 	}
 
@@ -315,11 +75,11 @@ class ColorPicker : UIElement
 
 		foreach (var c in _baseColors)
 		{
-			c.PropertyChanged += OnBaseColorPropertyChanged;
+			c.Clicked += OnBaseColorClicked;
 		}
 		foreach (var c in _derivedColors)
 		{
-			c.PropertyChanged += OnDerivedColorPropertyChanged;
+			c.Clicked += OnDerivedColorClicked;
 		}
 
 		foreach (var ui in _ui)
@@ -334,11 +94,11 @@ class ColorPicker : UIElement
 
 		foreach (var c in _baseColors)
 		{
-			c.PropertyChanged -= OnBaseColorPropertyChanged;
+			c.Clicked -= OnBaseColorClicked;
 		}
 		foreach (var c in _derivedColors)
 		{
-			c.PropertyChanged -= OnDerivedColorPropertyChanged;
+			c.Clicked -= OnDerivedColorClicked;
 		}
 
 		foreach (var ui in _ui)
@@ -365,32 +125,40 @@ class ColorPicker : UIElement
 		{
 			ui.Render(rc, gameTime);
 		}
+
+		var left = AbsolutePosition.X + 10 * 6 + 2;
+		var right = left + 24;
+		var top = AbsolutePosition.Y;
+		var bottom = top + 10 * 7 + 1;
+		var bounds = new Box2(left, top, right, bottom);
+		rc.RenderRect(bounds, rc.Palette[5, 5, 5]);
+		rc.RenderRect(bounds.Inflated(new Vector2(-1, -1)), 0);
+		rc.RenderFilledRect(bounds.Inflated(new Vector2(-2, -2)), SelectedColor.Index);
 	}
 
-	private void OnBaseColorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	private void OnBaseColorClicked(object? sender, ButtonClickedEventArgs e)
 	{
-		if (sender is SelectableColor c)
+		if (_selectedBaseColor != null)
 		{
-			if (c.IsSelected)
-			{
-				SelectedBaseColor = c.DerivedColor;
-				foreach (var dc in _derivedColors)
-				{
-					dc.BaseColor = SelectedBaseColor;
-				}
-			}
+			_selectedBaseColor.IsSelected = false;
+		}
+		_selectedBaseColor = sender as SelectableColor;
+		_selectedBaseColor!.IsSelected = true;
+
+		foreach (var c in _derivedColors)
+		{
+			c.BaseColor = _selectedBaseColor!.DerivedColor;
 		}
 	}
 
-	private void OnDerivedColorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	private void OnDerivedColorClicked(object? sender, ButtonClickedEventArgs e)
 	{
-		if (sender is SelectableColor c)
+		if (_selectedDerivedColor != null)
 		{
-			if (c.IsSelected)
-			{
-				SelectedDerivedColor = c.DerivedColor;
-			}
+			_selectedDerivedColor.IsSelected = false;
 		}
+		_selectedDerivedColor = sender as SelectableColor;
+		_selectedDerivedColor!.IsSelected = true;
 	}
 
 	#endregion
