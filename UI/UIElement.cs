@@ -26,7 +26,6 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 	private UIElement? _parent;
 	private Vector2 _position = Vector2.Zero;
 	private Vector2 _size = Vector2.Zero;
-	private Box2 _bounds = new();
 	private Thickness _padding = new(0);
 	private Thickness _margin = new(0);
 
@@ -122,15 +121,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 	{
 		get
 		{
-			return _bounds;
-		}
-		set
-		{
-			if (_bounds != value)
-			{
-				_bounds = value;
-				OnPropertyChanged();
-			}
+			return new Box2(Position, Position + Size);
 		}
 	}
 	
@@ -217,12 +208,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 	protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
 	{
 		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-		if (propertyName == nameof(Position) || propertyName == nameof(Size))
-		{
-			Bounds = new Box2(Position, Position + Size);
-		}
-
+	
 		if (propertyName == nameof(Margin) || propertyName == nameof(Position))
 		{
 			OnPropertyChanged(nameof(AbsolutePosition));

@@ -100,6 +100,11 @@ class RenderingContext
 		return Data[index];
 	}
 
+	public void RenderFilledRect(Box2 bounds, RadialColor color)
+	{
+		RenderFilledRect(bounds, color.Index);
+	}
+
 	public void RenderFilledRect(Box2 box, byte paletteIndex)
 	{
 		RenderFilledRect(box.Min, box.Max, paletteIndex);
@@ -130,9 +135,14 @@ class RenderingContext
 		}
 	}
 
-	public void RenderRect(Box2 box, byte paletteIndex)
+	public void RenderRect(Box2 bounds, RadialColor color)
 	{
-		RenderRect(box.Min, box.Max, paletteIndex);
+		RenderRect(bounds, color.Index);
+	}
+
+	public void RenderRect(Box2 bounds, byte paletteIndex)
+	{
+		RenderRect(bounds.Min, bounds.Max, paletteIndex);
 	}
 
 	public void RenderRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)

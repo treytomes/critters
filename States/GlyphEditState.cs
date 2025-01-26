@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
@@ -15,6 +16,8 @@ class ColorPicker : UIElement
 	private List<UIElement> _ui = new List<UIElement>();
 	private SelectableColor? _selectedBaseColor = null;
 	private SelectableColor? _selectedDerivedColor = null;
+	private Rectangle _selectedColor;
+	private Label _colorLabel;
 
 	#endregion
 
@@ -51,6 +54,17 @@ class ColorPicker : UIElement
 				_ui.Add(elem);
 			}
 		}
+		_baseColors[0].IsSelected = true;
+		_selectedBaseColor = _baseColors[0];
+		
+		_derivedColors[0].IsSelected = true;
+		_selectedDerivedColor = _derivedColors[0];
+
+		_selectedColor = new Rectangle(this, new Box2(10 * 6 + 2, 0, 10 * 6 + 2 + 24, 10 * 7 + 1), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_ui.Add(_selectedColor);
+
+		_colorLabel = new Label(this, "(0,0,0)=0", new Vector2(0, 10 * 7 + 3), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_ui.Add(_colorLabel);
 	}
 
 	#endregion
@@ -125,15 +139,6 @@ class ColorPicker : UIElement
 		{
 			ui.Render(rc, gameTime);
 		}
-
-		var left = AbsolutePosition.X + 10 * 6 + 2;
-		var right = left + 24;
-		var top = AbsolutePosition.Y;
-		var bottom = top + 10 * 7 + 1;
-		var bounds = new Box2(left, top, right, bottom);
-		rc.RenderRect(bounds, rc.Palette[5, 5, 5]);
-		rc.RenderRect(bounds.Inflated(new Vector2(-1, -1)), 0);
-		rc.RenderFilledRect(bounds.Inflated(new Vector2(-2, -2)), SelectedColor.Index);
 	}
 
 	private void OnBaseColorClicked(object? sender, ButtonClickedEventArgs e)
@@ -149,6 +154,9 @@ class ColorPicker : UIElement
 		{
 			c.BaseColor = _selectedBaseColor!.DerivedColor;
 		}
+
+		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
+		_colorLabel.Text = $"({_selectedColor.FillColor.Red},{_selectedColor.FillColor.Green},{_selectedColor.FillColor.Blue})={_selectedColor.FillColor.Index}";
 	}
 
 	private void OnDerivedColorClicked(object? sender, ButtonClickedEventArgs e)
@@ -159,8 +167,10 @@ class ColorPicker : UIElement
 		}
 		_selectedDerivedColor = sender as SelectableColor;
 		_selectedDerivedColor!.IsSelected = true;
+		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
+		_colorLabel.Text = $"({_selectedColor.FillColor.Red},{_selectedColor.FillColor.Green},{_selectedColor.FillColor.Blue})={_selectedColor.FillColor.Index}";
 	}
-
+	
 	#endregion
 }
 
