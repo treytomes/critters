@@ -111,6 +111,11 @@ class ColorPicker : UIElement
 		{
 			return _selectedDerivedColor?.DerivedColor ?? new RadialColor(0, 0, 0);
 		}
+		set
+		{
+			SelectBaseColor(_baseColors.First(x => x.DerivedColor.Blue == value.Blue));
+			SelectDerivedColor(_derivedColors.First(x => x.DerivedColor.Red == value.Red && x.DerivedColor.Green == value.Green));
+		}
 	}
 
 	private int SelectedBaseColorIndex

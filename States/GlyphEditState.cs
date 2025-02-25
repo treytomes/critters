@@ -25,11 +25,13 @@ class GlyphEditState : GameState
 	public GlyphEditState()
 	{
 		_ui.Add(new Label("Foreground", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
-		_fgPicker = new ColorPicker(new Vector2(0, 8), new RadialColor(5, 4, 3));
+		_fgPicker = new ColorPicker(new Vector2(0, 8));
+		_fgPicker.SelectedColor = new RadialColor(5, 4, 3);
 		_ui.Add(_fgPicker);
 
 		_ui.Add(new Label("Background", new Vector2(100, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
-		_bgPicker = new ColorPicker(new Vector2(100, 8), new RadialColor(3, 4, 5));
+		_bgPicker = new ColorPicker(new Vector2(100, 8));
+		_bgPicker.SelectedColor = new RadialColor(3, 4, 5);
 		_ui.Add(_bgPicker);
 	}
 
