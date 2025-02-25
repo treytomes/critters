@@ -165,7 +165,7 @@ class GlyphPicker : UIElement
 
 	private void OnGlyphScrolled(object? sender, MouseWheelEventArgs e)
 	{
-		var delta = Math.Sign(e.OffsetY);
+		var delta = -Math.Sign(e.OffsetY);
 		for (var n = 0; n < _selectableGlyphs.Count; n++)
 		{
 			if (_selectableGlyphs[n].IsSelected)

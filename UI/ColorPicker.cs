@@ -265,7 +265,7 @@ class ColorPicker : UIElement
 
 	private void OnDerivedColorScrolled(object? sender, MouseWheelEventArgs e)
 	{
-		var delta = Math.Sign(e.OffsetY);
+		var delta = -Math.Sign(e.OffsetY);
 		for (var n = 0; n < _derivedColors.Count(); n++)
 		{
 			if (_derivedColors[n].IsSelected)
