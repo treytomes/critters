@@ -38,7 +38,7 @@ class ColorPicker : UIElement
 		{
 			// Color Header
 			{
-				var x = xc * 10;
+				var x = xc * 9;
 				var y = 0;
 				var color = new RadialColor(0, 0, xc);
 				var elem = new SelectableColor(this, new Vector2(x, y), color);
@@ -54,8 +54,8 @@ class ColorPicker : UIElement
 			for (byte yc = 0; yc < 6; yc++)
 			{
 				// I'm inverting these on person.  Mouse scrolling will make more sense.
-				var y = 12 + xc * 10;
-				var x = yc * 10;
+				var y = 11 + xc * 9;
+				var x = yc * 9;
 				
 				var color = new RadialColor(xc, yc, 0);
 				var elem = new SelectableColor(this, new Vector2(x, y), color);
@@ -89,14 +89,14 @@ class ColorPicker : UIElement
 			_selectedDerivedColor = _derivedColors.First(x => x.IsSelected);
 		}
 
-		_selectedColor = new Rectangle(this, new Box2(10 * 6 + 2, 0, 10 * 6 + 2 + 24, 10 * 7 + 1), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_selectedColor = new Rectangle(this, new Box2(9 * 6 + 2, 0, 9 * 6 + 2 + 22, 9 * 7 + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_selectedColor);
 
-		_colorLabel = new Label(this, "(0,0,0)=0", new Vector2(0, 10 * 7 + 3), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_colorLabel = new Label(this, "000==0", new Vector2(0, 9 * 7 + 4), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
 		_ui.Add(_colorLabel);
 
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
-		_colorLabel.Text = $"({_selectedColor.FillColor.Red},{_selectedColor.FillColor.Green},{_selectedColor.FillColor.Blue})={_selectedColor.FillColor.Index}";
+		_colorLabel.Text = $"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}";
 	}
 
 	#endregion
@@ -115,23 +115,7 @@ class ColorPicker : UIElement
 			SelectDerivedColor(_derivedColors.First(x => x.DerivedColor.Red == value.Red && x.DerivedColor.Green == value.Green));
 		}
 	}
-
-	private int SelectedBaseColorIndex
-	{
-		get
-		{
-			return _baseColors.IndexOf(_baseColors.Single(x => x.IsSelected));
-		}
-	}
-
-	private int SelectedDerivedColorIndex
-	{
-		get
-		{
-			return _derivedColors.IndexOf(_derivedColors.Single(x => x.IsSelected));
-		}
-	}
-
+	
 	#endregion
 
 	#region Methods
@@ -191,6 +175,9 @@ class ColorPicker : UIElement
 	{
 		base.Render(rc, gameTime);
 
+		rc.RenderFilledRect(new Box2(AbsolutePosition, new Vector2(AbsolutePosition.X + 9 * 6, AbsolutePosition.Y + 9 * 1)), new RadialColor(5, 5, 5));
+		rc.RenderFilledRect(new Box2(new Vector2(AbsolutePosition.X, AbsolutePosition.Y + 11), new Vector2(AbsolutePosition.X + 9 * 6, AbsolutePosition.Y + 11 + 6 * 9)), new RadialColor(5, 5, 5));
+
 		foreach (var ui in _ui)
 		{
 			ui.Render(rc, gameTime);
@@ -212,7 +199,7 @@ class ColorPicker : UIElement
 		}
 
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
-		_colorLabel.Text = $"({_selectedColor.FillColor.Red},{_selectedColor.FillColor.Green},{_selectedColor.FillColor.Blue})={_selectedColor.FillColor.Index}";
+		_colorLabel.Text = $"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}";
 	}
 
 	private void OnBaseColorClicked(object? sender, ButtonClickedEventArgs e)
@@ -220,7 +207,7 @@ class ColorPicker : UIElement
 		var color = sender as SelectableColor;
 		if (color == null)
 		{
-			throw new ArgumentException("Must be a SelectableColor.", nameof(sender));
+			throw new ArgumentException($"Must be a {nameof(SelectableColor)}.", nameof(sender));
 		}
 
 		SelectBaseColor(color);
@@ -249,7 +236,7 @@ class ColorPicker : UIElement
 		_selectedDerivedColor = c;
 		_selectedDerivedColor!.IsSelected = true;
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
-		_colorLabel.Text = $"({_selectedColor.FillColor.Red},{_selectedColor.FillColor.Green},{_selectedColor.FillColor.Blue})={_selectedColor.FillColor.Index}";
+		_colorLabel.Text = $"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}";
 	}
 
 	private void OnDerivedColorClicked(object? sender, ButtonClickedEventArgs e)

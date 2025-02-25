@@ -26,8 +26,8 @@ class GlyphEditState : GameState
 	public GlyphEditState()
 	{
 		var screenWidth = 320;
-		var colorPickerWidth = 87;
-		var padding = 1;
+		var colorPickerWidth = 79;
+		var padding = 2;
 
 		{
 			var x = screenWidth - colorPickerWidth;
@@ -47,8 +47,9 @@ class GlyphEditState : GameState
 			_ui.Add(_fgPicker);
 		}
 
-		_ui.Add(new Label("Glyphs", new Vector2(0, 240 - 168 - 8), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
-		_glyphPicker = new GlyphPicker(new Vector2(0, 240 - 168));
+		// height=168
+		_ui.Add(new Label("Glyphs", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
+		_glyphPicker = new GlyphPicker(new Vector2(0, 8));
 		_glyphPicker.SelectedGlyphIndex = 2;
 		_ui.Add(_glyphPicker);
 

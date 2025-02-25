@@ -12,7 +12,7 @@ class SelectableColor : UIElement
 {
 	#region Constants
 
-	private const int SIZE = 10;
+	private const int SIZE = 9;
 
 	#endregion
 
@@ -178,13 +178,14 @@ class SelectableColor : UIElement
 		if (IsSelected)
 		{
 			borderColor = Palette.GetIndex(5, 0, 0);
+			rc.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
 		else if (HasMouseHover)
 		{
 			borderColor = Palette.GetIndex(5, 3, 0);
+			rc.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
-		rc.RenderRect(x, y, x + SIZE - 1, y + SIZE - 1, borderColor);
-		rc.RenderFilledRect(x + 1, y + 1, x + SIZE - 2, y + SIZE - 2, DerivedColor.Index);
+		rc.RenderFilledRect(x + 1, y + 1, (int)(x + Size.X - 1), (int)(y + Size.Y - 1), DerivedColor.Index);
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)
