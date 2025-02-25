@@ -120,7 +120,9 @@ class Program
     };
 
     // Occurs whenever a mouse wheel is moved.
-    window.MouseWheel += (MouseWheelEventArgs e) => {};
+    window.MouseWheel += (MouseWheelEventArgs e) => {
+			eventBus.Publish(e);
+		};
 
     // Occurs whenever the window is moved.
     // window.Move += (WindowPositionEventArgs e) => {};

@@ -23,18 +23,68 @@ class Bitmap : IImage<Bitmap, bool>
 
 	#region Constructors
 
-	public Bitmap(Image image)
+	public Bitmap(Bitmap? image, int scale = 1)
 	{
-		Width = image.Width;
-		Height = image.Height;
+		if (image == null)
+		{
+			throw new ArgumentNullException(nameof(image));
+		}
+		if (scale < 1)
+		{
+			throw new ArgumentException("Value must be > 0.", nameof(scale));
+		}
+		Width = image.Width * scale;
+		Height = image.Height * scale;
 		Data = new bool[Width * Height];
 		
-		for (var y = 0; y < Height; y++)
+		for (var y = 0; y < image.Height; y++)
 		{
-			for (var x = 0; x < Width; x++)
+			for (var x = 0; x < image.Width; x++)
 			{
 				var color = image.GetPixel(x, y);
-				Data[y * Width + x] = color > 0;
+				
+				for (var sy = 0; sy < scale; sy++)
+				{
+					for (var sx = 0; sx < scale; sx++)
+					{
+						var dy = y * scale + sy;
+						var dx = x * scale + sx;
+						Data[dy * Width + dx] = color;
+					}
+				}
+			}
+		}
+	}
+
+	public Bitmap(Image? image, int scale = 1)
+	{
+		if (image == null)
+		{
+			throw new ArgumentNullException(nameof(image));
+		}
+		if (scale < 1)
+		{
+			throw new ArgumentException("Value must be > 0.", nameof(scale));
+		}
+		Width = image.Width * scale;
+		Height = image.Height * scale;
+		Data = new bool[Width * Height];
+		
+		for (var y = 0; y < image.Height; y++)
+		{
+			for (var x = 0; x < image.Width; x++)
+			{
+				var color = image.GetPixel(x, y);
+				
+				for (var sy = 0; sy < scale; sy++)
+				{
+					for (var sx = 0; sx < scale; sx++)
+					{
+						var dy = y * scale + sy;
+						var dx = x * scale + sx;
+						Data[dy * Width + dx] = color > 0;
+					}
+				}
 			}
 		}
 	}
@@ -68,6 +118,11 @@ class Bitmap : IImage<Bitmap, bool>
 	#endregion
 
 	#region Methods
+
+	public void Render(RenderingContext rc, Vector2 position, RadialColor fgColor, RadialColor bgColor)
+	{
+		Render(rc, position, fgColor.Index, bgColor.Index);
+	}
 
 	public void Render(RenderingContext rc, Vector2 position, byte fgColor, byte bgColor)
 	{
@@ -149,6 +204,15 @@ class Bitmap : IImage<Bitmap, bool>
 		}
 
 		return new Bitmap(width, height, data);
+	}
+
+	public Bitmap Scale(int factor)
+	{
+		if (factor < 1)
+		{
+			throw new ArgumentException("Value must be > 0.", nameof(factor));
+		}
+		return new Bitmap(this, factor);
 	}
 
 	#endregion

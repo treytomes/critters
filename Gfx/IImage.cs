@@ -6,6 +6,11 @@ interface IImage<TImage>
 	int Width { get; }
 	int Height { get; }
 	TImage Crop(int x, int y, int width, int height);
+
+	/// <summary>
+	/// Generate a new <typeparamref name="TImage"/> scaled by <paramref name="factor"/>.
+	/// </summary>
+	TImage Scale(int factor);
 }
 
 interface IImage<TImage, TPixel> : IImage<TImage>

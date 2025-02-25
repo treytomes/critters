@@ -21,11 +21,40 @@ class Image : IImage<Image, byte>
 
 	#region Constructors
 
+	public Image(int width, int height, byte[] data, int scale)
+	{
+		if (scale < 1)
+		{
+			throw new ArgumentException("Value must be > 0.", nameof(scale));
+		}
+		Width = width * scale;
+		Height = height * scale;
+		Data = new byte[Width * Height];
+		
+		for (var y = 0; y < height; y++)
+		{
+			for (var x = 0; x < width; x++)
+			{
+				var color = data[y * width + x];
+				
+				for (var sy = 0; sy < scale; sy++)
+				{
+					for (var sx = 0; sx < scale; sx++)
+					{
+						var dy = y * scale + sy;
+						var dx = x * scale + sx;
+						Data[dy * Width + dx] = color;
+					}
+				}
+			}
+		}
+	}
+
 	public Image(int width, int height, byte[] data)
 	{
 		Width = width;
 		Height = height;
-		Data = data;
+		Data = (byte[])data.Clone();
 	}
 
 	#endregion
@@ -161,6 +190,15 @@ class Image : IImage<Image, byte>
 		}
 
 		return new Image(width, height, data);
+	}
+
+	public Image Scale(int factor)
+	{
+		if (factor < 1)
+		{
+			throw new ArgumentException("Value must be > 0.", nameof(factor));
+		}
+		return new Image(Width, Height, Data, factor);
 	}
 
 	#endregion

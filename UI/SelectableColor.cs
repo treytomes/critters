@@ -19,6 +19,7 @@ class SelectableColor : UIElement
 	#region Events
 
 	public event EventHandler<ButtonClickedEventArgs>? Clicked;
+	public event EventHandler<MouseWheelEventArgs>? Scrolled;
 
 	#endregion
 
@@ -155,6 +156,7 @@ class SelectableColor : UIElement
 
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
@@ -163,6 +165,7 @@ class SelectableColor : UIElement
 
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+		eventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
@@ -208,6 +211,14 @@ class SelectableColor : UIElement
 				}
 				IsFocused = false;
 			}
+		}
+	}
+
+	private void OnMouseWheel(MouseWheelEventArgs e)
+	{
+		if (HasMouseHover)
+		{
+			Scrolled?.Invoke(this, e);
 		}
 	}
 
