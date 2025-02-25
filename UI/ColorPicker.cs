@@ -1,8 +1,6 @@
-using System.Security.Cryptography.X509Certificates;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 

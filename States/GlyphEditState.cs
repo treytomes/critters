@@ -17,6 +17,7 @@ class GlyphEditState : GameState
 	private GlyphSet<Bitmap>? _tiles = null;
 	private ColorPicker _fgPicker;
 	private ColorPicker _bgPicker;
+	private GlyphPicker _glyphPicker;
 	
 	#endregion
 
@@ -24,15 +25,34 @@ class GlyphEditState : GameState
 
 	public GlyphEditState()
 	{
-		_ui.Add(new Label("Foreground", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
-		_fgPicker = new ColorPicker(new Vector2(0, 8));
-		_fgPicker.SelectedColor = new RadialColor(5, 4, 3);
-		_ui.Add(_fgPicker);
+		var screenWidth = 320;
+		var colorPickerWidth = 87;
+		var padding = 1;
 
-		_ui.Add(new Label("Background", new Vector2(100, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
-		_bgPicker = new ColorPicker(new Vector2(100, 8));
-		_bgPicker.SelectedColor = new RadialColor(3, 4, 5);
-		_ui.Add(_bgPicker);
+		{
+			var x = screenWidth - colorPickerWidth;
+			var y = 0;
+			_ui.Add(new Label("Background", new Vector2(x, y), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
+			_bgPicker = new ColorPicker(new Vector2(x, y + 8));
+			_bgPicker.SelectedColor = new RadialColor(3, 4, 5);
+			_ui.Add(_bgPicker);
+		}
+
+		{
+			var x = screenWidth - colorPickerWidth * 2 - padding;
+			var y = 0;
+			_ui.Add(new Label("Foreground", new Vector2(x, y), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
+			_fgPicker = new ColorPicker(new Vector2(x, y + 8));
+			_fgPicker.SelectedColor = new RadialColor(5, 4, 3);
+			_ui.Add(_fgPicker);
+		}
+
+		_ui.Add(new Label("Glyphs", new Vector2(0, 240 - 168 - 8), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
+		_glyphPicker = new GlyphPicker(new Vector2(0, 240 - 168));
+		_glyphPicker.SelectedGlyphIndex = 2;
+		_ui.Add(_glyphPicker);
+
+		// _ui.Add(new SelectableGlyph(null, new Vector2(0, 100), "oem437_8.png", 2));
 	}
 
 	#endregion
@@ -78,7 +98,8 @@ class GlyphEditState : GameState
 			ui.Render(rc, gameTime);
 		}
 
-		new Bitmap(_tiles?[2], 16).Render(rc, new Vector2(rc.Width - (_tiles?.TileWidth * 16) ?? 0, 100), _fgPicker.SelectedColor, _bgPicker.SelectedColor);
+		var scale = 16;
+		new Bitmap(_tiles?[_glyphPicker.SelectedGlyphIndex], scale).Render(rc, new Vector2(rc.Width - (_tiles?.TileWidth * scale) ?? 0, 100), _fgPicker.SelectedColor, _bgPicker.SelectedColor);
 	}
 
 	public override void Update(GameTime gameTime)
