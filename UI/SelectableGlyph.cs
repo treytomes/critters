@@ -34,6 +34,8 @@ class SelectableGlyph : UIElement
 		Position = position;
 		_glyphResourcePath = glyphResourcePath;
 		GlyphIndex = glyphIndex;
+		ForegroundColor = new RadialColor(5, 5, 0);
+		BackgroundColor = new RadialColor(0, 0, 5);
 	}
 
 	#endregion
@@ -88,6 +90,9 @@ class SelectableGlyph : UIElement
 		}
 	}
 
+	public RadialColor ForegroundColor { get; set; }
+	public RadialColor BackgroundColor { get; set; }
+
 	#endregion
 
 	#region Methods
@@ -131,9 +136,7 @@ class SelectableGlyph : UIElement
 			rc.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
 		// rc.RenderFilledRect(x + 1, y + 1, (int)(x + Size.X - 2), (int)(y + Size.Y) - 2, 0);
-		var fgColor = new RadialColor(5, 5, 0);
-		var bgColor = new RadialColor(0, 0, 5);
-		_glyphs?[GlyphIndex].Render(rc, new Vector2(x, y) + Vector2.One, fgColor, bgColor);
+		_glyphs?[GlyphIndex].Render(rc, new Vector2(x, y) + Vector2.One, ForegroundColor, BackgroundColor);
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)

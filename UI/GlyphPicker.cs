@@ -82,6 +82,36 @@ class GlyphPicker : UIElement
 		}
 	}
 
+	public RadialColor ForegroundColor
+	{
+		get
+		{
+			return _selectableGlyphs[0].ForegroundColor;
+		}
+		set
+		{
+			foreach (var glyph in _selectableGlyphs)
+			{
+				glyph.ForegroundColor = value;
+			}
+		}
+	}
+
+	public RadialColor BackgroundColor
+	{
+		get
+		{
+			return _selectableGlyphs[0].BackgroundColor;
+		}
+		set
+		{
+			foreach (var glyph in _selectableGlyphs)
+			{
+				glyph.BackgroundColor = value;
+			}
+		}
+	}
+
 	#endregion
 
 	#region Methods

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
@@ -51,6 +52,8 @@ class GlyphEditState : GameState
 		_ui.Add(new Label("Glyphs", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
 		_glyphPicker = new GlyphPicker(new Vector2(0, 8));
 		_glyphPicker.SelectedGlyphIndex = 2;
+		_glyphPicker.ForegroundColor = _fgPicker.SelectedColor;
+		_glyphPicker.BackgroundColor = _bgPicker.SelectedColor;
 		_ui.Add(_glyphPicker);
 
 		// _ui.Add(new SelectableGlyph(null, new Vector2(0, 100), "oem437_8.png", 2));
@@ -73,6 +76,9 @@ class GlyphEditState : GameState
 			ui.Load(resources, eventBus);
 		}
 
+		_bgPicker.PropertyChanged += OnBGPickerPropertyChanged;
+		_fgPicker.PropertyChanged += OnFGPickerPropertyChanged;
+
     var image = resources.Load<Image>("oem437_8.png");
     _tiles = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
 	}
@@ -85,6 +91,9 @@ class GlyphEditState : GameState
 		{
 			ui.Unload(resources, eventBus);
 		}
+
+		_bgPicker.PropertyChanged -= OnBGPickerPropertyChanged;
+		_fgPicker.PropertyChanged -= OnFGPickerPropertyChanged;
 	}
 
 
@@ -110,6 +119,22 @@ class GlyphEditState : GameState
 		foreach (var ui in _ui)
 		{
 			ui.Update(gameTime);
+		}
+	}
+
+	private void OnBGPickerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(_bgPicker.SelectedColor))
+		{
+			_glyphPicker.BackgroundColor = _bgPicker.SelectedColor;
+		}
+	}
+
+	private void OnFGPickerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(_fgPicker.SelectedColor))
+		{
+			_glyphPicker.ForegroundColor = _fgPicker.SelectedColor;
 		}
 	}
 

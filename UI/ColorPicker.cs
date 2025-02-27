@@ -8,6 +8,14 @@ namespace Critters.UI;
 
 class ColorPicker : UIElement
 {
+	#region Constants
+
+	private const int BUTTON_SIZE = 8;
+	private const int BUTTON_PADDING = 1;
+	private const int GRID_SIZE = 6;
+
+	#endregion
+
 	#region Fields
 
 	private List<SelectableColor> _baseColors = new List<SelectableColor>();
@@ -34,11 +42,11 @@ class ColorPicker : UIElement
 
 		var selectedBaseColor = initialColor.HasValue ? new RadialColor(0, 0, initialColor.Value.Blue) : new RadialColor(0, 0, 0);
 
-		for (byte xc = 0; xc < 6; xc++)
+		for (byte xc = 0; xc < GRID_SIZE; xc++)
 		{
 			// Color Header
 			{
-				var x = xc * 9;
+				var x = xc * (BUTTON_SIZE + BUTTON_PADDING);
 				var y = 0;
 				var color = new RadialColor(0, 0, xc);
 				var elem = new SelectableColor(this, new Vector2(x, y), color);
@@ -51,11 +59,11 @@ class ColorPicker : UIElement
 			}
 
 			// Color Grid
-			for (byte yc = 0; yc < 6; yc++)
+			for (byte yc = 0; yc < GRID_SIZE; yc++)
 			{
 				// I'm inverting these on person.  Mouse scrolling will make more sense.
-				var y = 11 + xc * 9;
-				var x = yc * 9;
+				var y = (BUTTON_SIZE + BUTTON_PADDING + 2) + xc * (BUTTON_SIZE + BUTTON_PADDING);
+				var x = yc * (BUTTON_SIZE + BUTTON_PADDING);
 				
 				var color = new RadialColor(xc, yc, 0);
 				var elem = new SelectableColor(this, new Vector2(x, y), color);
@@ -89,10 +97,10 @@ class ColorPicker : UIElement
 			_selectedDerivedColor = _derivedColors.First(x => x.IsSelected);
 		}
 
-		_selectedColor = new Rectangle(this, new Box2(9 * 6 + 2, 0, 9 * 6 + 2 + 22, 9 * 7 + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_selectedColor = new Rectangle(this, new Box2((BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2, 0, (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2 + 22, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_selectedColor);
 
-		_colorLabel = new Label(this, "000==0", new Vector2(0, 9 * 7 + 4), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_colorLabel = new Label(this, "000==0", new Vector2(0, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 4), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
 		_ui.Add(_colorLabel);
 
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
@@ -111,8 +119,12 @@ class ColorPicker : UIElement
 		}
 		set
 		{
-			SelectBaseColor(_baseColors.First(x => x.DerivedColor.Blue == value.Blue));
-			SelectDerivedColor(_derivedColors.First(x => x.DerivedColor.Red == value.Red && x.DerivedColor.Green == value.Green));
+			if (SelectedColor != value)
+			{
+				SelectBaseColor(_baseColors.First(x => x.DerivedColor.Blue == value.Blue));
+				SelectDerivedColor(_derivedColors.First(x => x.DerivedColor.Red == value.Red && x.DerivedColor.Green == value.Green));
+				OnPropertyChanged();
+			}
 		}
 	}
 	
@@ -175,8 +187,8 @@ class ColorPicker : UIElement
 	{
 		base.Render(rc, gameTime);
 
-		rc.RenderFilledRect(new Box2(AbsolutePosition, new Vector2(AbsolutePosition.X + 9 * 6, AbsolutePosition.Y + 9 * 1)), new RadialColor(5, 5, 5));
-		rc.RenderFilledRect(new Box2(new Vector2(AbsolutePosition.X, AbsolutePosition.Y + 11), new Vector2(AbsolutePosition.X + 9 * 6, AbsolutePosition.Y + 11 + 6 * 9)), new RadialColor(5, 5, 5));
+		rc.RenderFilledRect(new Box2(AbsolutePosition, new Vector2(AbsolutePosition.X + (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE, AbsolutePosition.Y + (BUTTON_SIZE + BUTTON_PADDING))), new RadialColor(5, 5, 5));
+		rc.RenderFilledRect(new Box2(new Vector2(AbsolutePosition.X, AbsolutePosition.Y + (BUTTON_SIZE + BUTTON_PADDING + 2)), new Vector2(AbsolutePosition.X + (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE, AbsolutePosition.Y + 2 + (GRID_SIZE + 1) * (BUTTON_SIZE + BUTTON_PADDING))), new RadialColor(5, 5, 5));
 
 		foreach (var ui in _ui)
 		{
@@ -211,6 +223,7 @@ class ColorPicker : UIElement
 		}
 
 		SelectBaseColor(color);
+		OnPropertyChanged(nameof(SelectedColor));
 	}
 
 	private void OnBaseColorScrolled(object? sender, MouseWheelEventArgs e)
@@ -222,6 +235,7 @@ class ColorPicker : UIElement
 			{
 				var newIndex = (n + delta + _baseColors.Count) % _baseColors.Count;
 				SelectBaseColor(_baseColors[newIndex]);
+				OnPropertyChanged(nameof(SelectedColor));
 				break;
 			}
 		}
@@ -248,6 +262,7 @@ class ColorPicker : UIElement
 		}
 
 		SelectDerivedColor(color);
+		OnPropertyChanged(nameof(SelectedColor));
 	}
 
 	private void OnDerivedColorScrolled(object? sender, MouseWheelEventArgs e)
@@ -259,6 +274,7 @@ class ColorPicker : UIElement
 			{
 				var newIndex = (n + delta + _derivedColors.Count) % _derivedColors.Count;
 				SelectDerivedColor(_derivedColors[newIndex]);
+				OnPropertyChanged(nameof(SelectedColor));
 				break;
 			}
 		}
