@@ -55,8 +55,6 @@ class GlyphEditState : GameState
 		_glyphPicker.ForegroundColor = _fgPicker.SelectedColor;
 		_glyphPicker.BackgroundColor = _bgPicker.SelectedColor;
 		_ui.Add(_glyphPicker);
-
-		// _ui.Add(new SelectableGlyph(null, new Vector2(0, 100), "oem437_8.png", 2));
 	}
 
 	#endregion
