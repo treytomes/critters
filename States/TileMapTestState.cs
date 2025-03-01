@@ -86,19 +86,19 @@ class TileMapTestState : GameState
 	public TileMapTestState()
 		: base()
 	{
-		_camera = new Camera(new Vector2(320, 240));
+		_camera = new Camera();
 		
 		_tiles = new TileRepo();
 		_level = new Level(64, 8);
 
-		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_cameraLabel);
 		
-		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_mouseLabel);
 
 		_sampleButton = new Button(new Vector2(32, 32), ButtonStyle.Raised);
-		_sampleButton.Content = new Label("> Button <", new Vector2(0, 0), Palette.GetIndex(0, 0, 0), 255);
+		_sampleButton.Content = new Label("> Button <", new Vector2(0, 0), new RadialColor(0, 0, 0));
 		_ui.Add(_sampleButton);
 	}
 
@@ -149,6 +149,7 @@ class TileMapTestState : GameState
 		base.Render(rc, gameTime);
 
 		rc.Clear();
+		_camera.ViewportSize = rc.ViewportSize;
 
 		const int GRID_SPACING = 16;
 		const byte GRID_INTENSITY = 3;

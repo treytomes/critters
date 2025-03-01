@@ -100,7 +100,7 @@ class ColorPicker : UIElement
 		_selectedColor = new Rectangle(this, new Box2((BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2, 0, (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2 + 22, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_selectedColor);
 
-		_colorLabel = new Label(this, "000==0", new Vector2(0, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 4), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_colorLabel = new Label(this, "000==0", new Vector2(0, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 4), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_colorLabel);
 
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;

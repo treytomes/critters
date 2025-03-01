@@ -60,7 +60,7 @@ class GlyphPicker : UIElement
 
 		_selectedGlyph = _selectableGlyphs[selectedGlyphIndex];
 
-		_glyphLabel = new Label(this, "index=0", new Vector2(0, 9 * numGlyphRows + 2), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0));
+		_glyphLabel = new Label(this, "index=0", new Vector2(0, 9 * numGlyphRows + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_glyphLabel);
 
 		_glyphLabel.Text = $"glyph index={_selectedGlyph.GlyphIndex}";

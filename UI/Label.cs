@@ -14,19 +14,19 @@ class Label : UIElement
 
 	private Font? _font;
 	private string _text;
-	private byte _foregroundColor;
-	private byte _backgroundColor;
+	private RadialColor _foregroundColor;
+	private RadialColor? _backgroundColor;
 
 	#endregion
 
 	#region Constructors
 
-	public Label(string text, Vector2 position, byte fgColor, byte bgColor)
+	public Label(string text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
 		: this(null, text, position, fgColor, bgColor)
 	{
 	}
 
-	public Label(UIElement? parent, string text, Vector2 position, byte fgColor, byte bgColor)
+	public Label(UIElement? parent, string text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
 		: base(parent)
 	{
 		Text = text;
@@ -55,7 +55,7 @@ class Label : UIElement
 		}
 	}
 
-	public byte ForegroundColor
+	public RadialColor ForegroundColor
 	{
 		get
 		{
@@ -71,7 +71,7 @@ class Label : UIElement
 		}
 	}
 
-	public byte BackgroundColor
+	public RadialColor? BackgroundColor
 	{
 		get
 		{

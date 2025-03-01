@@ -33,7 +33,7 @@ class GlyphEditState : GameState
 		{
 			var x = screenWidth - colorPickerWidth;
 			var y = 0;
-			_ui.Add(new Label("Background", new Vector2(x, y), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
+			_ui.Add(new Label("Background", new Vector2(x, y), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
 			_bgPicker = new ColorPicker(new Vector2(x, y + 8));
 			_bgPicker.SelectedColor = new RadialColor(3, 4, 5);
 			_ui.Add(_bgPicker);
@@ -42,14 +42,14 @@ class GlyphEditState : GameState
 		{
 			var x = screenWidth - colorPickerWidth * 2 - padding;
 			var y = 0;
-			_ui.Add(new Label("Foreground", new Vector2(x, y), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
+			_ui.Add(new Label("Foreground", new Vector2(x, y), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
 			_fgPicker = new ColorPicker(new Vector2(x, y + 8));
 			_fgPicker.SelectedColor = new RadialColor(5, 4, 3);
 			_ui.Add(_fgPicker);
 		}
 
 		// height=168
-		_ui.Add(new Label("Glyphs", new Vector2(0, 0), Palette.GetIndex(5, 5, 5), Palette.GetIndex(0, 0, 0)));
+		_ui.Add(new Label("Glyphs", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
 		_glyphPicker = new GlyphPicker(new Vector2(0, 8));
 		_glyphPicker.SelectedGlyphIndex = 2;
 		_glyphPicker.ForegroundColor = _fgPicker.SelectedColor;

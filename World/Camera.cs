@@ -6,10 +6,10 @@ class Camera
 {
 	#region Constructors
 
-	public Camera(Vector2 viewportSize)
+	public Camera(Vector2? viewportSize = null)
 	{
 		Position = Vector2.Zero;
-		ViewportSize = viewportSize;
+		ViewportSize = viewportSize ?? Vector2.Zero;
 	}
 
 	#endregion
@@ -17,7 +17,7 @@ class Camera
 	#region Properties
 
 	public Vector2 Position { get; set; }
-	public Vector2 ViewportSize { get; }
+	public Vector2 ViewportSize { get; set; }
 
 	#endregion
 
