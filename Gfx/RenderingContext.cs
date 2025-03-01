@@ -33,6 +33,7 @@ class RenderingContext
 	public int Width => _display.Width;
 	public int Height => _display.Height;
 	public Vector2 ViewportSize => new Vector2(Width, Height);
+	public Box2 Bounds => new Box2(0, 0, Width, Height);
 	public Palette Palette => _display.Palette;
 
 	#endregion
