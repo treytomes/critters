@@ -41,9 +41,9 @@ class Program
     // states.EnterState(new FontTestState());
     // states.EnterState(new PatternTestState());
     // states.EnterState(new RasterGraphicsTestState());
-    states.EnterState(new TileMapTestState());
+    // states.EnterState(new TileMapTestState());
 		// states.EnterState(new GlyphEditState());
-    // states.EnterState(new MainMenuState());
+    states.EnterState(new MainMenuState());
 
     // Occurs when the window is about to close.
     window.Closing += (CancelEventArgs e) => {

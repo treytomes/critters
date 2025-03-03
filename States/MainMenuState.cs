@@ -1,28 +1,85 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.UI;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.States;
 
 class MainMenuState : GameState
 {
+	#region Fields
+
 	private bool _hasMouseHover = false;
 	private Box2 _bounds = new Box2(32, 32, 128, 96);
+	private List<UIElement> _ui = new List<UIElement>();
+
+	#endregion
+
+	#region Constructors
+
+	public MainMenuState()
+	{
+	}
+
+	#endregion
+
+	#region Methods
+
+	private List<Button> _menuButtons = new List<Button>();
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		{
+			var btn = new Button(new Vector2(32, 32), ButtonStyle.Raised);
+			btn.Content = new Label("> Tile Map Test <", new Vector2(0, 0), new RadialColor(0, 0, 0));
+			_ui.Add(btn);
+			_menuButtons.Add(btn);
+		}
+
+		foreach (var ui in _ui)
+		{
+			ui.Load(resources, eventBus);
+		}
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 
+		foreach (var ui in _ui)
+		{
+			ui.Unload(resources, eventBus);
+		}
+	}
+
+	public override void AcquireFocus(EventBus eventBus)
+	{
+		base.AcquireFocus(eventBus);
+
+		foreach (var btn in _menuButtons)
+		{
+			btn.Clicked += OnButtonClicked;
+		}
+
+		eventBus.Subscribe<KeyEventArgs>(OnKey);
+		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+	}
+
+	public override void LostFocus(EventBus eventBus)
+	{
+		foreach (var btn in _menuButtons)
+		{
+			btn.Clicked -= OnButtonClicked;
+		}
+		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+
+		base.LostFocus(eventBus);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
@@ -52,10 +109,45 @@ class MainMenuState : GameState
 		rc.RenderFilledCircle(290, 190, 23, rc.Palette[3, 2, 0]);
 
 		rc.FloodFill(new Vector2(310, 220), rc.Palette[1, 0, 2]);
+
+		foreach (var ui in _ui)
+		{
+			ui.Render(rc, gameTime);
+		}
+	}
+
+	public override void Update(GameTime gameTime)
+	{
+		base.Update(gameTime);
+		
+		foreach (var ui in _ui)
+		{
+			ui.Update(gameTime);
+		}
+	}
+
+	private void OnKey(KeyEventArgs e)
+	{
+		if (e.IsPressed)
+		{
+			switch (e.Key)
+			{
+				case Keys.Escape:
+					Leave();
+					break;
+			}
+		}
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)
 	{
 		_hasMouseHover = _bounds.ContainsInclusive(e.Position);
 	}
+
+	private void OnButtonClicked(object? sender, ButtonClickedEventArgs e)
+	{
+		Enter(new TileMapTestState());
+	}
+
+	#endregion
 }

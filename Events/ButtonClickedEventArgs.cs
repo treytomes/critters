@@ -1,4 +1,4 @@
-namespace Critters.UI;
+namespace Critters.Events;
 
 /// <summary>
 /// Occurs when a button is pressed, then released.

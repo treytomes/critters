@@ -46,6 +46,7 @@ class GameStateManager : IGameComponent
     _eventBus = eventBus;
 
 		eventBus.Subscribe<LeaveGameStateEventArgs>(OnLeave);
+		eventBus.Subscribe<EnterGameStateEventArgs>(OnEnter);
   }
 
   public void Unload(ResourceManager resources, EventBus eventBus)
@@ -56,18 +57,23 @@ class GameStateManager : IGameComponent
     }
 
 		eventBus.Unsubscribe<LeaveGameStateEventArgs>(OnLeave);
+		eventBus.Unsubscribe<EnterGameStateEventArgs>(OnEnter);
   }
 
   public void EnterState(GameState state)
   {
+		CurrentState?.LostFocus(_eventBus!);
     _states.Insert(0, state);
     state.Load(_resources!, _eventBus!);
+		CurrentState?.AcquireFocus(_eventBus!);
   }
 
   public void LeaveState()
   {
+		CurrentState?.LostFocus(_eventBus!);
     CurrentState?.Unload(_resources!, _eventBus!);
     _states.RemoveAt(0);
+		CurrentState?.AcquireFocus(_eventBus!);
   }
 
   public void Render(RenderingContext rc, GameTime gameTime)
@@ -83,6 +89,11 @@ class GameStateManager : IGameComponent
 	private void OnLeave(LeaveGameStateEventArgs e)
 	{
 		LeaveState();
+	}
+
+	private void OnEnter(EnterGameStateEventArgs e)
+	{
+		EnterState(e.State);
 	}
 
   #endregion

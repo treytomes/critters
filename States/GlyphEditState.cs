@@ -59,10 +59,6 @@ class GlyphEditState : GameState
 
 	#endregion
 
-	#region Properties
-
-	#endregion
-
 	#region Methods
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
@@ -73,9 +69,6 @@ class GlyphEditState : GameState
 		{
 			ui.Load(resources, eventBus);
 		}
-
-		_bgPicker.PropertyChanged += OnBGPickerPropertyChanged;
-		_fgPicker.PropertyChanged += OnFGPickerPropertyChanged;
 
     var image = resources.Load<Image>("oem437_8.png");
     _tiles = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
@@ -89,11 +82,23 @@ class GlyphEditState : GameState
 		{
 			ui.Unload(resources, eventBus);
 		}
-
-		_bgPicker.PropertyChanged -= OnBGPickerPropertyChanged;
-		_fgPicker.PropertyChanged -= OnFGPickerPropertyChanged;
 	}
 
+	public override void AcquireFocus(EventBus eventBus)
+	{
+		base.AcquireFocus(eventBus);
+
+		_bgPicker.PropertyChanged += OnBGPickerPropertyChanged;
+		_fgPicker.PropertyChanged += OnFGPickerPropertyChanged;
+	}
+
+	public override void LostFocus(EventBus eventBus)
+	{
+		_bgPicker.PropertyChanged -= OnBGPickerPropertyChanged;
+		_fgPicker.PropertyChanged -= OnFGPickerPropertyChanged;
+
+		base.LostFocus(eventBus);
+	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{

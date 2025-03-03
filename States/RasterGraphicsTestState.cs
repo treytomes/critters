@@ -14,15 +14,23 @@ class RasterGraphicsTestState : GameState
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
 		base.Load(resources, eventBus);
-
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
+	}
 
+	public override void AcquireFocus(EventBus eventBus)
+	{
+		base.AcquireFocus(eventBus);
+		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+	}
+
+	public override void LostFocus(EventBus eventBus)
+	{
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		base.LostFocus(eventBus);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)

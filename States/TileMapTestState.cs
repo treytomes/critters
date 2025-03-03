@@ -116,32 +116,42 @@ class TileMapTestState : GameState
 		// _level = LevelBuilder.BuildSample();
 		// _level.Save("sample.json");
 
-		_sampleButton.Clicked += OnButtonClicked;
-
 		foreach (var ui in _ui)
 		{
 			ui.Load(resources, eventBus);
 		}
-
-		eventBus.Subscribe<KeyEventArgs>(OnKey);
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 
-		_sampleButton.Clicked -= OnButtonClicked;
-
 		foreach (var ui in _ui)
 		{
 			ui.Unload(resources, eventBus);
 		}
+	}
+
+	public override void AcquireFocus(EventBus eventBus)
+	{
+		base.AcquireFocus(eventBus);
+
+		_sampleButton.Clicked += OnButtonClicked;
+
+		eventBus.Subscribe<KeyEventArgs>(OnKey);
+		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+	}
+
+	public override void LostFocus(EventBus eventBus)
+	{
+		_sampleButton.Clicked -= OnButtonClicked;
 
 		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+
+		base.LostFocus(eventBus);
 	}
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
