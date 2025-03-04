@@ -15,6 +15,7 @@ class MainMenuState : GameState
 	private bool _hasMouseHover = false;
 	private Box2 _bounds = new Box2(32, 32, 128, 96);
 	private List<UIElement> _ui = new List<UIElement>();
+	private List<Button> _menuButtons = new List<Button>();
 
 	#endregion
 
@@ -27,8 +28,6 @@ class MainMenuState : GameState
 	#endregion
 
 	#region Methods
-
-	private List<Button> _menuButtons = new List<Button>();
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
