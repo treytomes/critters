@@ -9,64 +9,14 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.States;
 
-class MapCursor
-{
-	#region Constants
-
-	private const int MAP_CURSOR_BLINK_SPEED_MS = 300;
-
-	#endregion
-
-	#region Fields
-
-	private Vector2 _position = Vector2.Zero;
-
-	#endregion
-
-	#region Methods
-
-	public void Update(GameTime gameTime)
-	{
-	}
-
-	public void Render(RenderingContext rc, GameTime gameTime, Camera camera)
-	{
-		var mapCursorScreenPosition = camera.WorldToScreen(_position);
-
-		if (rc.Bounds.ContainsExclusive(mapCursorScreenPosition))
-		{
-			rc.RenderRect(mapCursorScreenPosition, mapCursorScreenPosition + new Vector2(7, 7), rc.Palette[5, 0, 0]);
-			if ((int)(gameTime.TotalTime.TotalMilliseconds / MAP_CURSOR_BLINK_SPEED_MS) % 2 == 0)
-			{
-				rc.RenderRect(mapCursorScreenPosition - new Vector2(2, 2), mapCursorScreenPosition + new Vector2(7, 7) + new Vector2(2, 2), rc.Palette[5, 0, 0]);
-			}
-		}
-	}
-
-	public void MoveTo(Vector2 position)
-	{
-		_position = position;
-	}
-
-	public void MoveBy(Vector2 delta)
-	{
-		_position += delta;
-	}
-
-	#endregion
-}
-
-class TileMapTestState : GameState
+class SimplexNoiseState : GameState
 {
 	#region Fields
 
 	private Label _cameraLabel;
 	private Label _mouseLabel;
-	private Button _sampleButton;
 
 	private Camera _camera;
-	private TileRepo _tiles;
-	private Level _level;
 	private bool _isDraggingCamera = false;
 	private Vector2 _cameraDelta = Vector2.Zero;
 	private bool _cameraFastMove = false;
@@ -82,23 +32,16 @@ class TileMapTestState : GameState
 
 	#region Constructors
 
-	public TileMapTestState()
+	public SimplexNoiseState()
 		: base()
 	{
 		_camera = new Camera();
 		
-		_tiles = new TileRepo();
-		_level = new Level(64, 8);
-
 		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
 		
 		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
-
-		_sampleButton = new Button(new Vector2(32, 32), ButtonStyle.Raised);
-		_sampleButton.Content = new Label("> Button <", new Vector2(0, 0), new RadialColor(0, 0, 0));
-		UI.Add(_sampleButton);
 	}
 
 	#endregion
@@ -108,12 +51,6 @@ class TileMapTestState : GameState
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
 		base.Load(resources, eventBus);
-
-		_tiles.Load(resources, eventBus);
-
-		_level = Level.Load("sample.json");
-		// _level = LevelBuilder.BuildSample();
-		// _level.Save("sample.json");
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
@@ -125,8 +62,6 @@ class TileMapTestState : GameState
 	{
 		base.AcquireFocus(eventBus);
 
-		_sampleButton.Clicked += OnButtonClicked;
-
 		eventBus.Subscribe<KeyEventArgs>(OnKey);
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
@@ -134,8 +69,6 @@ class TileMapTestState : GameState
 
 	public override void LostFocus(EventBus eventBus)
 	{
-		_sampleButton.Clicked -= OnButtonClicked;
-
 		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
@@ -148,24 +81,16 @@ class TileMapTestState : GameState
 		rc.Clear();
 		_camera.ViewportSize = rc.ViewportSize;
 
-		const int GRID_SPACING = 16;
-		const byte GRID_INTENSITY = 3;
-		var gridColor = Palette.GetIndex(GRID_INTENSITY, GRID_INTENSITY, 0);
-		var gridDeltaX = MathHelper.FloorDiv((int)_camera.Position.X, GRID_SPACING) % GRID_SPACING;
-		var gridDeltaY = MathHelper.FloorDiv((int)_camera.Position.Y, GRID_SPACING) % GRID_SPACING;
-		for (var y = -GRID_SPACING; y < rc.Height + GRID_SPACING; y += GRID_SPACING)
+		for (var y = 0; y < _camera.ViewportSize.Y; y++)
 		{
-			rc.RenderHLine(0, rc.Width - 1, y - gridDeltaY, gridColor);
+			for (var x = 0; x < _camera.ViewportSize.X; x++)
+			{
+				var rnd = new Random((((int)_camera.Position.Y + y) << 16) + ((int)_camera.Position.X + x));
+				var n = (byte)(rnd.Next() % 6);
+				var color = new RadialColor(n, n, n);
+				rc.SetPixel(new Vector2(x, y), color);
+			}
 		}
-		for (var x = -GRID_SPACING; x < rc.Width + GRID_SPACING; x += GRID_SPACING)
-		{
-			rc.RenderVLine(x - gridDeltaX, 0, rc.Height - 1, gridColor);
-		}
-
-		_level?.Render(rc, _tiles, _camera);
-
-		// Render the map cursor.
-		_mapCursor.Render(rc, gameTime, _camera);
 
 		base.Render(rc, gameTime);
 	}
@@ -240,12 +165,6 @@ class TileMapTestState : GameState
 		{
 			_isDraggingCamera = e.IsPressed;
 		}
-	}
-
-	private void OnButtonClicked(object? sender, ButtonClickedEventArgs e)
-	{
-		Console.WriteLine($"Button pressed.");
-		_camera.ScrollBy(new Vector2(8, 0));
 	}
 
 	#endregion

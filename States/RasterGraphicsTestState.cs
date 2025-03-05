@@ -1,6 +1,5 @@
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
@@ -10,16 +9,6 @@ class RasterGraphicsTestState : GameState
 {
 	private bool _hasMouseHover = false;
 	private Box2 _bounds = new Box2(32, 32, 128, 96);
-
-	public override void Load(ResourceManager resources, EventBus eventBus)
-	{
-		base.Load(resources, eventBus);
-	}
-
-	public override void Unload(ResourceManager resources, EventBus eventBus)
-	{
-		base.Unload(resources, eventBus);
-	}
 
 	public override void AcquireFocus(EventBus eventBus)
 	{

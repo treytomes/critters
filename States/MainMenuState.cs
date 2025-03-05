@@ -14,16 +14,7 @@ class MainMenuState : GameState
 
 	private bool _hasMouseHover = false;
 	private Box2 _bounds = new Box2(32, 32, 128, 96);
-	private List<UIElement> _ui = new List<UIElement>();
 	private List<Button> _menuButtons = new List<Button>();
-
-	#endregion
-
-	#region Constructors
-
-	public MainMenuState()
-	{
-	}
 
 	#endregion
 
@@ -31,29 +22,22 @@ class MainMenuState : GameState
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
-		base.Load(resources, eventBus);
-
 		{
 			var btn = new Button(new Vector2(32, 32), ButtonStyle.Raised);
 			btn.Content = new Label("> Tile Map Test <", new Vector2(0, 0), new RadialColor(0, 0, 0));
-			_ui.Add(btn);
+			btn.Metadata = 0;
+			UI.Add(btn);
+			_menuButtons.Add(btn);
+		}
+		{
+			var btn = new Button(new Vector2(32, 46), ButtonStyle.Raised);
+			btn.Content = new Label("> Simplex Noise <", new Vector2(0, 0), new RadialColor(0, 0, 0));
+			btn.Metadata = 1;
+			UI.Add(btn);
 			_menuButtons.Add(btn);
 		}
 
-		foreach (var ui in _ui)
-		{
-			ui.Load(resources, eventBus);
-		}
-	}
-
-	public override void Unload(ResourceManager resources, EventBus eventBus)
-	{
-		base.Unload(resources, eventBus);
-
-		foreach (var ui in _ui)
-		{
-			ui.Unload(resources, eventBus);
-		}
+		base.Load(resources, eventBus);
 	}
 
 	public override void AcquireFocus(EventBus eventBus)
@@ -83,8 +67,6 @@ class MainMenuState : GameState
 
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
-		
 		rc.Clear();
 
 		var segments = 32;
@@ -109,20 +91,7 @@ class MainMenuState : GameState
 
 		rc.FloodFill(new Vector2(310, 220), rc.Palette[1, 0, 2]);
 
-		foreach (var ui in _ui)
-		{
-			ui.Render(rc, gameTime);
-		}
-	}
-
-	public override void Update(GameTime gameTime)
-	{
-		base.Update(gameTime);
-		
-		foreach (var ui in _ui)
-		{
-			ui.Update(gameTime);
-		}
+		base.Render(rc, gameTime);
 	}
 
 	private void OnKey(KeyEventArgs e)
@@ -145,7 +114,17 @@ class MainMenuState : GameState
 
 	private void OnButtonClicked(object? sender, ButtonClickedEventArgs e)
 	{
-		Enter(new TileMapTestState());
+		var btn = sender as Button;
+		var metadata = (int)btn!.Metadata!;
+		switch (metadata)
+		{
+			case 0:
+				Enter(new TileMapTestState());
+				break;
+			case 1:
+				Enter(new SimplexNoiseState());
+				break;
+		}
 	}
 
 	#endregion

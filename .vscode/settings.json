@@ -1,12 +1,13 @@
 {
   "cSpell.words": [
-    "Bresenham's",
-    "Croppable",
-    "finalizer",
-    "glsl",
-    "Newtonsoft",
-    "Roguelike"
-  ],
+		"Bresenham's",
+		"Croppable",
+		"finalizer",
+		"Fract",
+		"glsl",
+		"Newtonsoft",
+		"Roguelike"
+	],
   "editor.tabSize": 2,
 	"editor.detectIndentation": false,
 	"editor.insertSpaces": false

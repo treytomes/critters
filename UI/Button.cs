@@ -62,6 +62,12 @@ class Button : ContentPresenter
 
 	#endregion
 
+	#region Properties
+
+	public object? Metadata { get; set; } = null;
+
+	#endregion
+
 	#region Methods
 
 	public override void Load(ResourceManager resources, EventBus eventBus)

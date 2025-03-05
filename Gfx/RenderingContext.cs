@@ -70,6 +70,11 @@ class RenderingContext
 		Fill(0);
 	}
 
+	public void SetPixel(Vector2 pnt, RadialColor color)
+	{
+		SetPixel(pnt, color.Index);
+	}
+
 	public void SetPixel(Vector2 pnt, byte paletteIndex)
 	{
 		SetPixel((int)pnt.X, (int)pnt.Y, paletteIndex);
