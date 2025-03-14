@@ -1,216 +1,146 @@
-using OpenTK.Mathematics;
-
-namespace Critters;
-
-static class VectorExtensions
+public class SimplexNoise
 {
-}
+    private const int PERM_SIZE = 512;
+    private readonly int[] perm = new int[PERM_SIZE];
 
-class SimplexNoise
-{
-	Vector4 mod289(Vector4 x)
-	{
-		return x - (x * (1.0f / 289.0f)).Floor() * 289.0f;
-	}
+    private const float SQRT3 = 1.7320508075688772f;
+    private const float F2 = 0.5f * (SQRT3 - 1.0f);
+    private const float G2 = (3.0f - SQRT3) / 6.0f;
 
-	Vector3 mod289(Vector3 x)
-	{
-		return x - (x * (1.0f / 289.0f)).Floor() * 289.0f;
-	}
+    // Gradients for 2D. They approximate the directions to the
+    // vertices of a hexagon from the center.
+    private static readonly int[][] grad2 = new int[][] {
+        new int[] { 1, 0 }, new int[] { -1, 0 }, new int[] { 0, 1 }, new int[] { 0, -1 },
+        new int[] { 1, 1 }, new int[] { -1, 1 }, new int[] { 1, -1 }, new int[] { -1, -1 }
+    };
 
-	float mod289(float x)
-	{
-		return x - (float)Math.Floor(x * (1.0f / 289.0f)) * 289.0f;
-	}
+    public SimplexNoise(int seed = 0)
+    {
+        InitializePerm(seed);
+    }
 
-	Vector4 permute_v(Vector4 x)
-	{
-		return mod289(((x * 34.0f) + Vector4.One) * x);
-	}
+    private void InitializePerm(int seed)
+    {
+        Random rnd = new Random(seed);
+        
+        // Initialize with values 0...255
+        for (int i = 0; i < 256; i++)
+        {
+            perm[i] = i;
+        }
 
-	float permute(float x)
-	{
-		return mod289(((x * 34.0f) + 1.0f) * x);
-	}
+        // Shuffle
+        for (int i = 0; i < 255; i++)
+        {
+            int r = rnd.Next(i, 256);
+            int temp = perm[i];
+            perm[i] = perm[r];
+            perm[r] = temp;
+        }
 
-	Vector4 taylorInvSqrt(Vector4 r)
-	{
-		return 1.79284291400159f * Vector4.One - 0.85373472095314f * r;
-	}
+        // Duplicate to avoid buffer overflow
+        for (int i = 0; i < 256; i++)
+        {
+            perm[i + 256] = perm[i];
+        }
+    }
 
-	float taylorInvSqrt(float r)
-	{
-		return 1.79284291400159f - 0.85373472095314f * r;
-	}
+    private float Dot(int[] g, float x, float y)
+    {
+        return g[0] * x + g[1] * y;
+    }
 
-	Vector4 grad4(float j, Vector4 ip)
-	{
-		var ones = new Vector4(1.0f, 1.0f, 1.0f, -1.0f);
-		var p = Vector4.Zero;
-		var s = Vector4.Zero;
+    // 2D Simplex noise
+    public float Noise(float x, float y)
+    {
+        // Noise contributions from the three corners
+        float n0, n1, n2;
 
-		p.Xyz = (j * ip.Xyz).Fract().Floor() * 7.0f * ip.Z - Vector3.One;
-		p.W = 1.5f - Vector3.Dot(p.Xyz.Abs(), ones.Xyz);
-		s = new Vector4(lessThan(p, Vector4.Zero));
-		p.Xyz = p.Xyz + (s.Xyz * 2.0f - Vector3.One) * s.Www();
+        // Skew the input space to determine which simplex cell we're in
+        float s = (x + y) * F2; // Hairy factor for 2D
+        int i = FastFloor(x + s);
+        int j = FastFloor(y + s);
 
-		return p;
-	}
+        float t = (i + j) * G2;
+        // Unskew the cell origin back to (x,y) space
+        float X0 = i - t;
+        float Y0 = j - t;
+        // The x,y distances from the cell origin
+        float x0 = x - X0;
+        float y0 = y - Y0;
 
-	// (sqrt(5) - 1)/4 = F4, used once below
-	const float F4 = 0.309016994374947451f;
+        // For the 2D case, the simplex shape is an equilateral triangle.
+        // Determine which simplex we are in.
+        int i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
+        if (x0 > y0) { i1 = 1; j1 = 0; } // lower triangle, XY order: (0,0)->(1,0)->(1,1)
+        else { i1 = 0; j1 = 1; }      // upper triangle, YX order: (0,0)->(0,1)->(1,1)
 
-	float snoise(Vector4 v) {
-		Vector4 C = new Vector4( 0.138196601125011f,  // (5 - sqrt(5))/20  G4
-														 0.276393202250021f,  // 2 * G4
-														 0.414589803375032f,  // 3 * G4
-														-0.447213595499958f); // -1 + 4 * G4
+        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+        // c = (3-sqrt(3))/6
+        float x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+        float y1 = y0 - j1 + G2;
+        float x2 = x0 - 1.0f + 2.0f * G2; // Offsets for last corner in (x,y) unskewed coords
+        float y2 = y0 - 1.0f + 2.0f * G2;
 
-	// First corner
-		Vector4 i  = floor(v + dot(v, Vector4(F4, F4, F4, F4)));
-		Vector4 x0 = v -   i + dot(i, C.xxxx);
+        // Work out the hashed gradient indices of the three simplex corners
+        int ii = i & 255;
+        int jj = j & 255;
+        int gi0 = perm[ii + perm[jj]] % 8;
+        int gi1 = perm[ii + i1 + perm[jj + j1]] % 8;
+        int gi2 = perm[ii + 1 + perm[jj + 1]] % 8;
 
-	// Other corners
+        // Calculate the contribution from the three corners
+        float t0 = 0.5f - x0 * x0 - y0 * y0;
+        if (t0 < 0) n0 = 0.0f;
+        else
+        {
+            t0 *= t0;
+            n0 = t0 * t0 * Dot(grad2[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
+        }
 
-	// Rank sorting originally contributed by Bill Licea-Kane, AMD (formerly ATI)
-		Vector4 i0;
-		Vector3 isX = step( x0.yzw, x0.xxx );
-		Vector3 isYZ = step( x0.zww, x0.yyz );
-	//  i0.x = dot( isX, Vector3( 1.0 ) );
-		i0.x = isX.x + isX.y + isX.z;
-		i0.yzw = 1.0 - isX;
-	//  i0.y += dot( isYZ.xy, Vector2( 1.0 ) );
-		i0.y += isYZ.x + isYZ.y;
-		i0.zw += 1.0 - isYZ.xy;
-		i0.z += isYZ.z;
-		i0.w += 1.0 - isYZ.z;
+        float t1 = 0.5f - x1 * x1 - y1 * y1;
+        if (t1 < 0) n1 = 0.0f;
+        else
+        {
+            t1 *= t1;
+            n1 = t1 * t1 * Dot(grad2[gi1], x1, y1);
+        }
 
-		// i0 now contains the unique values 0,1,2,3 in each channel taylorInvSqrt
-		Vector4 i3 = clamp(i0, 0.0, 1.0);
-		Vector4 i2 = clamp(i0 - 1.0, 0.0, 1.0);
-		Vector4 i1 = clamp(i0 - 2.0, 0.0, 1.0);
+        float t2 = 0.5f - x2 * x2 - y2 * y2;
+        if (t2 < 0) n2 = 0.0f;
+        else
+        {
+            t2 *= t2;
+            n2 = t2 * t2 * Dot(grad2[gi2], x2, y2);
+        }
 
-		//  x0 = x0 - 0.0 + 0.0 * C.xxxx
-		//  x1 = x0 - i1  + 1.0 * C.xxxx
-		//  x2 = x0 - i2  + 2.0 * C.xxxx
-		//  x3 = x0 - i3  + 3.0 * C.xxxx
-		//  x4 = x0 - 1.0 + 4.0 * C.xxxx
-		Vector4 x1 = x0 - i1 + C.xxxx;
-		Vector4 x2 = x0 - i2 + C.yyyy;
-		Vector4 x3 = x0 - i3 + C.zzzz;
-		Vector4 x4 = x0 + C.wwww;
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to return values in the interval [-1,1].
+        return 70.0f * (n0 + n1 + n2);
+    }
 
-	// Permutations
-		i = mod289(i);
-		float j0 = permute( permute( permute( permute(i.w) + i.z) + i.y) + i.x);
-		Vector4 j1 = permute_v(permute_v(permute_v(permute_v(
-							i.w + Vector4(i1.w, i2.w, i3.w, 1.0 ))
-						+ i.z + Vector4(i1.z, i2.z, i3.z, 1.0 ))
-						+ i.y + Vector4(i1.y, i2.y, i3.y, 1.0 ))
-						+ i.x + Vector4(i1.x, i2.x, i3.x, 1.0 ));
+    // Multi-octave version for richer noise patterns
+    public float FractalNoise(float x, float y, int octaves, float persistence)
+    {
+        float total = 0;
+        float frequency = 1;
+        float amplitude = 1;
+        float maxValue = 0;
+        
+        for (int i = 0; i < octaves; i++)
+        {
+            total += Noise(x * frequency, y * frequency) * amplitude;
+            maxValue += amplitude;
+            amplitude *= persistence;
+            frequency *= 2;
+        }
+        
+        return total / maxValue;
+    }
 
-	// Gradients: 7x7x6 points over a cube, mapped onto a 4-cross polytope
-	// 7*7*6 = 294, which is close to the ring size 17*17 = 289.
-		Vector4 ip = Vector4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;
-
-		Vector4 p0 = grad4(j0,   ip);
-		Vector4 p1 = grad4(j1.x, ip);
-		Vector4 p2 = grad4(j1.y, ip);
-		Vector4 p3 = grad4(j1.z, ip);
-		Vector4 p4 = grad4(j1.w, ip);
-
-	// Normalise gradients
-		Vector4 norm = taylorInvSqrt(Vector4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-		p0 *= norm.x;
-		p1 *= norm.y;
-		p2 *= norm.z;
-		p3 *= norm.w;
-		p4 *= taylorInvSqrt(dot(p4,p4));
-
-	// Mix contributions from the five corners
-		Vector3 m0 = max(0.6 - Vector3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
-		Vector2 m1 = max(0.6 - Vector2(dot(x3,x3), dot(x4,x4)            ), 0.0);
-		m0 = m0 * m0;
-		m1 = m1 * m1;
-		return 42.0 * ( dot(m0*m0, Vector3( dot( p0, x0 ), dot( p1, x1 ), dot( p2, x2 )))
-								+ dot(m1*m1, Vector2( dot( p3, x3 ), dot( p4, x4 ) ) ) ) ;
-	}
-
-	Vector4 snoise_grad(Vector3 v)
-	{
-			const Vector2 C = Vector2(1.0 / 6.0, 1.0 / 3.0);
-
-			// First corner
-			Vector3 i  = floor(v + dot(v, C.yyy));
-			Vector3 x0 = v   - i + dot(i, C.xxx);
-
-			// Other corners
-			Vector3 g = step(x0.yzx, x0.xyz);
-			Vector3 l = 1.0 - g;
-			Vector3 i1 = min(g.xyz, l.zxy);
-			Vector3 i2 = max(g.xyz, l.zxy);
-
-			// x1 = x0 - i1  + 1.0 * C.xxx;
-			// x2 = x0 - i2  + 2.0 * C.xxx;
-			// x3 = x0 - 1.0 + 3.0 * C.xxx;
-			Vector3 x1 = x0 - i1 + C.xxx;
-			Vector3 x2 = x0 - i2 + C.yyy;
-			Vector3 x3 = x0 - 0.5;
-
-			// Permutations
-			i = mod289(i); // Avoid truncation effects in permutation
-			Vector4 p =
-				permute_v(permute_v(permute_v(i.z + Vector4(0.0, i1.z, i2.z, 1.0))
-															+ i.y + Vector4(0.0, i1.y, i2.y, 1.0))
-															+ i.x + Vector4(0.0, i1.x, i2.x, 1.0));
-
-			// Gradients: 7x7 points over a square, mapped onto an octahedron.
-			// The ring size 17*17 = 289 is close to a multiple of 49 (49*6 = 294)
-			Vector4 j = p - 49.0 * floor(p / 49.0);  // mod(p,7*7)
-
-			Vector4 x_ = floor(j / 7.0);
-			Vector4 y_ = floor(j - 7.0 * x_);  // mod(j,N)
-
-			Vector4 x = (x_ * 2.0 + 0.5) / 7.0 - 1.0;
-			Vector4 y = (y_ * 2.0 + 0.5) / 7.0 - 1.0;
-
-			Vector4 h = 1.0 - abs(x) - abs(y);
-
-			Vector4 b0 = Vector4(x.xy, y.xy);
-			Vector4 b1 = Vector4(x.zw, y.zw);
-
-			//Vector4 s0 = Vector4(lessThan(b0, 0.0)) * 2.0 - 1.0;
-			//Vector4 s1 = Vector4(lessThan(b1, 0.0)) * 2.0 - 1.0;
-			Vector4 s0 = floor(b0) * 2.0 + 1.0;
-			Vector4 s1 = floor(b1) * 2.0 + 1.0;
-			Vector4 sh = -step(h, Vector4(0.0));
-
-			Vector4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
-			Vector4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
-
-			Vector3 g0 = Vector3(a0.xy, h.x);
-			Vector3 g1 = Vector3(a0.zw, h.y);
-			Vector3 g2 = Vector3(a1.xy, h.z);
-			Vector3 g3 = Vector3(a1.zw, h.w);
-
-			// Normalise gradients
-			Vector4 norm = taylorInvSqrt(Vector4(dot(g0, g0), dot(g1, g1), dot(g2, g2), dot(g3, g3)));
-			g0 *= norm.x;
-			g1 *= norm.y;
-			g2 *= norm.z;
-			g3 *= norm.w;
-
-			// Compute noise and gradient at P
-			Vector4 m = max(0.6 - Vector4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
-			Vector4 m2 = m * m;
-			Vector4 m3 = m2 * m;
-			Vector4 m4 = m2 * m2;
-			Vector3 grad =
-					-6.0 * m3.x * x0 * dot(x0, g0) + m4.x * g0 +
-					-6.0 * m3.y * x1 * dot(x1, g1) + m4.y * g1 +
-					-6.0 * m3.z * x2 * dot(x2, g2) + m4.z * g2 +
-					-6.0 * m3.w * x3 * dot(x3, g3) + m4.w * g3;
-			Vector4 px = Vector4(dot(x0, g0), dot(x1, g1), dot(x2, g2), dot(x3, g3));
-			return 42.0 * Vector4(grad, dot(m4, px));
-	}
+    private int FastFloor(float x)
+    {
+        return x > 0 ? (int)x : (int)x - 1;
+    }
 }

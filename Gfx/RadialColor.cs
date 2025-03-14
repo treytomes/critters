@@ -16,15 +16,15 @@ readonly struct RadialColor : IEquatable<RadialColor>
 	{
 		if (r > 5)
 		{
-			throw new ArgumentException("Invalid color value.", nameof(r));
+			throw new ArgumentException($"Invalid color value: {r}", nameof(r));
 		}
 		if (g > 5)
 		{
-			throw new ArgumentException("Invalid color value.", nameof(g));
+			throw new ArgumentException($"Invalid color value: {g}", nameof(g));
 		}
 		if (b > 5)
 		{
-			throw new ArgumentException("Invalid color value.", nameof(b));
+			throw new ArgumentException($"Invalid color value: {b}", nameof(b));
 		}
 		Red = r;
 		Green = g;

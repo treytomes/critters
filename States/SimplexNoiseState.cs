@@ -81,13 +81,32 @@ class SimplexNoiseState : GameState
 		rc.Clear();
 		_camera.ViewportSize = rc.ViewportSize;
 
-		for (var y = 0; y < _camera.ViewportSize.Y; y++)
+		for (var dy = 0; dy < _camera.ViewportSize.Y; dy++)
 		{
-			for (var x = 0; x < _camera.ViewportSize.X; x++)
+			for (var dx = 0; dx < _camera.ViewportSize.X; dx++)
 			{
-				var rnd = new Random((((int)_camera.Position.Y + y) << 16) + ((int)_camera.Position.X + x));
-				var n = (byte)(rnd.Next() % 6);
-				var color = new RadialColor(n, n, n);
+				var x = _camera.Position.X + dx;
+				var y = _camera.Position.Y + dy;
+
+				var noise = new SimplexNoise(42);
+
+				// Get noise from [-1, 1].
+				// Generate a single noise value at coordinates (x, y)
+				// float value = noise.Noise(x, y);  // Value between -1 and 1
+
+				// Generate fractal (multi-octave) noise for more natural-looking results
+				float value = noise.FractalNoise(x, y, octaves: 6, persistence: 0.5f);
+
+				// Convert noise to [0, 1].
+				value = (value + 1) / 2;
+
+				// Convert noise to [0, 5].
+				value *= 5;
+
+				// Convert noise to a byte.
+				var c = (byte)value;
+
+				var color = new RadialColor(c, c, c);
 				rc.SetPixel(new Vector2(x, y), color);
 			}
 		}
