@@ -72,7 +72,7 @@ class RenderingContext
 
 	public void SetPixel(Vector2 pnt, RadialColor color)
 	{
-		SetPixel(pnt, color.Index);
+		SetPixel((int)pnt.X, (int)pnt.Y, color.Index);
 	}
 
 	public void SetPixel(Vector2 pnt, byte paletteIndex)
@@ -235,6 +235,63 @@ class RenderingContext
 				y1 += sy;
 			}
 		}
+	}
+
+	public void RenderOrderedDitheredCircle(Vector2 center, int radius, RadialColor color, float falloffStart = 0.6f, RadialColor? secondaryColor = null)
+	{
+			// Bayer 4x4 dithering matrix
+			int[,] bayerMatrix = new int[,] {
+					{  0, 12,  3, 15 },
+					{  8,  4, 11,  7 },
+					{  2, 14,  1, 13 },
+					{ 10,  6,  9,  5 }
+			};
+
+			float innerRadiusSquared = (radius * falloffStart) * (radius * falloffStart);
+			float outerRadiusSquared = radius * radius;
+			
+			for (int y = -radius; y <= radius; y++)
+			{
+					for (int x = -radius; x <= radius; x++)
+					{
+							float distanceSquared = x * x + y * y;
+							
+							if (distanceSquared > outerRadiusSquared)
+									continue;
+									
+							if (distanceSquared <= innerRadiusSquared)
+							{
+									SetPixel((int)(center.X + x), (int)(center.Y + y), color.Index);
+									continue;
+							}
+							
+							// Calculate dithering threshold from 0.0 to 1.0
+							float normalizedDistance = (distanceSquared - innerRadiusSquared) / (outerRadiusSquared - innerRadiusSquared);
+							
+							// Get the appropriate threshold from the Bayer matrix (0-15, normalized to 0.0-1.0)
+							int bayerX = Math.Abs(x) % 4;
+							int bayerY = Math.Abs(y) % 4;
+							float threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
+							
+							// Draw pixel if the normalized distance is less than the threshold
+							if (normalizedDistance < threshold)
+							{
+									SetPixel((int)(center.X + x), (int)(center.Y + y), color.Index);
+							}
+							else
+							{
+								if (secondaryColor.HasValue)
+								{
+									SetPixel((int)(center.X + x), (int)(center.Y + y), secondaryColor.Value.Index);
+								}
+							}
+					}
+			}
+	}
+
+	public void RenderCircle(Vector2 center, int radius, RadialColor color)
+	{
+		RenderCircle(center, radius, color.Index);
 	}
 
 	public void RenderCircle(Vector2 center, int radius, byte paletteIndex)

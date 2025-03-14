@@ -22,17 +22,17 @@ class MainMenuState : GameState
 
 	public override void Load(ResourceManager resources, EventBus eventBus)
 	{
+		var items = new [] {
+			"> Tile Map Test <",
+			"> Simplex Noise <",
+			">   Heat Lamp   <",
+		};
+
+		for (var n = 0; n < items.Length; n++)
 		{
-			var btn = new Button(new Vector2(32, 32), ButtonStyle.Raised);
-			btn.Content = new Label("> Tile Map Test <", new Vector2(0, 0), new RadialColor(0, 0, 0));
-			btn.Metadata = 0;
-			UI.Add(btn);
-			_menuButtons.Add(btn);
-		}
-		{
-			var btn = new Button(new Vector2(32, 46), ButtonStyle.Raised);
-			btn.Content = new Label("> Simplex Noise <", new Vector2(0, 0), new RadialColor(0, 0, 0));
-			btn.Metadata = 1;
+			var btn = new Button(new Vector2(32, 32 + n * 14), ButtonStyle.Raised);
+			btn.Content = new Label(items[n], new Vector2(0, 0), new RadialColor(0, 0, 0));
+			btn.Metadata = n;
 			UI.Add(btn);
 			_menuButtons.Add(btn);
 		}
@@ -123,6 +123,9 @@ class MainMenuState : GameState
 				break;
 			case 1:
 				Enter(new SimplexNoiseState());
+				break;
+			case 2:
+				Enter(new HeatLampExperimentState());
 				break;
 		}
 	}

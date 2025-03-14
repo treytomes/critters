@@ -9,4 +9,21 @@ static class MathHelper
 	{
 			return (dividend / divisor) - ((dividend % divisor < 0) ? 1 : 0);
 	}
+
+	public static T Clamp<T>(T value, T inclusiveMin, T inclusiveMax)
+		where T : IComparable<T>
+	{
+		if (value.CompareTo(inclusiveMin) < 0)
+		{
+			return inclusiveMin;
+		}
+		else if (value.CompareTo(inclusiveMax) > 0)
+		{
+			return inclusiveMax;
+		}
+		else
+		{
+			return value;
+		}
+	}
 }
