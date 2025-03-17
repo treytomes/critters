@@ -11,7 +11,9 @@ namespace Critters.States;
 
 class Lamp
 {
-	private static readonly List<RadialColor> _colors = [
+	private const int MAX_COLOR_INTENSITY = 6;
+	
+	public static readonly List<RadialColor> Colors = [
 			new RadialColor(0, 0, 0),
 			new RadialColor(1, 0, 0),
 			new RadialColor(2, 1, 0),
@@ -23,13 +25,23 @@ class Lamp
 	public Vector2 Position { get; set; }
 	public float Intensity { get; set; }
 
-	public void Render(RenderingContext rc)
+	public void Render(RenderingContext rc, Camera camera)
 	{
-		rc.RenderOrderedDitheredCircle(Position, (int)(50 * Intensity), _colors[1], Intensity);
-		rc.RenderOrderedDitheredCircle(Position, (int)(40 * Intensity), _colors[2], Intensity, _colors[1]);
-		rc.RenderOrderedDitheredCircle(Position, (int)(30 * Intensity), _colors[3], Intensity, _colors[2]);
-		rc.RenderOrderedDitheredCircle(Position, (int)(20 * Intensity), _colors[4], Intensity, _colors[3]);
-		rc.RenderOrderedDitheredCircle(Position, (int)(10 * Intensity), _colors[5], Intensity, _colors[4]);
+		var pos = Position - camera.Position;
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 1) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 5], Intensity);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 2) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 4], Intensity, Colors[MAX_COLOR_INTENSITY - 5]);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 3) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 3], Intensity, Colors[MAX_COLOR_INTENSITY - 4]);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 4) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 2], Intensity, Colors[MAX_COLOR_INTENSITY - 3]);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 5) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 1], Intensity, Colors[MAX_COLOR_INTENSITY - 2]);
+	}
+
+	/// <summary>
+	/// </summary>
+	/// <param name="intensity">A value in [0, 1].</param>
+	/// <returns></returns>
+	public static int IntensityToColorIndex(float intensity)
+	{
+		return (int)(intensity * 5.0f);
 	}
 
 	/// <summary>
@@ -38,9 +50,7 @@ class Lamp
 	/// <returns></returns>
 	public static RadialColor IntensityToColor(float intensity)
 	{
-		intensity = MathHelper.Clamp(intensity, 0.0f, 1.0f);
-		var colorIntensity = (byte)(intensity * 5.0f);
-		return _colors[colorIntensity];
+		return Colors[IntensityToColorIndex(intensity)];
 	}
 }
 
@@ -131,7 +141,13 @@ class HeatLampExperimentState : GameState
 		rc.Clear();
 		_camera.ViewportSize = rc.ViewportSize;
 
-		const float BASE_INTENSITY = 25.0f;
+		// foreach (var lamp in _lamps)
+		// {
+		// 	lamp.Render(rc, _camera);
+		// }
+		// new Lamp() { Position = _camera.Position + _mousePosition, Intensity = _intensityFactor }.Render(rc, _camera);
+
+		const float BASE_INTENSITY = 100.0f;
 		for (var dy = 0; dy < rc.ViewportSize.Y; dy++)
 		{
 			for (var dx = 0; dx < rc.ViewportSize.X; dx++)
@@ -147,8 +163,6 @@ class HeatLampExperimentState : GameState
 					// intensity += lamp.Intensity * BASE_INTENSITY / squaredDistance;
 					var distance = Vector2.Distance(pos, lamp.Position);
 					intensity += lamp.Intensity * BASE_INTENSITY / distance;
-
-					// lamp.Render(rc);
 				}
 
 				// And also the mouse.
@@ -166,15 +180,30 @@ class HeatLampExperimentState : GameState
 				var bayerX = Math.Abs((int)pos.X) % 4;
 				var bayerY = Math.Abs((int)pos.Y) % 4;
 				var threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
-				if (Random.Shared.NextDouble() < intensity)
-				// if (intensity < threshold)
+				// if (Random.Shared.NextDouble() < intensity)
+				var colorIndex = Lamp.IntensityToColorIndex(intensity);
+				if (intensity < threshold)
 				{
-					rc.SetPixel(ppos, Lamp.IntensityToColor(intensity));
+					var color = Lamp.Colors[colorIndex];
+					if (color.Index != 0)
+					{
+						rc.SetPixel(ppos, color);
+					}
+				}
+				else
+				{
+					colorIndex -= 1;
+					if (colorIndex > 0)
+					{
+						var color = Lamp.Colors[colorIndex];
+						if (color.Index != 0)
+						{
+							rc.SetPixel(ppos, color);
+						}
+					}
 				}
 			}
 		}
-
-		new Lamp() { Position = _mousePosition, Intensity = _intensityFactor }.Render(rc);
 
 		base.Render(rc, gameTime);
 	}
