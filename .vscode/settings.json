@@ -6,6 +6,7 @@
 		"Fract",
 		"glsl",
 		"Newtonsoft",
+		"ppos",
 		"Roguelike"
 	],
   "editor.tabSize": 2,

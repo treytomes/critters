@@ -82,11 +82,15 @@ class RenderingContext
 
 	public void SetPixel(int x, int y, byte paletteIndex)
 	{
-		int index = (y * _display.Width + x) * BPP;
-		if (index < 0 || index >= Data.Length)
+		if (x < 0 || x >= _display.Width || y < 0 || y >= _display.Height)
 		{
 			return;
 		}
+		var index = (y * _display.Width + x) * BPP;
+		// if (index < 0 || index >= Data.Length)
+		// {
+		// 	return;
+		// }
 		Data[index] = paletteIndex;
 		_isDirty = true;
 	}
@@ -240,21 +244,21 @@ class RenderingContext
 	public void RenderOrderedDitheredCircle(Vector2 center, int radius, RadialColor color, float falloffStart = 0.6f, RadialColor? secondaryColor = null)
 	{
 			// Bayer 4x4 dithering matrix
-			int[,] bayerMatrix = new int[,] {
+			var bayerMatrix = new int[,] {
 					{  0, 12,  3, 15 },
 					{  8,  4, 11,  7 },
 					{  2, 14,  1, 13 },
 					{ 10,  6,  9,  5 }
 			};
 
-			float innerRadiusSquared = (radius * falloffStart) * (radius * falloffStart);
-			float outerRadiusSquared = radius * radius;
+			var innerRadiusSquared = (radius * falloffStart) * (radius * falloffStart);
+			var outerRadiusSquared = radius * radius;
 			
-			for (int y = -radius; y <= radius; y++)
+			for (var y = -radius; y <= radius; y++)
 			{
-					for (int x = -radius; x <= radius; x++)
+					for (var x = -radius; x <= radius; x++)
 					{
-							float distanceSquared = x * x + y * y;
+							var distanceSquared = x * x + y * y;
 							
 							if (distanceSquared > outerRadiusSquared)
 									continue;
@@ -266,12 +270,12 @@ class RenderingContext
 							}
 							
 							// Calculate dithering threshold from 0.0 to 1.0
-							float normalizedDistance = (distanceSquared - innerRadiusSquared) / (outerRadiusSquared - innerRadiusSquared);
+							var normalizedDistance = (distanceSquared - innerRadiusSquared) / (outerRadiusSquared - innerRadiusSquared);
 							
 							// Get the appropriate threshold from the Bayer matrix (0-15, normalized to 0.0-1.0)
-							int bayerX = Math.Abs(x) % 4;
-							int bayerY = Math.Abs(y) % 4;
-							float threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
+							var bayerX = Math.Abs(x) % 4;
+							var bayerY = Math.Abs(y) % 4;
+							var threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
 							
 							// Draw pixel if the normalized distance is less than the threshold
 							if (normalizedDistance < threshold)

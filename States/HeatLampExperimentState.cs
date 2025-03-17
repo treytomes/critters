@@ -11,16 +11,36 @@ namespace Critters.States;
 
 class Lamp
 {
+	private static readonly List<RadialColor> _colors = [
+			new RadialColor(0, 0, 0),
+			new RadialColor(1, 0, 0),
+			new RadialColor(2, 1, 0),
+			new RadialColor(3, 2, 1),
+			new RadialColor(4, 3, 2),
+			new RadialColor(5, 4, 3)
+	];
+
 	public Vector2 Position { get; set; }
 	public float Intensity { get; set; }
 
 	public void Render(RenderingContext rc)
 	{
-		rc.RenderOrderedDitheredCircle(Position, (int)(50 * Intensity), new RadialColor(1, 0, 0), Intensity);
-		rc.RenderOrderedDitheredCircle(Position, (int)(40 * Intensity), new RadialColor(2, 1, 0), Intensity, new RadialColor(1, 0, 0));
-		rc.RenderOrderedDitheredCircle(Position, (int)(30 * Intensity), new RadialColor(3, 2, 1), Intensity, new RadialColor(2, 1, 0));
-		rc.RenderOrderedDitheredCircle(Position, (int)(20 * Intensity), new RadialColor(4, 3, 2), Intensity, new RadialColor(3, 2, 1));
-		rc.RenderOrderedDitheredCircle(Position, (int)(10 * Intensity), new RadialColor(5, 4, 3), Intensity, new RadialColor(4, 3, 2));
+		rc.RenderOrderedDitheredCircle(Position, (int)(50 * Intensity), _colors[1], Intensity);
+		rc.RenderOrderedDitheredCircle(Position, (int)(40 * Intensity), _colors[2], Intensity, _colors[1]);
+		rc.RenderOrderedDitheredCircle(Position, (int)(30 * Intensity), _colors[3], Intensity, _colors[2]);
+		rc.RenderOrderedDitheredCircle(Position, (int)(20 * Intensity), _colors[4], Intensity, _colors[3]);
+		rc.RenderOrderedDitheredCircle(Position, (int)(10 * Intensity), _colors[5], Intensity, _colors[4]);
+	}
+
+	/// <summary>
+	/// </summary>
+	/// <param name="intensity">A value in [0, 1].</param>
+	/// <returns></returns>
+	public static RadialColor IntensityToColor(float intensity)
+	{
+		intensity = MathHelper.Clamp(intensity, 0.0f, 1.0f);
+		var colorIntensity = (byte)(intensity * 5.0f);
+		return _colors[colorIntensity];
 	}
 }
 
@@ -96,72 +116,65 @@ class HeatLampExperimentState : GameState
 		base.LostFocus(eventBus);
 	}
 
+	/// <summary>
+	/// Bayer 4x4 dithering matrix
+	/// </summary>
+	private static readonly int[,] bayerMatrix = new int[,] {
+			{  0, 12,  3, 15 },
+			{  8,  4, 11,  7 },
+			{  2, 14,  1, 13 },
+			{ 10,  6,  9,  5 }
+	};
+
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
 		rc.Clear();
 		_camera.ViewportSize = rc.ViewportSize;
 
+		const float BASE_INTENSITY = 25.0f;
 		for (var dy = 0; dy < rc.ViewportSize.Y; dy++)
 		{
 			for (var dx = 0; dx < rc.ViewportSize.X; dx++)
 			{
-				var x = _camera.Position.X + dx;
-				var y = _camera.Position.Y + dy;
-				var pos = new Vector2(x, y);
+				var ppos = new Vector2(dx, dy);
+				var pos = _camera.Position + ppos;
 
 				// Calculate the intensity contribution of each lamp.
 				var intensity = 0.0f;
 				foreach (var lamp in _lamps)
 				{
 					// var squaredDistance = Vector2.DistanceSquared(pos, lamp.Position);
-					// intensity += lamp.Intensity * 10 / squaredDistance;
+					// intensity += lamp.Intensity * BASE_INTENSITY / squaredDistance;
 					var distance = Vector2.Distance(pos, lamp.Position);
-					intensity += lamp.Intensity * 25 / distance;
+					intensity += lamp.Intensity * BASE_INTENSITY / distance;
+
+					// lamp.Render(rc);
 				}
 
 				// And also the mouse.
 				{
 					// var squaredDistance = Vector2.DistanceSquared(pos, _mousePosition);
-					// intensity += _intensityFactor * 10 / squaredDistance;
-					var distance = Vector2.Distance(pos, _mousePosition);
-					intensity += _intensityFactor * 25 / distance;
+					// intensity += _intensityFactor * BASE_INTENSITY / squaredDistance;
+					var distance = Vector2.Distance(pos, _camera.Position + _mousePosition);
+					intensity += _intensityFactor * BASE_INTENSITY / distance;
 				}
 
 				// Calculate dithering probability.
 				intensity = MathHelper.Clamp(intensity, 0.0f, 1.0f);
+
+				// Get the appropriate threshold from the Bayer matrix (0-15, normalized to 0.0-1.0)
+				var bayerX = Math.Abs((int)pos.X) % 4;
+				var bayerY = Math.Abs((int)pos.Y) % 4;
+				var threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
 				if (Random.Shared.NextDouble() < intensity)
+				// if (intensity < threshold)
 				{
-					var colorIntensity = (byte)(intensity * 5.0f);
-					switch (colorIntensity)
-					{
-						case 5:
-							rc.SetPixel(pos, new RadialColor(5, 4, 3));
-							break;
-						case 4:
-							rc.SetPixel(pos, new RadialColor(4, 3, 2));
-							break;
-						case 3:
-							rc.SetPixel(pos, new RadialColor(3, 2, 1));
-							break;
-						case 2:
-							rc.SetPixel(pos, new RadialColor(2, 1, 0));
-							break;
-						case 1:
-							rc.SetPixel(pos, new RadialColor(1, 0, 0));
-							break;
-						default:
-							rc.SetPixel(pos, new RadialColor(0, 0, 0));
-							break;
-					}
+					rc.SetPixel(ppos, Lamp.IntensityToColor(intensity));
 				}
 			}
 		}
 
-		// rc.RenderOrderedDitheredCircle(_mousePosition, (int)(50 * _intensityFactor), new RadialColor(1, 0, 0), _intensityFactor);
-		// rc.RenderOrderedDitheredCircle(_mousePosition, (int)(40 * _intensityFactor), new RadialColor(2, 1, 0), _intensityFactor, new RadialColor(1, 0, 0));
-		// rc.RenderOrderedDitheredCircle(_mousePosition, (int)(30 * _intensityFactor), new RadialColor(3, 2, 1), _intensityFactor, new RadialColor(2, 1, 0));
-		// rc.RenderOrderedDitheredCircle(_mousePosition, (int)(20 * _intensityFactor), new RadialColor(4, 3, 2), _intensityFactor, new RadialColor(3, 2, 1));
-		// rc.RenderOrderedDitheredCircle(_mousePosition, (int)(10 * _intensityFactor), new RadialColor(5, 4, 3), _intensityFactor, new RadialColor(4, 3, 2));
+		new Lamp() { Position = _mousePosition, Intensity = _intensityFactor }.Render(rc);
 
 		base.Render(rc, gameTime);
 	}
@@ -233,7 +246,7 @@ class HeatLampExperimentState : GameState
 		{
 			_lamps.Add(new()
 			{
-				Position = _mousePosition,
+				Position = _camera.Position + _mousePosition,
 				Intensity = _intensityFactor,
 			});
 		}
