@@ -338,6 +338,11 @@ class RenderingContext
 		SetPixel(xc - y, yc - x, paletteIndex);
 	}
 
+	public void RenderFilledCircle(Vector2 position, int radius, RadialColor color)
+	{
+		RenderFilledCircle((int)position.X, (int)position.Y, radius, color.Index);
+	}
+
 	public void RenderFilledCircle(int xc, int yc, int radius, byte paletteIndex)
 	{
 		int x = 0;
