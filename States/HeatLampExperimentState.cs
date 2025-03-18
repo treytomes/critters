@@ -11,8 +11,28 @@ namespace Critters.States;
 
 class Lamp
 {
+	#region Constants
+
+	private const float INTENSITY_FACTOR = 60;
 	private const int MAX_COLOR_INTENSITY = 6;
+	private const float BASE_INTENSITY = MAX_COLOR_INTENSITY * INTENSITY_FACTOR;
+	private const float DECAY_RATE = 0.001f; // How quickly the candle burns out
+	private const float BASE_FLICKER_MAGNITUDE = 0.1f; // Base flicker amount
+	private const float FLICKER_SPEED = 3.0f; // Speed of the flickering effect
 	
+	// These constants control how flickering increases as intensity decreases
+	private const float MIN_INTENSITY_THRESHOLD = 0.2f; // Below this intensity, flickering is maximized
+	private const float MAX_INTENSITY_THRESHOLD = 0.5f; // Above this intensity, flickering is minimized
+	private const float MIN_FLICKER_MULTIPLIER = 0.1f; // Minimal flickering for bright lamps
+	private const float MAX_FLICKER_MULTIPLIER = 0.3f; // Maximum flickering for dim lamps
+
+	#endregion
+
+	#region Fields
+
+	private float _flickerOffset = 0.0f;
+	private float _timeAccumulator = 0.0f;
+
 	public static readonly List<RadialColor> Colors = [
 			new RadialColor(0, 0, 0),
 			new RadialColor(1, 0, 0),
@@ -22,17 +42,96 @@ class Lamp
 			new RadialColor(5, 4, 3)
 	];
 
+	#endregion
+
+	#region Properties
+
 	public Vector2 Position { get; set; }
-	public float Intensity { get; set; }
+	public float BaseIntensity { get; set; } // Renamed from Intensity
+	
+	// New property for the actual intensity with flickering effect
+	public float Intensity 
+	{ 
+			get => Math.Max(0, BaseIntensity + _flickerOffset); 
+	}
+
+	public bool IsAlive
+	{
+		get
+		{
+			return BaseIntensity > 0;
+		}
+	}
+
+	public float Temperature
+	{
+		get
+		{
+			return BASE_INTENSITY * BASE_INTENSITY * Intensity;
+		}
+	}
+
+	#endregion
+
+	#region Methods
 
 	public void Render(RenderingContext rc, Camera camera)
 	{
 		var pos = Position - camera.Position;
-		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 1) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 5], Intensity);
-		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 2) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 4], Intensity, Colors[MAX_COLOR_INTENSITY - 5]);
-		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 3) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 3], Intensity, Colors[MAX_COLOR_INTENSITY - 4]);
-		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 4) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 2], Intensity, Colors[MAX_COLOR_INTENSITY - 3]);
-		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 5) * 10 * Intensity), Colors[MAX_COLOR_INTENSITY - 1], Intensity, Colors[MAX_COLOR_INTENSITY - 2]);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 1) * INTENSITY_FACTOR * Intensity), Colors[MAX_COLOR_INTENSITY - 5], Intensity);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 2) * INTENSITY_FACTOR * Intensity), Colors[MAX_COLOR_INTENSITY - 4], Intensity, Colors[MAX_COLOR_INTENSITY - 5]);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 3) * INTENSITY_FACTOR * Intensity), Colors[MAX_COLOR_INTENSITY - 3], Intensity, Colors[MAX_COLOR_INTENSITY - 4]);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 4) * INTENSITY_FACTOR * Intensity), Colors[MAX_COLOR_INTENSITY - 2], Intensity, Colors[MAX_COLOR_INTENSITY - 3]);
+		rc.RenderOrderedDitheredCircle(pos, (int)((MAX_COLOR_INTENSITY - 5) * INTENSITY_FACTOR * Intensity), Colors[MAX_COLOR_INTENSITY - 1], Intensity, Colors[MAX_COLOR_INTENSITY - 2]);
+	}
+
+	public void Update(GameTime gameTime)
+	{
+		var deltaTime = (float)gameTime.ElapsedTime.TotalSeconds;
+        
+		// Update the accumulator
+		_timeAccumulator += deltaTime;
+		
+		// Calculate how much to flicker based on current intensity
+		var flickerMultiplier = CalculateFlickerMultiplier();
+		
+		// Generate the basic flicker effect using multiple sine waves
+		var basicFlicker = (float)(
+			(Math.Sin(_timeAccumulator * FLICKER_SPEED) * 0.5) + 
+			(Math.Sin(_timeAccumulator * FLICKER_SPEED * 2.3) * 0.3) + 
+			(Math.Sin(_timeAccumulator * FLICKER_SPEED * 5.7) * 0.2)
+		) * BASE_FLICKER_MAGNITUDE * BaseIntensity;
+		
+		// Apply the flicker multiplier to make dim lamps flicker more
+		_flickerOffset = basicFlicker * flickerMultiplier;
+		
+		// Occasionally add a random flicker (more common for dimmer lamps)
+		var randomFlickerChance = 0.02f + (0.08f * (flickerMultiplier / MAX_FLICKER_MULTIPLIER));
+		if (Random.Shared.NextDouble() < randomFlickerChance)
+		{
+			// The random flicker also scales with the multiplier
+			_flickerOffset -= (float)Random.Shared.NextDouble() * BASE_FLICKER_MAGNITUDE * 0.7f * BaseIntensity * flickerMultiplier;
+		}
+		
+		// Complex decay model:
+    // 1. Normal decay rate in the middle range
+    // 2. Slower at the beginning (new candle with solid wax)
+    // 3. Faster at the end (wick burning out)
+    float decayModifier;
+    
+    if (BaseIntensity > 0.7f) {
+        // Slow initial burn as the candle gets going
+        decayModifier = 0.7f;
+    } else if (BaseIntensity < 0.2f) {
+        // Accelerated final burn as the wick is consumed
+        decayModifier = 1.5f + ((0.2f - BaseIntensity) * 5f); // Increasingly faster
+    } else {
+        // Normal burn rate in the middle
+        decayModifier = 1.0f;
+    }
+    
+    // Apply the modified decay rate
+    BaseIntensity = Math.Max(0, BaseIntensity - DECAY_RATE * decayModifier * deltaTime);
 	}
 
 	/// <summary>
@@ -52,14 +151,307 @@ class Lamp
 	{
 		return Colors[IntensityToColorIndex(intensity)];
 	}
+
+	/// <summary>
+	/// Calculate how much flickering to apply based on current intensity.
+	/// </summary>
+	private float CalculateFlickerMultiplier()
+	{
+			// For high intensity, use minimal flickering
+		if (BaseIntensity >= MAX_INTENSITY_THRESHOLD)
+		{
+			return MIN_FLICKER_MULTIPLIER;
+		}
+				
+		// For low intensity, use maximum flickering
+		if (BaseIntensity <= MIN_INTENSITY_THRESHOLD)
+		{
+			return MAX_FLICKER_MULTIPLIER;
+		}
+				
+		// For intermediate intensities, scale linearly
+		float normalizedIntensity = (BaseIntensity - MIN_INTENSITY_THRESHOLD) / (MAX_INTENSITY_THRESHOLD - MIN_INTENSITY_THRESHOLD);
+
+		// Invert the normalized intensity (lower intensity = higher flicker)
+		float invertedNormalized = 1.0f - normalizedIntensity;
+		
+		// Scale between min and max flicker multipliers
+		return MIN_FLICKER_MULTIPLIER + invertedNormalized * (MAX_FLICKER_MULTIPLIER - MIN_FLICKER_MULTIPLIER);
+	}
+
+	#endregion
+}
+
+class HeatField
+{
+	#region Constants
+
+	private const float DEFAULT_AMBIENT_TEMPERATURE = 10.0f;
+	private const float DAY_LENGTH_MINUTES = 10.0f; // 10 minutes = 1 full day
+	private const float DAY_NIGHT_TEMPERATURE_VARIATION = 15.0f; // Temperature difference between day and night
+	private const float BASE_DAYTIME_TEMPERATURE = DEFAULT_AMBIENT_TEMPERATURE + 10.0f; // Midday temperature
+	private const float DAWN_DUSK_HOUR = 6.0f; // Hours from midnight to dawn/from dusk to midnight
+
+	#endregion
+	
+	#region Fields
+
+	/// <summary>
+	/// Bayer 4x4 dithering matrix
+	/// </summary>
+	private static readonly int[,] bayerMatrix = new int[,] {
+		{  0, 12,  3, 15 },
+		{  8,  4, 11,  7 },
+		{  2, 14,  1, 13 },
+		{ 10,  6,  9,  5 }
+	};
+
+	// Track the current time of day
+	private float _currentDayTime = 12.0f; // Start at noon
+	private float _dayTimeTotalSeconds = DAY_LENGTH_MINUTES * 60.0f; // Total seconds in a day
+
+	#endregion
+
+	#region Constructors
+
+	public HeatField()
+	{
+		Lamps = new();
+	}
+
+	#endregion
+
+	#region Properties
+
+	public float AmbientTemperature { get; private set; } = DEFAULT_AMBIENT_TEMPERATURE;
+
+	public List<Lamp> Lamps { get; }
+	
+	// Current hour of the day (0-23.999)
+	public float CurrentHour => _currentDayTime;
+	
+	// Returns whether it's currently daytime (between sunrise and sunset)
+	public bool IsDaytime => CurrentHour > DAWN_DUSK_HOUR && CurrentHour < (24.0f - DAWN_DUSK_HOUR);
+
+	#endregion
+
+	#region Methods
+
+	public void Render(RenderingContext rc, Camera camera, Lamp cursor)
+	{
+		// foreach (var lamp in _lamps)
+		// {
+		// 	lamp.Render(rc, _camera);
+		// }
+		// new Lamp() { Position = _camera.Position + _mousePosition, Intensity = _intensityFactor }.Render(rc, _camera);
+
+		for (var dy = 0; dy < rc.ViewportSize.Y; dy++)
+		{
+			for (var dx = 0; dx < rc.ViewportSize.X; dx++)
+			{
+				var ppos = new Vector2(dx, dy);
+				var pos = camera.Position + ppos;
+
+				// // Calculate the intensity contribution of each lamp.
+				// var intensity = 0.0f;
+				// foreach (var lamp in Lamps)
+				// {
+				// 	var squaredDistance = Vector2.DistanceSquared(pos, lamp.Position);
+				// 	intensity += lamp.Intensity * BASE_INTENSITY / squaredDistance;
+				// 	// var distance = Vector2.Distance(pos, lamp.Position);
+				// 	// intensity += lamp.Intensity * BASE_INTENSITY / distance;
+				// }
+
+				// // And also the mouse.
+				// {
+				// 	var squaredDistance = Vector2.DistanceSquared(pos, cursor.Position);
+				// 	intensity += cursor.Intensity * BASE_INTENSITY / squaredDistance;
+				// 	// var distance = Vector2.Distance(pos, cursor.Position);
+				// 	// intensity += cursor.Intensity * BASE_INTENSITY / distance;
+				// }
+
+				Lamps.Add(cursor);
+				var intensity = CalculateTemperatureAtPoint(pos) / 100.0f;
+				Lamps.Remove(cursor);
+
+				// Calculate dithering probability.
+				intensity = MathHelper.Clamp(intensity, 0.0f, 1.0f);
+
+
+				// Get the appropriate threshold from the Bayer matrix (0-15, normalized to 0.0-1.0)
+				var bayerX = MathHelper.Modulus(Math.Abs((int)pos.X), 4);
+				var bayerY = MathHelper.Modulus(Math.Abs((int)pos.Y), 4);
+				var threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
+				var colorIndex = Lamp.IntensityToColorIndex(intensity);
+				if (intensity >= threshold)
+				{
+					var color = Lamp.Colors[colorIndex];
+					if (color.Index != 0)
+					{
+						rc.SetPixel(ppos, color);
+					}
+				}
+				else
+				{
+					colorIndex -= 1;
+					if (colorIndex > 0)
+					{
+						var color = Lamp.Colors[colorIndex];
+						if (color.Index != 0)
+						{
+							rc.SetPixel(ppos, color);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public void Update(GameTime gameTime)
+	{
+		// Update all lamps
+		foreach (var lamp in Lamps)
+		{
+			lamp.Update(gameTime);
+		}
+
+		// Remove expired lamps
+		var n = 0;
+		while (n < Lamps.Count)
+		{
+			if (!Lamps[n].IsAlive)
+			{
+				Lamps.RemoveAt(n);
+			}
+			else
+			{
+				n++;
+			}
+		}
+		
+		// Update the day/night cycle
+		UpdateDayNightCycle(gameTime);
+	}
+	
+	private void UpdateDayNightCycle(GameTime gameTime)
+	{
+		// Advance the time of day
+		float deltaSeconds = (float)gameTime.ElapsedTime.TotalSeconds;
+		_currentDayTime = (_currentDayTime + (24.0f * deltaSeconds / _dayTimeTotalSeconds)) % 24.0f;
+		
+		// Calculate ambient temperature based on time of day
+		// Using a cosine curve to create a smooth transition
+		
+		// Map the 24-hour day to a 0-2π value for the cosine function
+		// Offset by π so that midnight is the coldest point
+		float timeRadians = (((_currentDayTime / 24.0f) * MathF.PI * 2.0f) + MathF.PI) % (MathF.PI * 2.0f);
+		
+		// Calculate temperature: BASE_TEMP + variation * normalized cosine (-1 to 1)
+		// Cosine gives -1 at midnight, +1 at noon
+		float temperatureVariation = MathF.Cos(timeRadians) * (DAY_NIGHT_TEMPERATURE_VARIATION / 2.0f);
+		
+		// Add extra smoothing for dawn and dusk transitions
+		float smoothTransitionFactor = 1.0f;
+		if (_currentDayTime < DAWN_DUSK_HOUR) // Pre-dawn
+		{
+			float transitionProgress = _currentDayTime / DAWN_DUSK_HOUR;
+			smoothTransitionFactor = 0.8f + (transitionProgress * 0.2f); // Slower warming in early morning
+		}
+		else if (_currentDayTime > (24.0f - DAWN_DUSK_HOUR)) // Post-dusk
+		{
+			float transitionProgress = (24.0f - _currentDayTime) / DAWN_DUSK_HOUR;
+			smoothTransitionFactor = 0.8f + (transitionProgress * 0.2f); // Slower cooling in early evening
+		}
+		
+		temperatureVariation *= smoothTransitionFactor;
+		
+		// Set the new ambient temperature
+		AmbientTemperature = BASE_DAYTIME_TEMPERATURE + temperatureVariation;
+	}
+
+	public float CalculateTemperatureAtPoint(Vector2 position)
+	{
+		var totalTemperature = 0f;
+		
+		foreach (var lamp in Lamps)
+		{
+			// Skip lamps that aren't contributing heat
+			if (!lamp.IsAlive || lamp.Intensity <= 0)
+			{
+				continue;
+			}
+					
+			// Calculate distance from point to heat source
+			var distance = Vector2.Distance(position, lamp.Position);
+			
+			// Avoid division by zero and limit maximum heat at source
+			var effectiveDistance = Math.Max(1.0f, distance);
+			
+			// Calculate heat contribution using inverse-square law
+			// (heat decreases with the square of the distance)
+			var heatContribution = lamp.Temperature / (effectiveDistance * effectiveDistance);
+			
+			// // Optional: Apply a cutoff distance beyond which heat is negligible
+			// var cutoffDistance = 100f; // Adjust based on your scale
+			// if (distance > cutoffDistance)
+			// {
+			// 		var falloffFactor = Math.Max(0, 1 - ((distance - cutoffDistance) / cutoffDistance));
+			// 		heatContribution *= falloffFactor * falloffFactor; // Smooth falloff
+			// }
+			
+			totalTemperature += heatContribution;
+		}
+		
+		// Add ambient temperature
+		totalTemperature += AmbientTemperature;
+		
+		return totalTemperature;
+	}
+	
+	/// <summary>
+	/// Sets the current time of day
+	/// </summary>
+	/// <param name="hour">Hour value (0-23.999)</param>
+	public void SetTimeOfDay(float hour)
+	{
+		_currentDayTime = MathHelper.Modulus(hour, 24.0f);
+		// Update temperature immediately
+		UpdateDayNightCycle(new GameTime()); 
+	}
+	
+	/// <summary>
+	/// Returns a string representation of the current time of day
+	/// </summary>
+	public string GetTimeString()
+	{
+		int hours = (int)_currentDayTime;
+		int minutes = (int)((_currentDayTime - hours) * 60);
+		string amPm = hours < 12 ? "AM" : "PM";
+		hours = hours % 12;
+		if (hours == 0) hours = 12; // 12-hour format
+		return $"{hours:D}:{minutes:D2} {amPm}";
+	}
+	
+	/// <summary>
+	/// Adjusts the length of the day cycle
+	/// </summary>
+	/// <param name="dayLengthMinutes">Number of real-time minutes per in-game day</param>
+	public void SetDayLength(float dayLengthMinutes)
+	{
+		_dayTimeTotalSeconds = dayLengthMinutes * 60.0f;
+	}
+	
+	#endregion
 }
 
 class HeatLampExperimentState : GameState
 {
 	#region Fields
 
+	private Label _timeLabel;
 	private Label _cameraLabel;
 	private Label _mouseLabel;
+	private Label _temperatureLabel;
 
 	private Camera _camera;
 	private bool _isDraggingCamera = false;
@@ -72,9 +464,9 @@ class HeatLampExperimentState : GameState
 	private float _cameraSpeed = 8 * 8; // 8 tiles per second
 
 	private Vector2 _mousePosition = Vector2.Zero;
-	private float _intensityFactor = 0.6f;
+	private float _intensityFactor = 0.0f;
 
-	private List<Lamp> _lamps = new();
+	private HeatField _heatField = new();
 
 	#endregion
 
@@ -84,12 +476,36 @@ class HeatLampExperimentState : GameState
 		: base()
 	{
 		_camera = new Camera();
+
+		var y = 0;
 		
-		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_timeLabel = new Label($"Time:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		UI.Add(_timeLabel);
+		
+		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
 		
-		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
+		
+		_temperatureLabel = new Label($"Temp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		UI.Add(_temperatureLabel);
+	}
+
+	#endregion
+
+	#region Properties
+
+	private Lamp MouseLamp
+	{
+		get
+		{
+			return new Lamp()
+				{
+					BaseIntensity = _intensityFactor,
+					Position = _camera.Position + _mousePosition,
+				};
+		}
 	}
 
 	#endregion
@@ -126,86 +542,12 @@ class HeatLampExperimentState : GameState
 		base.LostFocus(eventBus);
 	}
 
-	/// <summary>
-	/// Bayer 4x4 dithering matrix
-	/// </summary>
-	private static readonly int[,] bayerMatrix = new int[,] {
-			{  0, 12,  3, 15 },
-			{  8,  4, 11,  7 },
-			{  2, 14,  1, 13 },
-			{ 10,  6,  9,  5 }
-	};
-
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
 		rc.Clear();
 		_camera.ViewportSize = rc.ViewportSize;
 
-		// foreach (var lamp in _lamps)
-		// {
-		// 	lamp.Render(rc, _camera);
-		// }
-		// new Lamp() { Position = _camera.Position + _mousePosition, Intensity = _intensityFactor }.Render(rc, _camera);
-
-		const float BASE_INTENSITY = 100.0f;
-		for (var dy = 0; dy < rc.ViewportSize.Y; dy++)
-		{
-			for (var dx = 0; dx < rc.ViewportSize.X; dx++)
-			{
-				var ppos = new Vector2(dx, dy);
-				var pos = _camera.Position + ppos;
-
-				// Calculate the intensity contribution of each lamp.
-				var intensity = 0.0f;
-				foreach (var lamp in _lamps)
-				{
-					// var squaredDistance = Vector2.DistanceSquared(pos, lamp.Position);
-					// intensity += lamp.Intensity * BASE_INTENSITY / squaredDistance;
-					var distance = Vector2.Distance(pos, lamp.Position);
-					intensity += lamp.Intensity * BASE_INTENSITY / distance;
-				}
-
-				// And also the mouse.
-				{
-					// var squaredDistance = Vector2.DistanceSquared(pos, _mousePosition);
-					// intensity += _intensityFactor * BASE_INTENSITY / squaredDistance;
-					var distance = Vector2.Distance(pos, _camera.Position + _mousePosition);
-					intensity += _intensityFactor * BASE_INTENSITY / distance;
-				}
-
-				// Calculate dithering probability.
-				intensity = MathHelper.Clamp(intensity, 0.0f, 1.0f);
-
-				// Get the appropriate threshold from the Bayer matrix (0-15, normalized to 0.0-1.0)
-				// var bayerX = Math.Abs((int)pos.X) % 4;
-				// var bayerY = Math.Abs((int)pos.Y) % 4;
-				var bayerX = MathHelper.Modulus(Math.Abs((int)pos.X), 4);
-				var bayerY = MathHelper.Modulus(Math.Abs((int)pos.Y), 4);
-				var threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
-				// if (Random.Shared.NextDouble() < intensity)
-				var colorIndex = Lamp.IntensityToColorIndex(intensity);
-				if (intensity >= threshold)
-				{
-					var color = Lamp.Colors[colorIndex];
-					if (color.Index != 0)
-					{
-						rc.SetPixel(ppos, color);
-					}
-				}
-				else
-				{
-					colorIndex -= 1;
-					if (colorIndex > 0)
-					{
-						var color = Lamp.Colors[colorIndex];
-						if (color.Index != 0)
-						{
-							rc.SetPixel(ppos, color);
-						}
-					}
-				}
-			}
-		}
+		_heatField.Render(rc, _camera, MouseLamp);
 
 		base.Render(rc, gameTime);
 	}
@@ -216,6 +558,13 @@ class HeatLampExperimentState : GameState
 		
 		_camera.ScrollBy(_cameraDelta * (float)gameTime.ElapsedTime.TotalSeconds * _cameraSpeed * (_cameraFastMove ? 4 : 1));
 		_cameraLabel.Text = $"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})";
+
+		_heatField.Update(gameTime);
+
+		var temp = _heatField.CalculateTemperatureAtPoint(_camera.Position + _mousePosition) + MouseLamp.Temperature;
+		_temperatureLabel.Text = $"Temp:{temp}";
+
+		_timeLabel.Text = $"Time:{_heatField.GetTimeString()}";
 	}
 
 	private void OnKey(KeyEventArgs e)
@@ -275,10 +624,10 @@ class HeatLampExperimentState : GameState
 	{
 		if (e.Button == MouseButton.Left && e.Action == InputAction.Release)
 		{
-			_lamps.Add(new()
+			_heatField.Lamps.Add(new()
 			{
 				Position = _camera.Position + _mousePosition,
-				Intensity = _intensityFactor,
+				BaseIntensity = _intensityFactor,
 			});
 		}
 		if (e.Button == MouseButton.Middle)

@@ -17,7 +17,18 @@ static class MathHelper
 			throw new DivideByZeroException("The modulus divisor cannot be zero.");
 		}
 
-		int result = a % b;
+		var result = a % b;
+		return (result < 0) ? result + Math.Abs(b) : result;
+	}
+
+	public static float Modulus(float a, float b)
+	{
+		if (b == 0)
+		{
+			throw new DivideByZeroException("The modulus divisor cannot be zero.");
+		}
+
+		var result = a % b;
 		return (result < 0) ? result + Math.Abs(b) : result;
 	}
 
