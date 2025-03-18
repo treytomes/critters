@@ -177,12 +177,14 @@ class HeatLampExperimentState : GameState
 				intensity = MathHelper.Clamp(intensity, 0.0f, 1.0f);
 
 				// Get the appropriate threshold from the Bayer matrix (0-15, normalized to 0.0-1.0)
-				var bayerX = Math.Abs((int)pos.X) % 4;
-				var bayerY = Math.Abs((int)pos.Y) % 4;
+				// var bayerX = Math.Abs((int)pos.X) % 4;
+				// var bayerY = Math.Abs((int)pos.Y) % 4;
+				var bayerX = MathHelper.Modulus(Math.Abs((int)pos.X), 4);
+				var bayerY = MathHelper.Modulus(Math.Abs((int)pos.Y), 4);
 				var threshold = bayerMatrix[bayerY, bayerX] / 16.0f;
 				// if (Random.Shared.NextDouble() < intensity)
 				var colorIndex = Lamp.IntensityToColorIndex(intensity);
-				if (intensity < threshold)
+				if (intensity >= threshold)
 				{
 					var color = Lamp.Colors[colorIndex];
 					if (color.Index != 0)

@@ -10,6 +10,17 @@ static class MathHelper
 			return (dividend / divisor) - ((dividend % divisor < 0) ? 1 : 0);
 	}
 
+	public static int Modulus(int a, int b)
+	{
+		if (b == 0)
+		{
+			throw new DivideByZeroException("The modulus divisor cannot be zero.");
+		}
+
+		int result = a % b;
+		return (result < 0) ? result + Math.Abs(b) : result;
+	}
+
 	public static T Clamp<T>(T value, T inclusiveMin, T inclusiveMax)
 		where T : IComparable<T>
 	{
