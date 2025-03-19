@@ -29,10 +29,10 @@ class DenseLayer : Layer<DenseLayer, SerializableDenseLayer>
 	private DenseLayer(DenseLayer other)
 		: base(other)
 	{
-		_weights = new double[_outputSize, _inputSize];
-		_biases = new double[_outputSize];
-		_lastOutputs = new double[_outputSize];
-		_lastInputs = new double[_inputSize];
+		_weights = new double[OutputSize, InputSize];
+		_biases = new double[OutputSize];
+		_lastOutputs = new double[OutputSize];
+		_lastInputs = new double[InputSize];
 
 		Array.Copy(other._weights, _weights, other._weights.Length);
 		Array.Copy(other._biases, _biases, other._biases.Length);
@@ -43,14 +43,14 @@ class DenseLayer : Layer<DenseLayer, SerializableDenseLayer>
 	private DenseLayer(SerializableDenseLayer other)
 		: base(other)
 	{
-		_weights = new double[_outputSize, _inputSize];
-		_biases = new double[_outputSize];
+		_weights = new double[OutputSize, InputSize];
+		_biases = new double[OutputSize];
 		_lastOutputs = other.LastOutputs.ToArray();
 		_lastInputs = other.LastInputs.ToArray();
 
-		for (var o = 0; o < _outputSize; o++)
+		for (var o = 0; o < OutputSize; o++)
 		{
-			for (var i = 0; i < _inputSize; i++)
+			for (var i = 0; i < InputSize; i++)
 			{
 				_weights[o, i] = other.Weights[o, i];
 			}
@@ -80,8 +80,8 @@ class DenseLayer : Layer<DenseLayer, SerializableDenseLayer>
 			Biases = _biases.ToArray(),
 			LastInputs = _lastInputs.ToArray(),
 			LastOutputs = _lastOutputs.ToArray(),
-			InputSize = _inputSize,
-			OutputSize = _outputSize
+			InputSize = InputSize,
+			OutputSize = OutputSize
 		};
 	}
 
@@ -90,11 +90,11 @@ class DenseLayer : Layer<DenseLayer, SerializableDenseLayer>
 		var random = Random.Shared;
 
 		// Xavier initialization.
-		var scale = Math.Sqrt(6.0 / (_inputSize + _outputSize));
+		var scale = Math.Sqrt(6.0 / (InputSize + OutputSize));
 
-		for (var o = 0; o < _outputSize; o++)
+		for (var o = 0; o < OutputSize; o++)
 		{
-			for (var i = 0; i < _inputSize; i++)
+			for (var i = 0; i < InputSize; i++)
 			{
 				_weights[o, i] = (random.NextDouble() * 2 - 1) * scale;
 			}
@@ -107,12 +107,12 @@ class DenseLayer : Layer<DenseLayer, SerializableDenseLayer>
 	public override double[] Forward(double[] inputs)
 	{
 		_lastInputs = inputs;
-		var outputs = new double[_outputSize];
+		var outputs = new double[OutputSize];
 
-		for (var o = 0; o < _outputSize; o++)
+		for (var o = 0; o < OutputSize; o++)
 		{
 			outputs[o] = _biases[o];
-			for (var i = 0; i < _inputSize; i++)
+			for (var i = 0; i < InputSize; i++)
 			{
 				outputs[o] += inputs[i] * _weights[o, i];
 			}
@@ -125,21 +125,21 @@ class DenseLayer : Layer<DenseLayer, SerializableDenseLayer>
 	public override double[] Backward(double[] outputGradients, double learningRate)
 	{
 		// Calculate gradients for the input.
-		var inputGradients = new double[_inputSize];
+		var inputGradients = new double[InputSize];
 		
-		for (var i = 0; i < _inputSize; i++)
+		for (var i = 0; i < InputSize; i++)
 		{
 			inputGradients[i] = 0;
-			for (var o = 0; o < _outputSize; o++)
+			for (var o = 0; o < OutputSize; o++)
 			{
 				inputGradients[i] += outputGradients[o] * _weights[o, i];
 			}
 		}
 		
 		// Update weights and biases.
-		for (var o = 0; o < _outputSize; o++)
+		for (var o = 0; o < OutputSize; o++)
 		{
-			for (var i = 0; i < _inputSize; i++)
+			for (var i = 0; i < InputSize; i++)
 			{
 				_weights[o, i] -= learningRate * outputGradients[o] * _lastInputs[i];
 			}

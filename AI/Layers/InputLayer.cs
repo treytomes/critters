@@ -49,8 +49,8 @@ class InputLayer : Layer<InputLayer, SerializableInputLayer>
 	{
 		return new SerializableInputLayer()
 		{
-			InputSize = _inputSize,
-			OutputSize = _outputSize,
+			InputSize = InputSize,
+			OutputSize = OutputSize,
 			LastInputs = _lastInputs.ToArray(),
 		};
 	}

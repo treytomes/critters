@@ -18,6 +18,7 @@ class SerializableCritter
 	public required SerializableVector2 Position { get; set; }
 	public double InternalTemperature { get; set; }
 	public double OptimalTemperature { get; set; }
+	public float Stamina { get; set; }
 }
 
 class Critter
@@ -25,22 +26,29 @@ class Critter
 	#region Constants
 	
 	// Movement directions: N, NE, E, SE, S, SW, W, NW
-	private static readonly int[] DX = { 0, 1, 1, 1, 0, -1, -1, -1 };
-	private static readonly int[] DY = { -1, -1, 0, 1, 1, 1, 0, -1 };
+	private static readonly int[] DX = { 0, 0, 1, 1, 1, 0, -1, -1, -1 };
+	private static readonly int[] DY = { 0, -1, -1, 0, 1, 1, 1, 0, -1 };
 
-	private const float DEFAULT_RADOIS = 8;
+	private const float DEFAULT_RADIUS = 8;
 	private const float DEFAULT_OPTIMAL_TEMPERATURE = 30;
 	private const float DEFAULT_INTERNAL_TERMPERATURE = 20;
+
+	private const float MAX_STAMINA = 100f;
+	private const float MOVE_STAMINA_COST = 0.1f;
+	private const float STAMINA_RECOVERY_RATE = 1f;
 
 	#endregion
 
 	#region Fields
 
-	private float radius = DEFAULT_RADOIS;
-	private DeepQNetwork agent = new(stateSize: 10, actionSize: 8, hiddenSize: 64);
+	private float radius = DEFAULT_RADIUS;
+	private DeepQNetwork agent = new(stateSize: 11, actionSize: 9, hiddenSize: 64);
 	private Vector2 position = Vector2.Zero;
 	private double optimalTemperature = DEFAULT_OPTIMAL_TEMPERATURE;
 	
+	private float stamina = 100f; // Starting with full stamina
+	private bool movedLastTurn = false;
+
 	#endregion
 
 	#region Constructors
@@ -56,6 +64,7 @@ class Critter
 		position = new Vector2(other.Position.X, other.Position.Y);
 		optimalTemperature = other.OptimalTemperature;
 		InternalTemperature = other.InternalTemperature;
+		stamina = other.Stamina;
 	}
 
 	#endregion
@@ -63,6 +72,12 @@ class Critter
 	#region Properties
 
 	public double InternalTemperature { get; set; } = DEFAULT_INTERNAL_TERMPERATURE;
+
+	public float Stamina 
+	{ 
+			get => stamina; 
+			private set => stamina = Math.Clamp(value, 0, MAX_STAMINA); 
+	}
 
 	#endregion
 
@@ -94,108 +109,135 @@ class Critter
 			Position = new SerializableVector2(position),
 			InternalTemperature = InternalTemperature,
 			OptimalTemperature = optimalTemperature,
+			Stamina = Stamina,
 		};
 	}
 
 	private double[] GetStateVector(HeatField heatField)
 	{
-		var state = new double[10];
-		
-		// Current cell temperature
-		state[0] = heatField.CalculateTemperatureAtPoint(position);
-		
-		// Surrounding cell temperatures
-		var stateIndex = 1;
-		for (var i = 0; i < 8; i++)
-		{
-			var nx = position.X + DX[i];
-			var ny = position.Y + DY[i];
-			state[stateIndex] = heatField.CalculateTemperatureAtPoint(new Vector2(nx * radius, ny * radius));
-			stateIndex++;
-		}
-		
-		// Internal temperature
-		state[9] = InternalTemperature;
-		
-		return state;
+    // Update to include stamina - increasing state vector size
+    var state = new double[11]; // Now 11 elements instead of 10
+    
+    // Current cell temperature
+    state[0] = heatField.CalculateTemperatureAtPoint(position);
+    
+    // Surrounding cell temperatures
+    var stateIndex = 1;
+    for (var i = 0; i < 8; i++)
+    {
+        var nx = position.X + DX[i];
+        var ny = position.Y + DY[i];
+        state[stateIndex] = heatField.CalculateTemperatureAtPoint(new Vector2(nx * radius, ny * radius));
+        stateIndex++;
+    }
+    
+    // Internal temperature
+    state[9] = InternalTemperature;
+    
+    // Add stamina as an input to the state
+    state[10] = stamina / MAX_STAMINA; // Normalize to [0,1] range
+    
+    return state;
 	}
 
 	private double CalculateReward()
 	{
-		// Reward based on how close internal temperature is to optimal
-		var temperatureDifference = Math.Abs(InternalTemperature - optimalTemperature);
-		
-		// Higher reward for closer to optimal temperature
-		if (temperatureDifference < 0)
-		{
-			return 1.0;
-		}
-		else if (temperatureDifference < 2)
-		{
-			return 0.5;
-		}
-		else if (temperatureDifference < 3)
-		{
-			return 0.1;
-		}
-		else if (temperatureDifference > 5)
-		{
-			return -1.0;  // Significant penalty for being too far off
-		}
-		else
-		{
-			return -0.1;  // Small penalty otherwise
-		}
+    // Calculate temperature difference
+    var temperatureDifference = Math.Abs(InternalTemperature - optimalTemperature);
+    
+    // Use an exponential decay reward function
+    double temperatureReward = Math.Exp(-temperatureDifference / 2.0);
+    
+    // Scale the temperature reward
+    double scaledTemperatureReward;
+    if (temperatureDifference < 1.0) {
+        scaledTemperatureReward = 1.0 * temperatureReward;
+    } else if (temperatureDifference < 3.0) {
+        scaledTemperatureReward = 0.5 * temperatureReward;
+    } else if (temperatureDifference < 5.0) {
+        scaledTemperatureReward = -0.2 * temperatureReward;
+    } else {
+        scaledTemperatureReward = -1.0 * (1.0 - temperatureReward);
+    }
+    
+    // Stamina management reward
+    double staminaReward = 0;
+    
+    // If temperature is good (close to optimal) and stamina is low, reward not moving
+    if (temperatureDifference < 2.0 && stamina < MAX_STAMINA * 0.5 && !movedLastTurn) {
+        staminaReward = 0.3; // Reward for conserving energy when in a good spot
+    }
+    
+    // Penalize moving when stamina is critically low
+    if (stamina < MAX_STAMINA * 0.2 && movedLastTurn) {
+        staminaReward = -0.4; // Penalty for not conserving energy when stamina is critical
+    }
+    
+    // Small bonus for having high stamina (long-term planning)
+    staminaReward += (stamina / MAX_STAMINA) * 0.1;
+    
+    // Combine rewards
+    return scaledTemperatureReward + staminaReward;
 	}
 
 	public void TrainStep(GameTime gameTime, HeatField heatField)
 	{
-		// Get current state
-		var currentState = GetStateVector(heatField);
-		
-		// Select action
-		var action = agent.SelectAction(currentState);
-		
-		// Apply movement
-		const int SPEED = 32;
-		var dx = DX[action] * gameTime.ElapsedTime.TotalSeconds * SPEED;
-		var dy = DY[action] * gameTime.ElapsedTime.TotalSeconds * SPEED;
+			// Get current state
+			var currentState = GetStateVector(heatField);
+			
+			// Select action
+			var action = agent.SelectAction(currentState);
+			
+			var moved = false;
+			
+			// Apply movement only if we have enough stamina
+			const int SPEED = 32;
+			var dx = DX[action] * gameTime.ElapsedTime.TotalSeconds * SPEED;
+			var dy = DY[action] * gameTime.ElapsedTime.TotalSeconds * SPEED;
 
-		var moved = false;
-		if (dx != 0 || dy != 0)
-		{
-			var nx = position.X + dx;
-			var ny = position.Y + dy;
-			position = new Vector2((float)nx, (float)ny);
-			moved = true;
-		}
-		
-		// Update internal temperature based on current position
-		var environmentTemp = heatField.CalculateTemperatureAtPoint(position);
-		InternalTemperature = 0.9 * InternalTemperature + 0.1 * environmentTemp;
-		
-		// Get new state
-		var nextState = GetStateVector(heatField);
-		
-		// Calculate reward
-		var reward = CalculateReward();
-		
-		// Small penalty for not moving
-		if (!moved)
-		{
-			reward -= 0.2;
-		}
-		else
-		{
-			// TODO: Should there be a penalty for moving instead?
-		}
-		
-		// Store experience
-		agent.StoreExperience(currentState, action, reward, nextState, false);
-		
-		// Train the agent
-		agent.Train();
+			if ((dx != 0 || dy != 0) && stamina >= MOVE_STAMINA_COST)
+			{
+					var nx = position.X + dx;
+					var ny = position.Y + dy;
+					position = new Vector2((float)nx, (float)ny);
+					moved = true;
+					
+					// Reduce stamina when moving
+					Stamina -= MOVE_STAMINA_COST;
+			}
+			
+			// Recover stamina when not moving, if close to ideal temperature.
+			if (!moved)
+			{
+				// // Calculate temperature difference
+    		// var temperatureDifference = Math.Abs(InternalTemperature - optimalTemperature);
+
+	  	  // // Use an exponential decay reward function
+  	  	// var temperatureReward = (float)Math.Exp(-temperatureDifference / 2.0);
+				var temperatureReward = 1.0f;
+
+				Stamina += STAMINA_RECOVERY_RATE * temperatureReward * (float)gameTime.ElapsedTime.TotalSeconds;
+			}
+			
+			movedLastTurn = moved;
+			
+			// Update internal temperature based on current position
+			var environmentTemp = heatField.CalculateTemperatureAtPoint(position);
+			InternalTemperature = 0.9 * InternalTemperature + 0.1 * environmentTemp;
+			
+			// Get new state
+			var nextState = GetStateVector(heatField);
+			
+			// Calculate reward
+			var reward = CalculateReward();
+			
+			// Store experience
+			agent.StoreExperience(currentState, action, reward, nextState, false);
+			
+			// Train the agent
+			agent.Train();
 	}
+
 
 	public void Update(GameTime gameTime, HeatField heatField)
 	{
@@ -639,6 +681,7 @@ class HeatLampExperimentState : GameState
 	private Label _mouseLabel;
 	private Label _temperatureLabel;
 	private Label _critterTempLabel;
+	private Label _critterStaminaLabel;
 
 	private Camera _camera;
 	private bool _isDraggingCamera = false;
@@ -681,6 +724,9 @@ class HeatLampExperimentState : GameState
 		
 		_critterTempLabel = new Label($"CritterTemp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_critterTempLabel);
+		
+		_critterStaminaLabel = new Label($"CritterStm:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		UI.Add(_critterStaminaLabel);
 	}
 
 	#endregion
@@ -722,10 +768,10 @@ class HeatLampExperimentState : GameState
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 
-		if (Path.Exists("critter.json"))
-		{
-			_critter = Critter.Load("critter.json");
-		}
+		// if (Path.Exists("critter.json"))
+		// {
+		// 	_critter = Critter.Load("critter.json");
+		// }
 	}
 
 	public override void LostFocus(EventBus eventBus)
@@ -769,6 +815,7 @@ class HeatLampExperimentState : GameState
 		_temperatureLabel.Text = $"Temp:{(int)temp}";
 		_timeLabel.Text = $"Time:{_heatField.GetTimeString()}";
 		_critterTempLabel.Text = $"CritterTemp:{(int)_critter.InternalTemperature}";
+		_critterStaminaLabel.Text = $"CritterStm:{(int)_critter.Stamina}";
 	}
 
 	private void OnKey(KeyEventArgs e)

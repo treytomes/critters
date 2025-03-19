@@ -1,11 +1,5 @@
 namespace Critters.AI;
 
-class SerializableReplayBuffer
-{
-	public int Capacity { get; set; }
-	public required List<SerializableExperience> Buffer { get; set; }
-}
-
 class ReplayBuffer : ICloneable<ReplayBuffer>
 {
 	#region Fields
@@ -48,6 +42,11 @@ class ReplayBuffer : ICloneable<ReplayBuffer>
 	public static ReplayBuffer Deserialize(SerializableReplayBuffer data)
 	{
 		return new ReplayBuffer(data);
+	}
+
+	public void Clear()
+	{
+		_buffer.Clear();
 	}
 
 	public SerializableReplayBuffer Serialize()

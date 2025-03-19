@@ -8,32 +8,32 @@ abstract class Layer<TLayer, TSerializable> : ILayer
 	where TSerializable : SerializableLayer
 	where TLayer : Layer<TLayer, TSerializable>
 {
-	#region Fields
-
-	protected int _inputSize;
-	protected int _outputSize;
-
-	#endregion
-
 	#region Constructors
 
 	public Layer(int inputSize, int outputSize)
 	{
-		_inputSize = inputSize;
-		_outputSize = outputSize;
+		InputSize = inputSize;
+		OutputSize = outputSize;
 	}
 
 	protected Layer(TLayer other)
 	{
-		_inputSize = other._inputSize;
-		_outputSize = other._outputSize;
+		InputSize = other.InputSize;
+		OutputSize = other.OutputSize;
 	}
 
 	protected Layer(TSerializable other)
 	{
-		_inputSize = other.InputSize;
-		_outputSize = other.OutputSize;
+		InputSize = other.InputSize;
+		OutputSize = other.OutputSize;
 	}
+
+	#endregion
+
+	#region Properties
+
+	public int InputSize { get; }
+	public int OutputSize { get; }
 
 	#endregion
 

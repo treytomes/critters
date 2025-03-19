@@ -50,8 +50,8 @@ class ActivationLayer : Layer<ActivationLayer, SerializableActivationLayer>
 	{
 		return new SerializableActivationLayer()
 		{
-			InputSize = _inputSize,
-			OutputSize = _outputSize,
+			InputSize = InputSize,
+			OutputSize = OutputSize,
 			ActivationType = _activationType,
 			LastInputs = _lastInputs.ToArray(),
 			LastOutputs = _lastOutputs.ToArray(),
@@ -66,9 +66,9 @@ class ActivationLayer : Layer<ActivationLayer, SerializableActivationLayer>
 	public override double[] Forward(double[] inputs)
 	{
 		_lastInputs = inputs;
-		var outputs = new double[_inputSize];
+		var outputs = new double[InputSize];
 
-		for (int i = 0; i < _inputSize; i++)
+		for (var i = 0; i < InputSize; i++)
 		{
 			outputs[i] = ApplyActivation(inputs[i]);
 		}
@@ -79,9 +79,9 @@ class ActivationLayer : Layer<ActivationLayer, SerializableActivationLayer>
 
 	public override double[] Backward(double[] outputGradients, double learningRate)
 	{
-		var inputGradients = new double[_inputSize];
+		var inputGradients = new double[InputSize];
 
-		for (var i = 0; i < _inputSize; i++)
+		for (var i = 0; i < InputSize; i++)
 		{
 			inputGradients[i] = outputGradients[i] * ApplyActivationDerivative(_lastOutputs[i]);
 		}
