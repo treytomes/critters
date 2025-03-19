@@ -1,57 +1,96 @@
 namespace Critters.AI;
 
-public class ReplayBuffer
+class SerializableReplayBuffer
 {
-	private readonly int capacity;
-	private readonly List<Experience> buffer;
-	private readonly Random random;
+	public int Capacity { get; set; }
+	public required List<SerializableExperience> Buffer { get; set; }
+}
 
-	public class Experience
-	{
-		public double[] State { get; }
-		public int Action { get; }
-		public double Reward { get; }
-		public double[] NextState { get; }
-		public bool Done { get; }
+class ReplayBuffer : ICloneable<ReplayBuffer>
+{
+	#region Fields
 
-		public Experience(double[] state, int action, double reward, double[] nextState, bool done)
-		{
-			State = state;
-			Action = action;
-			Reward = reward;
-			NextState = nextState;
-			Done = done;
-		}
-	}
+	private readonly List<Experience> _buffer;
+
+	#endregion
+
+	#region Constructors
 
 	public ReplayBuffer(int capacity)
 	{
-		this.capacity = capacity;
-		buffer = new List<Experience>(capacity);
-		random = new Random();
+		Capacity = capacity;
+		_buffer = new List<Experience>(capacity);
+	}
+
+	private ReplayBuffer(ReplayBuffer other)
+		: this(other.Capacity)
+	{
+		_buffer.AddRange(other._buffer.Select(x => x.Clone()));
+	}
+
+	private ReplayBuffer(SerializableReplayBuffer other)
+		: this(other.Capacity)
+	{
+		_buffer.AddRange(other.Buffer.Select(x => Experience.Deserialize(x)));
+	}
+
+	#endregion
+
+	#region Properties
+
+	public int Capacity { get; }
+	public int Count => _buffer.Count;
+
+	#endregion
+
+	#region Methods
+
+	public static ReplayBuffer Deserialize(SerializableReplayBuffer data)
+	{
+		return new ReplayBuffer(data);
+	}
+
+	public SerializableReplayBuffer Serialize()
+	{
+		return new SerializableReplayBuffer()
+		{
+			Capacity = Capacity,
+			Buffer = _buffer.Select(x => x.Serialize()).ToList(),
+		};
 	}
 
 	public void Add(double[] state, int action, double reward, double[] nextState, bool done)
 	{
-		if (buffer.Count >= capacity)
-			buffer.RemoveAt(0);
-			
-		buffer.Add(new Experience(state, action, reward, nextState, done));
+		if (_buffer.Count >= Capacity)
+		{
+			_buffer.RemoveAt(0);
+		}
+		_buffer.Add(new Experience(state, action, reward, nextState, done));
 	}
 
 	public List<Experience> SampleBatch(int batchSize)
 	{
-		batchSize = Math.Min(batchSize, buffer.Count);
+		batchSize = Math.Min(batchSize, _buffer.Count);
 		var batch = new List<Experience>(batchSize);
 		
-		for (int i = 0; i < batchSize; i++)
+		for (var i = 0; i < batchSize; i++)
 		{
-			int index = random.Next(buffer.Count);
-			batch.Add(buffer[index]);
+			var index = Random.Shared.Next(_buffer.Count);
+			batch.Add(_buffer[index]);
 		}
 		
 		return batch;
 	}
 
-	public int Count => buffer.Count;
+	public ReplayBuffer Clone()
+	{
+		return new ReplayBuffer(this);
+	}
+
+	object ICloneable.Clone()
+	{
+		return Clone();
+	}
+
+	#endregion
 }

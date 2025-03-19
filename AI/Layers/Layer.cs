@@ -1,24 +1,6 @@
 
 namespace Critters.AI.Layers;
 
-interface ISerializableLayer
-{
-}
-
-class SerializableLayer : ISerializableLayer
-{
-	public int InputSize { get; set; }
-	public int OutputSize { get; set; }
-}
-
-interface ILayer : ICloneable<ILayer>
-{
-	ISerializableLayer Serialize();
-	double[] Forward(double[] inputs);
-	double[] Backward(double[] outputGradients, double learningRate);
-	void InitializeParameters();
-}
-
 /// <summary>
 /// Base class for all neural network layers
 /// </summary>

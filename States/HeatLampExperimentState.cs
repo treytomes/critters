@@ -4,36 +4,97 @@ using Critters.Gfx;
 using Critters.IO;
 using Critters.UI;
 using Critters.World;
+using Newtonsoft.Json;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.States;
 
-class OrganismSimulation
+class SerializableCritter
 {
-	private float radius = 8;
-	private DQN agent;
-	private Vector2 position;
+	public float Radius { get; set; }
+	public required SerializableDeepQNetwork Agent { get; set; }
+	public required SerializableVector2 Position { get; set; }
 	public double InternalTemperature { get; set; }
-	private double optimalTemperature;
+	public double OptimalTemperature { get; set; }
+}
+
+class Critter
+{
+	#region Constants
 	
 	// Movement directions: N, NE, E, SE, S, SW, W, NW
-	private readonly int[] dx = { 0, 1, 1, 1, 0, -1, -1, -1 };
-	private readonly int[] dy = { -1, -1, 0, 1, 1, 1, 0, -1 };
+	private static readonly int[] DX = { 0, 1, 1, 1, 0, -1, -1, -1 };
+	private static readonly int[] DY = { -1, -1, 0, 1, 1, 1, 0, -1 };
 
-	public OrganismSimulation()
+	private const float DEFAULT_RADOIS = 8;
+	private const float DEFAULT_OPTIMAL_TEMPERATURE = 30;
+	private const float DEFAULT_INTERNAL_TERMPERATURE = 20;
+
+	#endregion
+
+	#region Fields
+
+	private float radius = DEFAULT_RADOIS;
+	private DeepQNetwork agent = new(stateSize: 10, actionSize: 8, hiddenSize: 64);
+	private Vector2 position = Vector2.Zero;
+	private double optimalTemperature = DEFAULT_OPTIMAL_TEMPERATURE;
+	
+	#endregion
+
+	#region Constructors
+
+	public Critter()
 	{
-		// Place organism in center
-		position = Vector2.Zero;
-		
-		// Set optimal temperature
-		optimalTemperature = 30; // 0.7;
-		InternalTemperature = 20; // 0.5;
-		
-		// State: 9 temperature readings + 1 internal temperature
-		// Actions: 8 possible directions
-		agent = new DQN(stateSize: 10, actionSize: 8, hiddenSize: 64);
+	}
+
+	private Critter(SerializableCritter other)
+	{
+		radius = other.Radius;
+		agent = DeepQNetwork.Deserialize(other.Agent);
+		position = new Vector2(other.Position.X, other.Position.Y);
+		optimalTemperature = other.OptimalTemperature;
+		InternalTemperature = other.InternalTemperature;
+	}
+
+	#endregion
+
+	#region Properties
+
+	public double InternalTemperature { get; set; } = DEFAULT_INTERNAL_TERMPERATURE;
+
+	#endregion
+
+	#region Methods
+
+	public static Critter Load(string path)
+	{
+		var json = File.ReadAllText(path);
+		var info = JsonConvert.DeserializeObject<SerializableCritter>(json);
+		return new Critter(info!);
+	}
+
+	public void Save(string path)
+	{
+		var json = JsonConvert.SerializeObject(Serialize());
+		File.WriteAllText(path, json);
+	}
+
+	public static Critter Deserialize(SerializableCritter other)
+	{
+		return new Critter(other);
+	}
+
+	public SerializableCritter Serialize()
+	{
+		return new SerializableCritter()
+		{
+			Agent = agent.Serialize(),
+			Position = new SerializableVector2(position),
+			InternalTemperature = InternalTemperature,
+			OptimalTemperature = optimalTemperature,
+		};
 	}
 
 	private double[] GetStateVector(HeatField heatField)
@@ -47,8 +108,8 @@ class OrganismSimulation
 		var stateIndex = 1;
 		for (var i = 0; i < 8; i++)
 		{
-			var nx = position.X + dx[i];
-			var ny = position.Y + dy[i];
+			var nx = position.X + DX[i];
+			var ny = position.Y + DY[i];
 			state[stateIndex] = heatField.CalculateTemperatureAtPoint(new Vector2(nx * radius, ny * radius));
 			stateIndex++;
 		}
@@ -66,15 +127,25 @@ class OrganismSimulation
 		
 		// Higher reward for closer to optimal temperature
 		if (temperatureDifference < 0)
+		{
 			return 1.0;
+		}
 		else if (temperatureDifference < 2)
+		{
 			return 0.5;
+		}
 		else if (temperatureDifference < 3)
+		{
 			return 0.1;
+		}
 		else if (temperatureDifference > 5)
+		{
 			return -1.0;  // Significant penalty for being too far off
+		}
 		else
+		{
 			return -0.1;  // Small penalty otherwise
+		}
 	}
 
 	public void TrainStep(GameTime gameTime, HeatField heatField)
@@ -86,10 +157,10 @@ class OrganismSimulation
 		var action = agent.SelectAction(currentState);
 		
 		// Apply movement
-		var nx = position.X + dx[action] * gameTime.ElapsedTime.TotalSeconds * 32;
-		var ny = position.Y + dy[action] * gameTime.ElapsedTime.TotalSeconds * 32;
+		var nx = position.X + DX[action] * gameTime.ElapsedTime.TotalSeconds * 32;
+		var ny = position.Y + DY[action] * gameTime.ElapsedTime.TotalSeconds * 32;
 		
-		bool moved = false;
+		var moved = false;
 		if (nx != 0 || ny != 0)
 		{
 			position = new Vector2((float)nx, (float)ny);
@@ -97,14 +168,14 @@ class OrganismSimulation
 		}
 		
 		// Update internal temperature based on current position
-		double environmentTemp = heatField.CalculateTemperatureAtPoint(position);
+		var environmentTemp = heatField.CalculateTemperatureAtPoint(position);
 		InternalTemperature = 0.9 * InternalTemperature + 0.1 * environmentTemp;
 		
 		// Get new state
-		double[] nextState = GetStateVector(heatField);
+		var nextState = GetStateVector(heatField);
 		
 		// Calculate reward
-		double reward = CalculateReward();
+		var reward = CalculateReward();
 		
 		// Small penalty for not moving
 		if (!moved)
@@ -123,20 +194,6 @@ class OrganismSimulation
 		agent.Train();
 	}
 
-	// public void RunSimulation(HeatField heatField, int steps)
-	// {
-	// 	for (var i = 0; i < steps; i++)
-	// 	{
-	// 		TrainStep(gameTime, heatField);
-			
-	// 		// // Optional: Print status every 100 steps
-	// 		// if (i % 100 == 0)
-	// 		// {
-	// 		// 	Console.WriteLine($"Step {i}: Position ({position.x},{position.y}), Temperature {internalTemperature:F2}, Optimal {optimalTemperature:F2}");
-	// 		// }
-	// 	}
-	// }
-
 	public void Update(GameTime gameTime, HeatField heatField)
 	{
 		TrainStep(gameTime, heatField);
@@ -147,6 +204,8 @@ class OrganismSimulation
 		var color = new RadialColor(0, 5, 0);
 		rc.RenderFilledCircle(position - camera.Position, (int)radius, color);
 	}
+
+	#endregion
 }
 
 class Lamp
@@ -392,31 +451,12 @@ class HeatField
 				var ppos = new Vector2(dx, dy);
 				var pos = camera.Position + ppos;
 
-				// // Calculate the intensity contribution of each lamp.
-				// var intensity = 0.0f;
-				// foreach (var lamp in Lamps)
-				// {
-				// 	var squaredDistance = Vector2.DistanceSquared(pos, lamp.Position);
-				// 	intensity += lamp.Intensity * BASE_INTENSITY / squaredDistance;
-				// 	// var distance = Vector2.Distance(pos, lamp.Position);
-				// 	// intensity += lamp.Intensity * BASE_INTENSITY / distance;
-				// }
-
-				// // And also the mouse.
-				// {
-				// 	var squaredDistance = Vector2.DistanceSquared(pos, cursor.Position);
-				// 	intensity += cursor.Intensity * BASE_INTENSITY / squaredDistance;
-				// 	// var distance = Vector2.Distance(pos, cursor.Position);
-				// 	// intensity += cursor.Intensity * BASE_INTENSITY / distance;
-				// }
-
 				Lamps.Add(cursor);
 				var intensity = CalculateTemperatureAtPoint(pos) / 100.0f;
 				Lamps.Remove(cursor);
 
 				// Calculate dithering probability.
 				intensity = MathHelper.Clamp(intensity, 0.0f, 1.0f);
-
 
 				// Get the appropriate threshold from the Bayer matrix (0-15, normalized to 0.0-1.0)
 				var bayerX = MathHelper.Modulus(Math.Abs((int)pos.X), 4);
@@ -564,12 +604,15 @@ class HeatField
 	/// </summary>
 	public string GetTimeString()
 	{
-		int hours = (int)_currentDayTime;
-		int minutes = (int)((_currentDayTime - hours) * 60);
-		string amPm = hours < 12 ? "AM" : "PM";
+		var hours = (int)_currentDayTime;
+		var minutes = (int)((_currentDayTime - hours) * 60);
+		var amPm = hours < 12 ? "AM" : "PM";
 		hours = hours % 12;
-		if (hours == 0) hours = 12; // 12-hour format
-		return $"{hours:D}:{minutes:D2} {amPm}";
+		if (hours == 0)
+		{
+			hours = 12; // 12-hour format
+		}
+		return $"{hours:D}:{minutes:D2}{amPm}";
 	}
 	
 	/// <summary>
@@ -608,7 +651,7 @@ class HeatLampExperimentState : GameState
 	private float _intensityFactor = 0.0f;
 
 	private HeatField _heatField = new();
-	private OrganismSimulation _organism = new();
+	private Critter _critter = new();
 
 	#endregion
 
@@ -675,10 +718,17 @@ class HeatLampExperimentState : GameState
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
+
+		if (Path.Exists("critter.json"))
+		{
+			_critter = Critter.Load("critter.json");
+		}
 	}
 
 	public override void LostFocus(EventBus eventBus)
 	{
+		_critter.Save("critter.json");
+
 		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
@@ -693,7 +743,7 @@ class HeatLampExperimentState : GameState
 		_camera.ViewportSize = rc.ViewportSize;
 
 		_heatField.Render(rc, _camera, MouseLamp);
-		_organism.Render(rc, _camera);
+		_critter.Render(rc, _camera);
 
 		base.Render(rc, gameTime);
 	}
@@ -709,13 +759,13 @@ class HeatLampExperimentState : GameState
 
 		var mouseLamp = MouseLamp;
 		_heatField.Lamps.Add(mouseLamp);
-		_organism.Update(gameTime, _heatField);
+		_critter.Update(gameTime, _heatField);
 		_heatField.Lamps.Remove(mouseLamp);
 
 		var temp = _heatField.CalculateTemperatureAtPoint(_camera.Position + _mousePosition) + MouseLamp.Temperature;
 		_temperatureLabel.Text = $"Temp:{(int)temp}";
 		_timeLabel.Text = $"Time:{_heatField.GetTimeString()}";
-		_critterTempLabel.Text = $"CritterTemp:{(int)_organism.InternalTemperature}";
+		_critterTempLabel.Text = $"CritterTemp:{(int)_critter.InternalTemperature}";
 	}
 
 	private void OnKey(KeyEventArgs e)

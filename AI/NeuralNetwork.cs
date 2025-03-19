@@ -29,9 +29,19 @@ class NeuralNetwork : ICloneable<NeuralNetwork>
 		_layers = other._layers.Select(layer => layer.Clone()).ToList();
 	}
 
+	private NeuralNetwork(SerializableNeuralNetwork other)
+	{
+		_layers = other.Layers.Select(layer => LayerFactory.Deserialize(layer)).ToList();
+	}
+
 	#endregion
 
 	#region Methods
+
+	public static NeuralNetwork Deserialize(SerializableNeuralNetwork other)
+	{
+		return new NeuralNetwork(other);
+	}
 
 	public SerializableNeuralNetwork Serialize()
 	{
