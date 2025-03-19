@@ -157,12 +157,15 @@ class Critter
 		var action = agent.SelectAction(currentState);
 		
 		// Apply movement
-		var nx = position.X + DX[action] * gameTime.ElapsedTime.TotalSeconds * 32;
-		var ny = position.Y + DY[action] * gameTime.ElapsedTime.TotalSeconds * 32;
-		
+		const int SPEED = 32;
+		var dx = DX[action] * gameTime.ElapsedTime.TotalSeconds * SPEED;
+		var dy = DY[action] * gameTime.ElapsedTime.TotalSeconds * SPEED;
+
 		var moved = false;
-		if (nx != 0 || ny != 0)
+		if (dx != 0 || dy != 0)
 		{
+			var nx = position.X + dx;
+			var ny = position.Y + dy;
 			position = new Vector2((float)nx, (float)ny);
 			moved = true;
 		}
