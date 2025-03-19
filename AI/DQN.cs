@@ -65,18 +65,20 @@ public class DQN
 
 	private NeuralNetwork CloneNetwork(NeuralNetwork source)
 	{
-		// In a real implementation, you would need to clone the weights
-		// For simplicity, we'll initialize a new network with the same architecture
-		NeuralNetwork clone = new NeuralNetwork();
-		clone.AddLayer(new InputLayer(stateSize));
-		clone.AddLayer(new DenseLayer(stateSize, 64));
-		clone.AddLayer(new ActivationLayer(64, ActivationType.ReLU));
-		clone.AddLayer(new DenseLayer(64, 64));
-		clone.AddLayer(new ActivationLayer(64, ActivationType.ReLU));
-		clone.AddLayer(new DenseLayer(64, actionSize));
+		var clone = source.Clone();
+
+		// // In a real implementation, you would need to clone the weights
+		// // For simplicity, we'll initialize a new network with the same architecture
+		// var clone = new NeuralNetwork();
+		// clone.AddLayer(new InputLayer(stateSize));
+		// clone.AddLayer(new DenseLayer(stateSize, 64));
+		// clone.AddLayer(new ActivationLayer(64, ActivationType.ReLU));
+		// clone.AddLayer(new DenseLayer(64, 64));
+		// clone.AddLayer(new ActivationLayer(64, ActivationType.ReLU));
+		// clone.AddLayer(new DenseLayer(64, actionSize));
 		
-		// In an actual implementation, you'd copy the weights here
-		// This would require access to the internal weights of your NeuralNetwork class
+		// // In an actual implementation, you'd copy the weights here
+		// // This would require access to the internal weights of your NeuralNetwork class
 		
 		return clone;
 	}

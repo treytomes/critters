@@ -2,19 +2,51 @@ using Critters.AI.Layers;
 
 namespace Critters.AI;
 
+class SerializableNeuralNetwork
+{
+	public required List<ISerializableLayer> Layers { get; set; }
+}
+
 /// <summary>
 /// Neural network composed of multiple layers.
 /// </summary>
-public class NeuralNetwork
+class NeuralNetwork : ICloneable<NeuralNetwork>
 {
-	private List<Layer> layers = new();
+	#region Fields
+
+	private List<ILayer> _layers = new();
+
+	#endregion
+
+	#region Constructors
+
+	public NeuralNetwork()
+	{
+	}
+
+	private NeuralNetwork(NeuralNetwork other)
+	{
+		_layers = other._layers.Select(layer => layer.Clone()).ToList();
+	}
+
+	#endregion
+
+	#region Methods
+
+	public SerializableNeuralNetwork Serialize()
+	{
+		return new SerializableNeuralNetwork
+		{
+			Layers = _layers.Select(layer => layer.Serialize()).ToList()
+		};
+	}
 
 	/// <summary>
 	/// Adds a layer to the network.
 	/// </summary>
-	public void AddLayer(Layer layer)
+	public void AddLayer(ILayer layer)
 	{
-		layers.Add(layer);
+		_layers.Add(layer);
 	}
 
 	/// <summary>
@@ -24,7 +56,7 @@ public class NeuralNetwork
 	{
 		var currentOutput = inputs;
 		
-		foreach (var layer in layers)
+		foreach (var layer in _layers)
 		{
 			currentOutput = layer.Forward(currentOutput);
 		}
@@ -52,7 +84,7 @@ public class NeuralNetwork
 		}
 		
 		// Backward pass.
-		foreach (var layer in layers.AsEnumerable().Reverse())
+		foreach (var layer in _layers.AsEnumerable().Reverse())
 		{
 			outputGradient = layer.Backward(outputGradient, learningRate);
 		}
@@ -103,4 +135,16 @@ public class NeuralNetwork
 		
 		return totalLoss / testData.Count;
 	}
+
+	public NeuralNetwork Clone()
+	{
+		return new NeuralNetwork(this);
+	}
+
+	object ICloneable.Clone()
+	{
+		return Clone();
+	}
+
+	#endregion
 }

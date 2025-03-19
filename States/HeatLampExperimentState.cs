@@ -22,7 +22,7 @@ class OrganismSimulation
 	private readonly int[] dx = { 0, 1, 1, 1, 0, -1, -1, -1 };
 	private readonly int[] dy = { -1, -1, 0, 1, 1, 1, 0, -1 };
 
-	public OrganismSimulation(int gridSize = 20)
+	public OrganismSimulation()
 	{
 		// Place organism in center
 		position = Vector2.Zero;

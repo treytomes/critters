@@ -1,19 +1,68 @@
 namespace Critters.AI.Layers;
 
+class SerializableActivationLayer : SerializableLayer
+{
+	public ActivationType ActivationType { get; set; }
+	public required double[] LastInputs { get; set; }
+	public required double[] LastOutputs { get; set; }
+}
+
 /// <summary>
 /// Activation layer that applies an activation function
 /// </summary>
-public class ActivationLayer : Layer
+class ActivationLayer : Layer<ActivationLayer, SerializableActivationLayer>
 {
+	#region Fields
+
 	private ActivationType _activationType;
 	private double[] _lastInputs;
 	private double[] _lastOutputs;
 
-	public ActivationLayer(int size, ActivationType activationType = ActivationType.Sigmoid) : base(size, size)
+	#endregion
+
+	#region Constructors
+
+	public ActivationLayer(int size, ActivationType activationType = ActivationType.Sigmoid)
+		: base(size, size)
 	{
 		_activationType = activationType;
 		_lastInputs = [];
 		_lastOutputs = [];
+	}
+
+	private ActivationLayer(ActivationLayer other)
+		: base(other)
+	{
+		_lastInputs = other._lastInputs.ToArray();
+		_lastOutputs = other._lastOutputs.ToArray();
+	}
+
+	private ActivationLayer(SerializableActivationLayer other)
+		: base(other)
+	{
+		_lastInputs = other.LastInputs.ToArray();
+		_lastOutputs = other.LastOutputs.ToArray();
+	}
+
+	#endregion
+
+	#region Methods
+
+	public static ActivationLayer Deserialize(SerializableActivationLayer data)
+	{
+		return new ActivationLayer(data);
+	}
+	
+	public override SerializableActivationLayer Serialize()
+	{
+		return new SerializableActivationLayer()
+		{
+			InputSize = _inputSize,
+			OutputSize = _outputSize,
+			ActivationType = _activationType,
+			LastInputs = _lastInputs.ToArray(),
+			LastOutputs = _lastOutputs.ToArray(),
+		};
 	}
 
 	public override void InitializeParameters()
@@ -70,4 +119,11 @@ public class ActivationLayer : Layer
 			_ => throw new ArgumentException($"Unsupported activation function: {_activationType}")
 		};
 	}
+
+	public override ActivationLayer Clone()
+	{
+		return new ActivationLayer(this);
+	}
+
+	#endregion
 }
