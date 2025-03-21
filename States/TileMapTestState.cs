@@ -8,6 +8,8 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
+// Reference: https://bwiggs.com/projects/terrain/
+
 namespace Critters.States;
 
 class TileMapTestState : GameState
