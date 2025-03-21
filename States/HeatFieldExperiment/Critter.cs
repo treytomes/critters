@@ -21,8 +21,13 @@ class Critter
 	private const float DEFAULT_INTERNAL_TERMPERATURE = 20;
 
 	private const float MAX_STAMINA = 100f;
-	private const float MOVE_STAMINA_COST = 0.1f;
-	private const float STAMINA_RECOVERY_RATE = 1f;
+	private const float MOVE_STAMINA_COST = 1f;
+
+	/// <summary>
+	/// It's not as big as it looks.
+	/// </summary>
+	private const float STAMINA_RECOVERY_RATE = 100f;
+	
 	private const int STATE_SIZE = 12;
 
 	#endregion
@@ -152,7 +157,7 @@ class Critter
     var temperatureDifference = Math.Abs(InternalTemperature - optimalTemperature);
     
     // STRONGER temperature reward function (steeper curve)
-    double temperatureReward = 3.0 * Math.Exp(-temperatureDifference / 1.5);
+    var temperatureReward = 3.0 * Math.Exp(-temperatureDifference / 1.5);
     
     // Scale the temperature reward with MORE SIGNIFICANT penalties
     double scaledTemperatureReward;
@@ -237,6 +242,7 @@ class Critter
 					// Only recover stamina if temperature is reasonable
 					if (temperatureDifference < 8.0) {
 							Stamina += STAMINA_RECOVERY_RATE * temperatureReward * (float)gameTime.ElapsedTime.TotalSeconds;
+							Console.WriteLine("Recovered stamina: {0}", STAMINA_RECOVERY_RATE * temperatureReward * (float)gameTime.ElapsedTime.TotalSeconds);
 					} else {
 							// Optional: Lose stamina if temperature is dangerous
 							Stamina -= STAMINA_RECOVERY_RATE * 0.5f * (float)gameTime.ElapsedTime.TotalSeconds;

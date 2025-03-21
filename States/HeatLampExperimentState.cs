@@ -237,7 +237,7 @@ class HeatLampExperimentState : GameState
 	{
 		_intensityFactor += e.OffsetY * 0.01f;
 		_intensityFactor = MathHelper.Clamp(_intensityFactor, 0.0f, 1.0f);
-		Console.WriteLine("_intensityFactor="+_intensityFactor);
+		// Console.WriteLine("_intensityFactor="+_intensityFactor);
 	}
 
 	#endregion

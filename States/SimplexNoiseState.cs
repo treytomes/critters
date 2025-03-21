@@ -26,8 +26,6 @@ class SimplexNoiseState : GameState
 	/// </summary>
 	private float _cameraSpeed = 8 * 8; // 8 tiles per second
 
-	private MapCursor _mapCursor = new MapCursor();
-
 	#endregion
 
 	#region Constructors
@@ -88,17 +86,23 @@ class SimplexNoiseState : GameState
 				var x = _camera.Position.X + dx;
 				var y = _camera.Position.Y + dy;
 
-				var noise = new SimplexNoise(42);
+				// var noise = new SimplexNoise(42);
 
 				// Get noise from [-1, 1].
 				// Generate a single noise value at coordinates (x, y)
 				// float value = noise.Noise(x, y);  // Value between -1 and 1
 
 				// Generate fractal (multi-octave) noise for more natural-looking results
-				float value = noise.FractalNoise(x, y, octaves: 6, persistence: 0.5f);
+				// float value = noise.FractalNoise(x, y, scale: 1f, octaves: 6, persistence: 0.5f);
+				// value *= noise.FractalNoise(x, y, scale: 0.1f, octaves: 3, persistence: 2f);
+				var v1 = Noise.CalcPixel2D((int)x, (int)y, 0.001f);
+				var v2 = Noise.CalcPixel2D((int)(x * 2), (int)(y * 4), 0.03f);
+				var v3 = Noise.CalcPixel3D((int)(x * 2), (int)(y * 8), (int)(x * y), 0.03f);
+				var value = (v1 * 0.8) + (v2 * 0.1) + (v3 * 0.1); 
+				value = MathHelper.Clamp(value / 255.0f, 0.0f, 1.0f);
 
 				// Convert noise to [0, 1].
-				value = (value + 1) / 2;
+				// value = (value + 1) / 2;
 
 				// Convert noise to [0, 5].
 				value *= 5;
@@ -107,7 +111,7 @@ class SimplexNoiseState : GameState
 				var c = (byte)value;
 
 				var color = new RadialColor(c, c, c);
-				rc.SetPixel(new Vector2(x, y), color);
+				rc.SetPixel(new Vector2(dx, dy), color);
 			}
 		}
 
@@ -171,11 +175,6 @@ class SimplexNoiseState : GameState
 		{
 			_camera.ScrollBy(-e.Delta);
 		}
-
-		var worldPos = _camera.ScreenToWorld(e.Position).Floor();
-		const int TILE_SIZE = 8;
-		var tilePos = (worldPos / TILE_SIZE).Floor();
-		_mapCursor.MoveTo(tilePos * TILE_SIZE);
 	}
 
 	private void OnMouseButton(MouseButtonEventArgs e)

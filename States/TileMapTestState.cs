@@ -1,6 +1,7 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.States.TileMapTest;
 using Critters.UI;
 using Critters.World;
 using OpenTK.Mathematics;
@@ -8,53 +9,6 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.States;
-
-class MapCursor
-{
-	#region Constants
-
-	private const int MAP_CURSOR_BLINK_SPEED_MS = 300;
-
-	#endregion
-
-	#region Fields
-
-	private Vector2 _position = Vector2.Zero;
-
-	#endregion
-
-	#region Methods
-
-	public void Update(GameTime gameTime)
-	{
-	}
-
-	public void Render(RenderingContext rc, GameTime gameTime, Camera camera)
-	{
-		var mapCursorScreenPosition = camera.WorldToScreen(_position);
-
-		if (rc.Bounds.ContainsExclusive(mapCursorScreenPosition))
-		{
-			rc.RenderRect(mapCursorScreenPosition, mapCursorScreenPosition + new Vector2(7, 7), rc.Palette[5, 0, 0]);
-			if ((int)(gameTime.TotalTime.TotalMilliseconds / MAP_CURSOR_BLINK_SPEED_MS) % 2 == 0)
-			{
-				rc.RenderRect(mapCursorScreenPosition - new Vector2(2, 2), mapCursorScreenPosition + new Vector2(7, 7) + new Vector2(2, 2), rc.Palette[5, 0, 0]);
-			}
-		}
-	}
-
-	public void MoveTo(Vector2 position)
-	{
-		_position = position;
-	}
-
-	public void MoveBy(Vector2 delta)
-	{
-		_position += delta;
-	}
-
-	#endregion
-}
 
 class TileMapTestState : GameState
 {
@@ -67,6 +21,7 @@ class TileMapTestState : GameState
 	private Camera _camera;
 	private TileRepo _tiles;
 	private Level _level;
+	private InfiniteTerrainGenerator _generator = new();
 	private bool _isDraggingCamera = false;
 	private Vector2 _cameraDelta = Vector2.Zero;
 	private bool _cameraFastMove = false;
@@ -76,7 +31,7 @@ class TileMapTestState : GameState
 	/// </summary>
 	private float _cameraSpeed = 8 * 8; // 8 tiles per second
 
-	private MapCursor _mapCursor = new MapCursor();
+	private MapCursor _mapCursor = new();
 
 	#endregion
 
@@ -162,13 +117,57 @@ class TileMapTestState : GameState
 			rc.RenderVLine(x - gridDeltaX, 0, rc.Height - 1, gridColor);
 		}
 
-		_level?.Render(rc, _tiles, _camera);
+		_generator.UpdateViewPosition(_camera.Position);
+
+		// _level?.Render(rc, _tiles, _camera);
+		Render(rc, _tiles, _camera);
 
 		// Render the map cursor.
 		_mapCursor.Render(rc, gameTime, _camera);
 
 		base.Render(rc, gameTime);
 	}
+	
+	const int _tileSize = 8;
+	public void Render(RenderingContext rc, TileRepo tiles, Camera camera)
+	{
+		// Calculate visible tile range.
+		var startPos = ((camera.Position - rc.ViewportSize / 2) / _tileSize).Floor() * _tileSize;
+
+		// Render one extra tile around the edges.
+		var endPos = startPos + rc.ViewportSize + Vector2.One * _tileSize;
+
+		for (var y = startPos.Y; y < endPos.Y; y += _tileSize)
+		{
+			for (var x = startPos.X; x < endPos.X; x += _tileSize)
+			{
+				var tileX = x / _tileSize;
+				var tileY = y / _tileSize;
+
+				var screenPos = camera.WorldToScreen(new Vector2(x, y)).Floor();
+
+				var tileType = _generator.GetTileAt((int)tileX, (int)tileY);
+				var color = tileType switch
+				{
+					TerrainType.Water => new RadialColor(0, 0, 5),
+					TerrainType.Sand => new RadialColor(4, 4, 0),
+					TerrainType.Grass => new RadialColor(0, 5, 0),
+					TerrainType.Hill => new RadialColor(2, 4, 2),
+					TerrainType.Mountain => new RadialColor(3, 3, 3),
+					_ => new RadialColor(5, 0, 5),
+				};
+
+				rc.RenderFilledRect(new Box2(screenPos, screenPos + new Vector2(_tileSize, _tileSize)), color.Index);
+				
+				// var tileRef = GetTile(tileX, tileY);
+				// if (!tileRef.IsEmpty)
+				// {
+				// 	tiles.Get(tileRef.TileId).Render(rc, screenPos); // Render the tile at the correct screen position.
+				// }
+			}
+		}
+	}
+
 
 	public override void Update(GameTime gameTime)
 	{
