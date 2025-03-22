@@ -26,6 +26,7 @@ class MainMenuState : GameState
 			"> Tile Map Test <",
 			"> Simplex Noise <",
 			">   Heat Lamp   <",
+			">     Conway    <",
 		};
 
 		for (var n = 0; n < items.Length; n++)
@@ -126,6 +127,9 @@ class MainMenuState : GameState
 				break;
 			case 2:
 				Enter(new HeatLampExperimentState());
+				break;
+			case 3:
+				Enter(new ConwayLifeState());
 				break;
 		}
 	}

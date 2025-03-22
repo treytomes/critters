@@ -9,7 +9,9 @@
 		"Newtonsoft",
 		"ppos",
 		"relu",
-		"Roguelike"
+		"Roguelike",
+		"SSBO",
+		"underpopulation"
 	],
   "editor.tabSize": 2,
 	"editor.detectIndentation": false,
