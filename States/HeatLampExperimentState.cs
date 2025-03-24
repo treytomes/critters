@@ -147,7 +147,7 @@ class HeatLampExperimentState : GameState
 		base.Update(gameTime);
 		
 		_camera.ScrollBy(_cameraDelta * (float)gameTime.ElapsedTime.TotalSeconds * _cameraSpeed * (_cameraFastMove ? 4 : 1));
-		_cameraLabel.Text = $"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})";
+		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})");
 
 		_heatField.Update(gameTime);
 
@@ -157,11 +157,11 @@ class HeatLampExperimentState : GameState
 		_heatField.Lamps.Remove(mouseLamp);
 
 		var temp = _heatField.CalculateTemperatureAtPoint(_camera.Position + _mousePosition) + MouseLamp.Temperature;
-		_temperatureLabel.Text = $"Temp:{(int)temp}";
-		_timeLabel.Text = $"Time:{_heatField.GetTimeString()}";
-		_critterTempLabel.Text = $"CritterTemp:{(int)_critter.InternalTemperature}";
-		_critterStaminaLabel.Text = $"CritterStm:{(int)_critter.Stamina}";
-		_critterHealthLabel.Text = $"Health:{(int)_critter.Health}";
+		_temperatureLabel.Text = StringProvider.From($"Temp:{(int)temp}");
+		_timeLabel.Text = StringProvider.From($"Time:{_heatField.GetTimeString()}");
+		_critterTempLabel.Text = StringProvider.From($"CritterTemp:{(int)_critter.InternalTemperature}");
+		_critterStaminaLabel.Text = StringProvider.From($"CritterStm:{(int)_critter.Stamina}");
+		_critterHealthLabel.Text = StringProvider.From($"Health:{(int)_critter.Health}");
 	}
 
 	private void OnKey(KeyEventArgs e)
@@ -207,7 +207,7 @@ class HeatLampExperimentState : GameState
 
 	private void OnMouseMove(MouseMoveEventArgs e)
 	{
-		_mouseLabel.Text = $"Mouse:({(int)e.Position.X},{(int)e.Position.Y})";
+		_mouseLabel.Text = StringProvider.From($"Mouse:({(int)e.Position.X},{(int)e.Position.Y})");
 
 		if (_isDraggingCamera)
 		{

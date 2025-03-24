@@ -176,7 +176,7 @@ class TileMapTestState : GameState
 		base.Update(gameTime);
 		
 		_camera.ScrollBy(_cameraDelta * (float)gameTime.ElapsedTime.TotalSeconds * _cameraSpeed * (_cameraFastMove ? 4 : 1));
-		_cameraLabel.Text = $"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})";
+		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})");
 	}
 
 	private void OnKey(KeyEventArgs e)
@@ -222,7 +222,7 @@ class TileMapTestState : GameState
 
 	private void OnMouseMove(MouseMoveEventArgs e)
 	{
-		_mouseLabel.Text = $"Mouse:({(int)e.Position.X},{(int)e.Position.Y})";
+		_mouseLabel.Text = StringProvider.From($"Mouse:({(int)e.Position.X},{(int)e.Position.Y})");
 
 		if (_isDraggingCamera)
 		{

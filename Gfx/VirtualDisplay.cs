@@ -40,7 +40,7 @@ class VirtualDisplay : IDisposable
 	public VirtualDisplay(Vector2i windowSize, Settings.VirtualDisplaySettings settings)
 	{
 		// Compile shaders
-		_shaderProgram = new ShaderProgram(settings.VertexShaderPath, settings.FragmentShaderPath);
+		_shaderProgram = ShaderProgram.ForGraphics(settings.VertexShaderPath, settings.FragmentShaderPath);
 
 		// Generate texture
 		_texture = new Texture(settings.Width, settings.Height, true);

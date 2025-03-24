@@ -104,7 +104,7 @@ class ColorPicker : UIElement
 		_ui.Add(_colorLabel);
 
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
-		_colorLabel.Text = $"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}";
+		_colorLabel.Text = StringProvider.From($"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}");
 	}
 
 	#endregion
@@ -211,7 +211,7 @@ class ColorPicker : UIElement
 		}
 
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
-		_colorLabel.Text = $"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}";
+		_colorLabel.Text = StringProvider.From($"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}");
 	}
 
 	private void OnBaseColorClicked(object? sender, ButtonClickedEventArgs e)
@@ -250,7 +250,7 @@ class ColorPicker : UIElement
 		_selectedDerivedColor = c;
 		_selectedDerivedColor!.IsSelected = true;
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
-		_colorLabel.Text = $"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}";
+		_colorLabel.Text = StringProvider.From($"{_selectedColor.FillColor.Red}{_selectedColor.FillColor.Green}{_selectedColor.FillColor.Blue}=={_selectedColor.FillColor.Index}");
 	}
 
 	private void OnDerivedColorClicked(object? sender, ButtonClickedEventArgs e)

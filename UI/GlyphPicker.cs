@@ -63,7 +63,7 @@ class GlyphPicker : UIElement
 		_glyphLabel = new Label(this, "index=0", new Vector2(0, 9 * numGlyphRows + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_glyphLabel);
 
-		_glyphLabel.Text = $"glyph index={_selectedGlyph.GlyphIndex}";
+		_glyphLabel.Text = StringProvider.From($"glyph index={_selectedGlyph.GlyphIndex}");
 	}
 
 	#endregion
@@ -179,7 +179,7 @@ class GlyphPicker : UIElement
 		_selectedGlyph = c;
 		_selectedGlyph.IsSelected = true;
 
-		_glyphLabel.Text = $"glyph index={_selectedGlyph.GlyphIndex}";
+		_glyphLabel.Text = StringProvider.From($"glyph index={_selectedGlyph.GlyphIndex}");
 	}
 
 	private void OnGlyphClicked(object? sender, ButtonClickedEventArgs e)

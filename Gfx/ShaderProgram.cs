@@ -13,14 +13,13 @@ class ShaderProgram : IDisposable
 
 	#region Constructors
 
-	public ShaderProgram(string vertexShaderPath, string fragmentShaderPath)
+	private ShaderProgram(params Shader[] shaders)
 	{
-		using var vertexShader = Shader.FromFile(ShaderType.VertexShader, vertexShaderPath);
-		using var fragmentShader = Shader.FromFile(ShaderType.FragmentShader, fragmentShaderPath);
-
 		Id = GL.CreateProgram();
-		GL.AttachShader(Id, vertexShader.Id);
-		GL.AttachShader(Id, fragmentShader.Id);
+		foreach (var shader in shaders)
+		{
+			GL.AttachShader(Id, shader.Id);
+		}
 		GL.LinkProgram(Id);
 		CheckProgramLinkStatus();
 	}
@@ -28,6 +27,19 @@ class ShaderProgram : IDisposable
 	#endregion
 
 	#region Methods
+
+	public static ShaderProgram ForGraphics(string vertexShaderPath, string fragmentShaderPath)
+	{
+		using var vertexShader = Shader.FromFile(ShaderType.VertexShader, vertexShaderPath);
+		using var fragmentShader = Shader.FromFile(ShaderType.FragmentShader, fragmentShaderPath);
+		return new ShaderProgram(vertexShader, fragmentShader);
+	}
+
+	public static ShaderProgram ForCompute(string computeShaderSource)
+	{
+		using var computeShader = new Shader(ShaderType.ComputeShader, computeShaderSource);
+		return new ShaderProgram(computeShader);
+	}
 
 	public void Use()
 	{
@@ -37,6 +49,11 @@ class ShaderProgram : IDisposable
 	public int GetUniformLocation(string name)
 	{
 		return GL.GetUniformLocation(Id, name);
+	}
+
+	public ShaderUniform1 GetUniform1(string name)
+	{
+		return new ShaderUniform1(GetUniformLocation(name));
 	}
 
 	private void CheckProgramLinkStatus()

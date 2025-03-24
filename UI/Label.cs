@@ -8,12 +8,44 @@ using OpenTK.Mathematics;
 
 namespace Critters.UI;
 
+interface IStringProvider
+{
+}
+
+class ConstantStringProvider(string text) : IStringProvider
+{
+	public override string ToString()
+	{
+		return text;
+	}
+}
+
+class FuncStringProvider(Func<string> func) : IStringProvider
+{
+	public override string ToString()
+	{
+		return func();
+	}
+}
+
+static class StringProvider
+{
+	public static IStringProvider From(object text)
+	{
+		return (text is Func<string>) switch
+		{
+			true => new FuncStringProvider((Func<string>)text),
+			_ => new ConstantStringProvider(text?.ToString() ?? "")
+		};
+	}
+}
+
 class Label : UIElement
 {
 	#region Fields
 
 	private Font? _font;
-	private string _text;
+	private IStringProvider _text;
 	private RadialColor _foregroundColor;
 	private RadialColor? _backgroundColor;
 
@@ -21,15 +53,15 @@ class Label : UIElement
 
 	#region Constructors
 
-	public Label(string text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
+	public Label(object text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
 		: this(null, text, position, fgColor, bgColor)
 	{
 	}
 
-	public Label(UIElement? parent, string text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
+	public Label(UIElement? parent, object text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
 		: base(parent)
 	{
-		Text = text;
+		Text = StringProvider.From(text);
 		Position = position;
 		ForegroundColor = fgColor;
 		BackgroundColor = bgColor;
@@ -39,7 +71,7 @@ class Label : UIElement
 
 	#region Properties
 
-	public string Text
+	public IStringProvider Text
 	{
 		get
 		{
@@ -99,7 +131,7 @@ class Label : UIElement
 		var bmp = new Bitmap(image);
     var tiles = new GlyphSet<Bitmap>(bmp, 8, 8);
     _font = new Font(tiles);
-		Size = _font?.MeasureString(Text) ?? Vector2.Zero;
+		Size = _font?.MeasureString(Text.ToString()!) ?? Vector2.Zero;
 	}
 
 	public override void Unload(ResourceManager resources, EventBus eventBus)
@@ -111,7 +143,7 @@ class Label : UIElement
 	{
 		base.Render(rc, gameTime);
 
-		_font?.WriteString(rc, Text, AbsolutePosition, ForegroundColor, BackgroundColor);
+		_font?.WriteString(rc, Text.ToString() ?? "", AbsolutePosition, ForegroundColor, BackgroundColor);
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
@@ -120,7 +152,7 @@ class Label : UIElement
 
 		if (propertyName == nameof(Text))
 		{
-			Size = _font?.MeasureString(Text) ?? Vector2.Zero;
+			Size = _font?.MeasureString(Text.ToString() ?? "") ?? Vector2.Zero;
 		}
 	}
 
