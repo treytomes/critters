@@ -27,6 +27,7 @@ class MainMenuState : GameState
 			"> Simplex Noise <",
 			">   Heat Lamp   <",
 			">     Conway    <",
+			">   Particles   <",
 		};
 
 		for (var n = 0; n < items.Length; n++)
@@ -130,6 +131,9 @@ class MainMenuState : GameState
 				break;
 			case 3:
 				Enter(new ConwayLifeState());
+				break;
+			case 4:
+				Enter(new ParticlesState());
 				break;
 		}
 	}
