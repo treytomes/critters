@@ -8,4 +8,14 @@ class ShaderUniform1(int location)
 	{
 		GL.Uniform1(location, value);
 	}
+
+	public void Set(float value)
+	{
+		GL.Uniform1(location, value);
+	}
+
+	public void Set(double value)
+	{
+		GL.Uniform1(location, value);
+	}
 }
