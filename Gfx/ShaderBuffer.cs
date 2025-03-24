@@ -16,6 +16,7 @@ class ShaderBuffer<T> : IDisposable
 	#region Fields
 
 	public readonly int Handle;
+	private int _baseIndex;
 	private bool _disposedValue;
 
 	/// <summary>
@@ -47,9 +48,14 @@ class ShaderBuffer<T> : IDisposable
 	/// </summary>
 	public int BaseIndex
 	{
+		get
+		{
+			return _baseIndex;
+		}
 		set
 		{
-			GL.BindBufferBase(RANGE_TARGET_TYPE, value, Handle);
+			_baseIndex = value;
+			GL.BindBufferBase(RANGE_TARGET_TYPE, _baseIndex, Handle);
 		}
 	}
 
