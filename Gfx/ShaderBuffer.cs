@@ -6,6 +6,13 @@ namespace Critters.Gfx;
 class ShaderBuffer<T> : IDisposable
 	where T : struct
 {
+	#region Constants
+
+	private const BufferTarget TARGET_TYPE = BufferTarget.ShaderStorageBuffer;
+	private const BufferRangeTarget RANGE_TARGET_TYPE = BufferRangeTarget.ShaderStorageBuffer;
+
+	#endregion
+
 	#region Fields
 
 	public readonly int Handle;
@@ -27,7 +34,7 @@ class ShaderBuffer<T> : IDisposable
 		GL.GenBuffers(1, out Handle);
 		
 		Bind();
-		GL.BufferData(BufferTarget.ShaderStorageBuffer, _size, IntPtr.Zero, BufferUsageHint.DynamicCopy);
+		GL.BufferData(TARGET_TYPE, _size, IntPtr.Zero, BufferUsageHint.DynamicCopy);
 		BaseIndex = baseIndex;
 	}
 
@@ -42,7 +49,7 @@ class ShaderBuffer<T> : IDisposable
 	{
 		set
 		{
-			GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, value, Handle);
+			GL.BindBufferBase(RANGE_TARGET_TYPE, value, Handle);
 		}
 	}
 
@@ -57,7 +64,7 @@ class ShaderBuffer<T> : IDisposable
 
 	public void Bind()
 	{
-		GL.BindBuffer(BufferTarget.ShaderStorageBuffer, Handle);
+		GL.BindBuffer(TARGET_TYPE, Handle);
 	}
 
 	public void Set(T[] data) 
@@ -68,14 +75,14 @@ class ShaderBuffer<T> : IDisposable
 		}
 
 		Bind();
-		GL.BufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, _size, data);
+		GL.BufferSubData(TARGET_TYPE, IntPtr.Zero, _size, data);
 	}
 
 	public T[] Get()
 	{
 		Bind();
 		var data = new T[Count];
-		GL.GetBufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, _size, data);
+		GL.GetBufferSubData(TARGET_TYPE, IntPtr.Zero, _size, data);
 		return data;
 	}
 
