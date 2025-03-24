@@ -366,7 +366,7 @@ class ParticlesState : GameState
 	{
 		if (_sim == null)
 		{
-			_sim = new ConwayLifeSim(rc.Width, rc.Height);
+			_sim = new ParticlesSim(128, rc.Width, rc.Height);
 			_sim.Randomize();
 		}
 
