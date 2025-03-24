@@ -176,11 +176,11 @@ void main() {{
 
 	public void Step()
 	{
-		_currentStateSSBO.Set(_cellData);
-
     // Use the compute shader program.
 		_computeProgram.Use();
-    
+
+		_currentStateSSBO.Set(_cellData);
+
     // Make sure uniforms are set (might be necessary to set every frame).
 		_computeProgram.GetUniform1(NAME_WIDTH).Set(Width);
 		_computeProgram.GetUniform1(NAME_HEIGHT).Set(Height);
