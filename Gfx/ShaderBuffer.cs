@@ -71,7 +71,7 @@ class ShaderBuffer<T> : IDisposable
 	{
 		if (data.Length != Count)
 		{
-			throw new ArgumentException("Data length does not match buffer size", nameof(data));
+			throw new ArgumentException($"Data length does not match buffer size: {data.Length} != {Count}", nameof(data));
 		}
 
 		Bind();
