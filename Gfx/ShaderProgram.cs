@@ -56,6 +56,11 @@ class ShaderProgram : IDisposable
 		return new ShaderUniform1(GetUniformLocation(name));
 	}
 
+	public ShaderUniform2 GetUniform2(string name)
+	{
+		return new ShaderUniform2(GetUniformLocation(name));
+	}
+
 	private void CheckProgramLinkStatus()
 	{
 			GL.GetProgram(Id, GetProgramParameterName.LinkStatus, out int status);

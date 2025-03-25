@@ -16,7 +16,6 @@ class ShaderBuffer<T> : IDisposable
 	#region Fields
 
 	public readonly int Handle;
-	private int _baseIndex;
 	private bool _disposedValue;
 
 	/// <summary>
@@ -46,18 +45,7 @@ class ShaderBuffer<T> : IDisposable
 	/// <summary>
 	/// Bind the buffer object to an indexed buffer target.
 	/// </summary>
-	public int BaseIndex
-	{
-		get
-		{
-			return _baseIndex;
-		}
-		set
-		{
-			_baseIndex = value;
-			GL.BindBufferBase(RANGE_TARGET_TYPE, _baseIndex, Handle);
-		}
-	}
+	public int BaseIndex { get; set; }
 
 	/// <summary>
 	/// The number of data elements.
@@ -72,6 +60,12 @@ class ShaderBuffer<T> : IDisposable
 	{
 		GL.BindBuffer(TARGET_TYPE, Handle);
 	}
+	public void Bind(int bindingPoint)
+	{
+			GL.BindBuffer(TARGET_TYPE, Handle);
+			GL.BindBufferBase(RANGE_TARGET_TYPE, bindingPoint, Handle);
+			BaseIndex = bindingPoint; // Update the internal state
+	}
 
 	public void Set(T[] data) 
 	{
@@ -82,11 +76,18 @@ class ShaderBuffer<T> : IDisposable
 
 		Bind();
 		GL.BufferSubData(TARGET_TYPE, IntPtr.Zero, _size, data);
+
+    // Add a barrier if the buffer will be used by shaders immediately.
+    GL.MemoryBarrier(MemoryBarrierFlags.BufferUpdateBarrierBit);
 	}
 
 	public T[] Get()
 	{
 		Bind();
+    
+    // Add memory barrier to ensure data is synchronized before retrieval.
+    GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+    
 		var data = new T[Count];
 		GL.GetBufferSubData(TARGET_TYPE, IntPtr.Zero, _size, data);
 		return data;

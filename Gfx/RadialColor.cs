@@ -50,6 +50,10 @@ readonly struct RadialColor : IEquatable<RadialColor>
 
 	#region Methods
 
+	public override string ToString()
+	{
+		return $"{nameof(RadialColor)}({Red},{Green},{Blue})";
+	}
 	public bool Equals(RadialColor other)
 	{
 		return Red == other.Red && Green == other.Green && Blue == other.Blue;
