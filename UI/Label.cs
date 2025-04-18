@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using OpenTK.Mathematics;
 
 namespace Critters.UI;
@@ -123,18 +124,18 @@ class Label : UIElement
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
-    var image = resources.Load<Image>("oem437_8.png");
+		var image = resources.Load<Image>("oem437_8.png");
 		var bmp = new Bitmap(image);
-    var tiles = new GlyphSet<Bitmap>(bmp, 8, 8);
-    _font = new Font(tiles);
+		var tiles = new GlyphSet<Bitmap>(bmp, 8, 8);
+		_font = new Font(tiles);
 		Size = _font?.MeasureString(Text.ToString()!) ?? Vector2.Zero;
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 	}

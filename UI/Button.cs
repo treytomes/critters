@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
+using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -44,7 +44,7 @@ class Button : ContentPresenter
 		: this(null, position, style)
 	{
 	}
-	
+
 	public Button(UIElement? parent, Vector2 position, ButtonStyle style = ButtonStyle.Raised)
 		: base(parent)
 	{
@@ -70,7 +70,7 @@ class Button : ContentPresenter
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
@@ -83,7 +83,7 @@ class Button : ContentPresenter
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseClick);
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 
@@ -100,7 +100,7 @@ class Button : ContentPresenter
 		{
 			RenderRaised(rc, gameTime);
 		}
-		
+
 		Content?.Render(rc, gameTime);
 	}
 
@@ -125,7 +125,7 @@ class Button : ContentPresenter
 			// Render the drop-shadow.
 			rc.RenderFilledRect(AbsoluteBounds.Min + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), AbsoluteBounds.Max + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), 0);
 		}
-		
+
 		var color = rc.Palette[2, 2, 2];
 		if (_hasMouseFocus)
 		{

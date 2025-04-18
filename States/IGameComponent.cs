@@ -1,13 +1,12 @@
-using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
+using Critters.Services;
 
 namespace Critters.States;
 
 interface IGameComponent
 {
-  void Load(ResourceManager resources, EventBus eventBus);
-  void Unload(ResourceManager resources, EventBus eventBus);
-  void Render(RenderingContext rc, GameTime gameTime);
-  void Update(GameTime gameTime);
+	void Load(IResourceManager resources, IEventBus eventBus);
+	void Unload(IResourceManager resources, IEventBus eventBus);
+	void Render(RenderingContext rc, GameTime gameTime);
+	void Update(GameTime gameTime);
 }

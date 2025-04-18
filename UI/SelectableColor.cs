@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -150,7 +151,7 @@ class SelectableColor : UIElement
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
@@ -159,7 +160,7 @@ class SelectableColor : UIElement
 		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 

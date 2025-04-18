@@ -1,6 +1,5 @@
-using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
+using Critters.Services;
 using Critters.UI;
 
 namespace Critters.States;
@@ -14,7 +13,7 @@ abstract class GameState : IGameComponent
 	#region Properties
 
 	protected bool HasFocus { get; private set; }
-	protected EventBus? EventBus { get; private set; }
+	protected IEventBus? EventBus { get; private set; }
 	protected List<UIElement> UI { get; } = new List<UIElement>();
 
 	#endregion
@@ -27,7 +26,7 @@ abstract class GameState : IGameComponent
 	/// </summary>
 	/// <param name="resources"></param>
 	/// <param name="eventBus"></param>
-  public virtual void Load(ResourceManager resources, EventBus eventBus)
+	public virtual void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		EventBus = eventBus;
 
@@ -36,21 +35,21 @@ abstract class GameState : IGameComponent
 			ui.Load(resources, eventBus);
 		}
 	}
-  
+
 	/// <summary>
 	/// Called once when this state so removed.
 	/// Unloads all UI.
 	/// </summary>
 	/// <param name="resources"></param>
 	/// <param name="eventBus"></param>
-	public virtual void Unload(ResourceManager resources, EventBus eventBus)
+	public virtual void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		foreach (var ui in UI)
 		{
 			ui.Unload(resources, eventBus);
 		}
 	}
-  
+
 	/// <summary>
 	/// Render all UI elements.
 	/// </summary>
@@ -63,7 +62,7 @@ abstract class GameState : IGameComponent
 			ui.Render(rc, gameTime);
 		}
 	}
-  
+
 	/// <summary>
 	/// Update all UI elements.
 	/// </summary>
@@ -75,14 +74,14 @@ abstract class GameState : IGameComponent
 			ui.Update(gameTime);
 		}
 	}
-	
+
 	/// <summary>
 	/// Called when this state becomes the active state.
 	/// 
 	/// Attach events here.
 	/// </summary>
 	/// <param name="eventBus"></param>
-	public virtual void AcquireFocus(EventBus eventBus)
+	public virtual void AcquireFocus(IEventBus eventBus)
 	{
 		HasFocus = true;
 	}
@@ -93,7 +92,7 @@ abstract class GameState : IGameComponent
 	/// Detach events here.
 	/// </summary>
 	/// <param name="eventBus"></param>
-	public virtual void LostFocus(EventBus eventBus)
+	public virtual void LostFocus(IEventBus eventBus)
 	{
 		HasFocus = false;
 	}

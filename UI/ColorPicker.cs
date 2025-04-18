@@ -1,6 +1,7 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
@@ -64,7 +65,7 @@ class ColorPicker : UIElement
 				// I'm inverting these on person.  Mouse scrolling will make more sense.
 				var y = (BUTTON_SIZE + BUTTON_PADDING + 2) + xc * (BUTTON_SIZE + BUTTON_PADDING);
 				var x = yc * (BUTTON_SIZE + BUTTON_PADDING);
-				
+
 				var color = new RadialColor(xc, yc, 0);
 				var elem = new SelectableColor(this, new Vector2(x, y), color);
 				elem.BaseColor = selectedBaseColor;
@@ -86,7 +87,7 @@ class ColorPicker : UIElement
 		{
 			_selectedBaseColor = _baseColors.First(x => x.IsSelected);
 		}
-		
+
 		if (!_derivedColors.Any(x => x.IsSelected))
 		{
 			_derivedColors[0].IsSelected = true;
@@ -127,12 +128,12 @@ class ColorPicker : UIElement
 			}
 		}
 	}
-	
+
 	#endregion
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
@@ -153,7 +154,7 @@ class ColorPicker : UIElement
 		}
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 
@@ -279,6 +280,6 @@ class ColorPicker : UIElement
 			}
 		}
 	}
-	
+
 	#endregion
 }

@@ -1,7 +1,6 @@
 using System.ComponentModel;
-using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
+using Critters.Services;
 using OpenTK.Mathematics;
 
 namespace Critters.UI;
@@ -11,8 +10,8 @@ class ContentPresenter : UIElement
 	#region Fields
 
 	// The resource manager and event bus need to be stored here so we can load new content as needed.
-	private ResourceManager? _resourceManager = null;
-	private EventBus? _eventBus = null;
+	private IResourceManager? _resourceManager = null;
+	private IEventBus? _eventBus = null;
 
 	private UIElement? _content = null;
 
@@ -69,11 +68,11 @@ class ContentPresenter : UIElement
 		}
 	}
 
-    #endregion
+	#endregion
 
-    #region Methods
+	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		if (IsLoaded)
 		{
@@ -84,13 +83,13 @@ class ContentPresenter : UIElement
 		Content?.Load(resources, eventBus);
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		if (!IsLoaded)
 		{
 			return;
 		}
-		
+
 		base.Unload(resources, eventBus);
 		Content?.Unload(resources, eventBus);
 	}

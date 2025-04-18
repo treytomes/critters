@@ -1,6 +1,7 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
@@ -44,7 +45,7 @@ class GlyphPicker : UIElement
 				// I'm inverting these on person.  Mouse scrolling will make more sense.
 				var x = xc * 9; // tile size + (border width + padding) * 2
 				var y = yc * 9;
-				
+
 				var elem = new SelectableGlyph(this, padding + new Vector2(x, y), resourcePath, glyphIndex);
 				if (selectedGlyphIndex == glyphIndex)
 				{
@@ -116,7 +117,7 @@ class GlyphPicker : UIElement
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
@@ -132,7 +133,7 @@ class GlyphPicker : UIElement
 		}
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 
@@ -206,6 +207,6 @@ class GlyphPicker : UIElement
 			}
 		}
 	}
-	
+
 	#endregion
 }

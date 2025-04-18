@@ -1,6 +1,7 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using Critters.States.TileMapTest;
 using Critters.UI;
 using Critters.World;
@@ -62,7 +63,7 @@ class TileMapTestState : GameState
 
 	#region Methods
 	
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
@@ -73,12 +74,12 @@ class TileMapTestState : GameState
 		// _level.Save("sample.json");
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 	}
 
-	public override void AcquireFocus(EventBus eventBus)
+	public override void AcquireFocus(IEventBus eventBus)
 	{
 		base.AcquireFocus(eventBus);
 
@@ -89,7 +90,7 @@ class TileMapTestState : GameState
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
-	public override void LostFocus(EventBus eventBus)
+	public override void LostFocus(IEventBus eventBus)
 	{
 		_sampleButton.Clicked -= OnButtonClicked;
 

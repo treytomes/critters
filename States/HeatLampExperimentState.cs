@@ -2,6 +2,7 @@ using Critters.AI;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using Critters.States.HeatFieldExperiment;
 using Critters.UI;
 using Critters.World;
@@ -49,22 +50,22 @@ class HeatLampExperimentState : GameState
 		_camera = new Camera();
 
 		var y = 0;
-		
+
 		_timeLabel = new Label($"Time:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_timeLabel);
-		
-		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+
+		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
-		
+
 		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
-		
+
 		_temperatureLabel = new Label($"Temp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_temperatureLabel);
-		
+
 		_critterTempLabel = new Label($"CritterTemp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_critterTempLabel);
-		
+
 		_critterStaminaLabel = new Label($"CritterStm:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_critterStaminaLabel);
 
@@ -91,18 +92,18 @@ class HeatLampExperimentState : GameState
 	#endregion
 
 	#region Methods
-	
-	public override void Load(ResourceManager resources, EventBus eventBus)
+
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 	}
 
-	public override void AcquireFocus(EventBus eventBus)
+	public override void AcquireFocus(IEventBus eventBus)
 	{
 		base.AcquireFocus(eventBus);
 
@@ -119,7 +120,7 @@ class HeatLampExperimentState : GameState
 		}
 	}
 
-	public override void LostFocus(EventBus eventBus)
+	public override void LostFocus(IEventBus eventBus)
 	{
 		_critter.Save("critter.json");
 
@@ -145,9 +146,9 @@ class HeatLampExperimentState : GameState
 	public override void Update(GameTime gameTime)
 	{
 		base.Update(gameTime);
-		
+
 		_camera.ScrollBy(_cameraDelta * (float)gameTime.ElapsedTime.TotalSeconds * _cameraSpeed * (_cameraFastMove ? 4 : 1));
-		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})");
+		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})");
 
 		_heatField.Update(gameTime);
 

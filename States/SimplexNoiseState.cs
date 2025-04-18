@@ -1,6 +1,7 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using Critters.UI;
 using Critters.World;
 using OpenTK.Mathematics;
@@ -34,10 +35,10 @@ class SimplexNoiseState : GameState
 		: base()
 	{
 		_camera = new Camera();
-		
-		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+
+		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
-		
+
 		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
 	}
@@ -45,18 +46,18 @@ class SimplexNoiseState : GameState
 	#endregion
 
 	#region Methods
-	
-	public override void Load(ResourceManager resources, EventBus eventBus)
+
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 	}
 
-	public override void AcquireFocus(EventBus eventBus)
+	public override void AcquireFocus(IEventBus eventBus)
 	{
 		base.AcquireFocus(eventBus);
 
@@ -65,7 +66,7 @@ class SimplexNoiseState : GameState
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
-	public override void LostFocus(EventBus eventBus)
+	public override void LostFocus(IEventBus eventBus)
 	{
 		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
@@ -98,7 +99,7 @@ class SimplexNoiseState : GameState
 				var v1 = Noise.CalcPixel2D((int)x, (int)y, 0.001f);
 				var v2 = Noise.CalcPixel2D((int)(x * 2), (int)(y * 4), 0.03f);
 				var v3 = Noise.CalcPixel3D((int)(x * 2), (int)(y * 8), (int)(x * y), 0.03f);
-				var value = (v1 * 0.8) + (v2 * 0.1) + (v3 * 0.1); 
+				var value = (v1 * 0.8) + (v2 * 0.1) + (v3 * 0.1);
 				value = MathHelper.Clamp(value / 255.0f, 0.0f, 1.0f);
 
 				// Convert noise to [0, 1].
@@ -121,9 +122,9 @@ class SimplexNoiseState : GameState
 	public override void Update(GameTime gameTime)
 	{
 		base.Update(gameTime);
-		
+
 		_camera.ScrollBy(_cameraDelta * (float)gameTime.ElapsedTime.TotalSeconds * _cameraSpeed * (_cameraFastMove ? 4 : 1));
-		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})");
+		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})");
 	}
 
 	private void OnKey(KeyEventArgs e)

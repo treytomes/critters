@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using Critters.States;
 using OpenTK.Mathematics;
 
@@ -72,7 +73,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 				{
 					_parent.PropertyChanged -= OnParentPropertyChanged;
 				}
-				
+
 				_parent = value;
 
 				if (_parent != null)
@@ -124,7 +125,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 			return new Box2(Position, Position + Size);
 		}
 	}
-	
+
 	public Thickness Padding
 	{
 		get
@@ -179,7 +180,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 
 	#region Methods
 
-	public virtual void Load(ResourceManager resources, EventBus eventBus)
+	public virtual void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		if (IsLoaded)
 		{
@@ -188,7 +189,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 		IsLoaded = true;
 	}
 
-	public virtual void Unload(ResourceManager resources, EventBus eventBus)
+	public virtual void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		if (!IsLoaded)
 		{
@@ -208,7 +209,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 	protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = "")
 	{
 		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-	
+
 		if (propertyName == nameof(Margin) || propertyName == nameof(Position))
 		{
 			OnPropertyChanged(nameof(AbsolutePosition));

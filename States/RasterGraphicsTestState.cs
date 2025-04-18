@@ -1,5 +1,5 @@
-using Critters.Events;
 using Critters.Gfx;
+using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
@@ -10,13 +10,13 @@ class RasterGraphicsTestState : GameState
 	private bool _hasMouseHover = false;
 	private Box2 _bounds = new Box2(32, 32, 128, 96);
 
-	public override void AcquireFocus(EventBus eventBus)
+	public override void AcquireFocus(IEventBus eventBus)
 	{
 		base.AcquireFocus(eventBus);
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
-	public override void LostFocus(EventBus eventBus)
+	public override void LostFocus(IEventBus eventBus)
 	{
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		base.LostFocus(eventBus);
@@ -25,7 +25,7 @@ class RasterGraphicsTestState : GameState
 	public override void Render(RenderingContext rc, GameTime gameTime)
 	{
 		base.Render(rc, gameTime);
-		
+
 		rc.Clear();
 
 		var segments = 32;

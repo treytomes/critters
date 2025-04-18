@@ -1,6 +1,7 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using Critters.UI;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -20,9 +21,9 @@ class MainMenuState : GameState
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
-		var items = new [] {
+		var items = new[] {
 			"> Tile Map Test <",
 			"> Simplex Noise <",
 			">   Heat Lamp   <",
@@ -43,7 +44,7 @@ class MainMenuState : GameState
 		base.Load(resources, eventBus);
 	}
 
-	public override void AcquireFocus(EventBus eventBus)
+	public override void AcquireFocus(IEventBus eventBus)
 	{
 		base.AcquireFocus(eventBus);
 
@@ -56,7 +57,7 @@ class MainMenuState : GameState
 		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
-	public override void LostFocus(EventBus eventBus)
+	public override void LostFocus(IEventBus eventBus)
 	{
 		foreach (var btn in _menuButtons)
 		{

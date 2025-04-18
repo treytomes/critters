@@ -1,6 +1,6 @@
-using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using Critters.States.Particles;
 using Critters.UI;
 using OpenTK.Mathematics;
@@ -34,18 +34,18 @@ class ParticlesState : GameState
 	#endregion
 
 	#region Methods
-	
-	public override void Load(ResourceManager resources, EventBus eventBus)
+
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 	}
 
-	public override void AcquireFocus(EventBus eventBus)
+	public override void AcquireFocus(IEventBus eventBus)
 	{
 		base.AcquireFocus(eventBus);
 
@@ -54,7 +54,7 @@ class ParticlesState : GameState
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
-	public override void LostFocus(EventBus eventBus)
+	public override void LostFocus(IEventBus eventBus)
 	{
 		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
 		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
@@ -84,7 +84,7 @@ class ParticlesState : GameState
 			}
 
 			var c = particleData[i].Color.Xyz * particleData[i].Color.W;
-			var color = new RadialColor((byte)(c.X * 5), (byte)(c.Y * 5), (byte)(c.Z * 5)); 
+			var color = new RadialColor((byte)(c.X * 5), (byte)(c.Y * 5), (byte)(c.Z * 5));
 			// var size = Vector2.One * particleData[i].Size;
 
 			// rc.RenderFilledRect(new Box2(particleData[i].Position - size, particleData[i].Position + size), color);
@@ -96,7 +96,7 @@ class ParticlesState : GameState
 
 	public override void Update(GameTime gameTime)
 	{
-    _sim?.Update(gameTime);
+		_sim?.Update(gameTime);
 		base.Update(gameTime);
 	}
 
@@ -129,7 +129,7 @@ class ParticlesState : GameState
 			if (e.Action == InputAction.Press)
 			{
 				_isDragging = true;
-        _sim?.SetAttractor(_mousePosition.X, _mousePosition.Y, 5000);
+				_sim?.SetAttractor(_mousePosition.X, _mousePosition.Y, 5000);
 			}
 			else
 			{

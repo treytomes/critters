@@ -1,6 +1,7 @@
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 
@@ -97,7 +98,7 @@ class SelectableGlyph : UIElement
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
@@ -105,12 +106,12 @@ class SelectableGlyph : UIElement
 		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 
-    var image = resources.Load<Image>(_glyphResourcePath);
-    _glyphs = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
+		var image = resources.Load<Image>(_glyphResourcePath);
+		_glyphs = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
 		Size = new Vector2(_glyphs.TileWidth, _glyphs.TileHeight) + Vector2.One;
 	}
 
-	public override void Unload(ResourceManager resources, EventBus eventBus)
+	public override void Unload(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Unload(resources, eventBus);
 

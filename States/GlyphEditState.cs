@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
+using Critters.Services;
 using Critters.UI;
 using OpenTK.Mathematics;
 
@@ -18,7 +19,7 @@ class GlyphEditState : GameState
 	private ColorPicker _fgPicker;
 	private ColorPicker _bgPicker;
 	private GlyphPicker _glyphPicker;
-	
+
 	#endregion
 
 	#region Constructors
@@ -60,15 +61,15 @@ class GlyphEditState : GameState
 
 	#region Methods
 
-	public override void Load(ResourceManager resources, EventBus eventBus)
+	public override void Load(IResourceManager resources, IEventBus eventBus)
 	{
 		base.Load(resources, eventBus);
 
-    var image = resources.Load<Image>("oem437_8.png");
-    _tiles = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
+		var image = resources.Load<Image>("oem437_8.png");
+		_tiles = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
 	}
 
-	public override void AcquireFocus(EventBus eventBus)
+	public override void AcquireFocus(IEventBus eventBus)
 	{
 		base.AcquireFocus(eventBus);
 
@@ -76,7 +77,7 @@ class GlyphEditState : GameState
 		_fgPicker.PropertyChanged += OnFGPickerPropertyChanged;
 	}
 
-	public override void LostFocus(EventBus eventBus)
+	public override void LostFocus(IEventBus eventBus)
 	{
 		_bgPicker.PropertyChanged -= OnBGPickerPropertyChanged;
 		_fgPicker.PropertyChanged -= OnFGPickerPropertyChanged;
