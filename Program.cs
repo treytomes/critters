@@ -1,5 +1,7 @@
-﻿// Program.cs
+﻿// Program.cs  
 
+using System.CommandLine;
+using System.ComponentModel;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
@@ -9,201 +11,272 @@ using Microsoft.Extensions.Configuration;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
-using System.ComponentModel;
 
 namespace Critters;
 
 class Program
 {
-  static void Main(string[] args)
-  {
-		// Set up configuration.
-    var configuration = new ConfigurationBuilder()  
-        .SetBasePath(Directory.GetCurrentDirectory())  
-        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)  
-        .Build();  
-  
-    // Bind configuration to settings object.
-    var settings = configuration.Get<AppSettings>()   
-        ?? throw new InvalidOperationException("Failed to load application settings.");
+	static async Task<int> Main(string[] args)
+	{
+		// Define command-line options  
+		var configFileOption = new Option<string>(
+			name: "--config",
+			description: "Path to the configuration file",
+			getDefaultValue: () => "appsettings.json");
 
-    var nativeWindowSettings = new NativeWindowSettings()
-    {
-        ClientSize = new Vector2i(settings.Window.Width, settings.Window.Height),
-        Title = settings.Window.Title,
-				Profile = ContextProfile.Core,
-				APIVersion = new Version(4, 5), // Requesting OpenGL 4.5.
-    };
+		var debugOption = new Option<bool>(
+			name: "--debug",
+			description: "Enable debug mode");
 
-    using var window = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
-    using var display = new VirtualDisplay(window.ClientSize, settings.VirtualDisplay);
+		var fullscreenOption = new Option<bool>(
+			name: "--fullscreen",
+			description: "Start in fullscreen mode");
 
-    var rc = new RenderingContext(display);
+		var widthOption = new Option<int?>(
+			name: "--width",
+			description: "Window width in pixels");
 
-    var resources = new ResourceManager(settings.AssetRoot);
-    resources.Register<Image, ImageLoader>();
+		var heightOption = new Option<int?>(
+			name: "--height",
+			description: "Window height in pixels");
 
-    var eventBus = new EventBus();
+		// Create root command  
+		var rootCommand = new RootCommand("Critters Game");
+		rootCommand.AddOption(configFileOption);
+		rootCommand.AddOption(debugOption);
+		rootCommand.AddOption(fullscreenOption);
+		rootCommand.AddOption(widthOption);
+		rootCommand.AddOption(heightOption);
 
-    var mouseCursor = new MouseCursor();
-    mouseCursor.Load(resources, eventBus);
+		// Set handler for processing the command  
+		rootCommand.SetHandler((configFile, debug, fullscreen, width, height) =>
+			{
+				RunGame(configFile, debug, fullscreen, width, height);
+			},
+			configFileOption, debugOption, fullscreenOption, widthOption, heightOption);
 
-    var states = new GameStateManager();
-    states.Load(resources, eventBus);
-    // states.EnterState(new ImageTestState());
-    // states.EnterState(new FontTestState());
-    // states.EnterState(new PatternTestState());
-    // states.EnterState(new RasterGraphicsTestState());
-    // states.EnterState(new TileMapTestState());
-		// states.EnterState(new GlyphEditState());
-    states.EnterState(new MainMenuState());
+		// Parse the command line  
+		return await rootCommand.InvokeAsync(args);
+	}
 
-    // Occurs when the window is about to close.
-    window.Closing += (CancelEventArgs e) => {
-      states.Unload(resources, eventBus);
-      mouseCursor.Unload(resources, eventBus);
-    };
+	static void RunGame(string configFile, bool debug, bool fullscreen, int? width, int? height)
+	{
+		try
+		{
+			// Set up configuration with command-line overrides  
+			var configBuilder = new ConfigurationBuilder()
+				.SetBasePath(Directory.GetCurrentDirectory())
+				.AddJsonFile(configFile, optional: false, reloadOnChange: true);
 
-    // Occurs whenever one or more files are dropped on the window.
-    // window.FileDrop += (FileDropEventArgs e) => {};
+			// Create command-line based configuration  
+			var commandLineConfig = new Dictionary<string, string?>();
 
-    // Occurs when the NativeWindow.IsFocused property of the window changes.
-    window.FocusedChanged += (FocusedChangedEventArgs e) =>
-    {
-      Console.WriteLine("Window focused: {0}", e.IsFocused);
-    };
+			if (debug)
+			{
+				commandLineConfig["Debug"] = "true";
+			}
+			if (fullscreen)
+			{
+				commandLineConfig["Window:Fullscreen"] = "true";
+			}
+			if (width.HasValue)
+			{
+				commandLineConfig["Window:Width"] = width.ToString();
+			}
+			if (height.HasValue)
+			{
+				commandLineConfig["Window:Height"] = height.ToString();
+			}
+			// Add command line values as configuration source  
+			configBuilder.AddInMemoryCollection(commandLineConfig);
 
-    // Occurs when the window is minimized.
-    // Focus is lost when minimized.  That's all that really matters.
-    // window.Minimized += (MinimizedEventArgs e) => {
-    //   Console.WriteLine("Window minimized: {0}", e.IsMinimized);
-    // };
+			IConfiguration configuration = configBuilder.Build();
 
-    // Occurs when the window is maximized.
-    // window.Maximized += (MaximizedEventArgs e) => {};
+			// Bind configuration to settings object  
+			var settings = configuration.Get<AppSettings>()
+				?? throw new InvalidOperationException("Failed to load application settings.");
 
-    // Occurs when a joystick is connected or disconnected.
-    // window.JoystickConnected += (JoystickEventArgs e) => {};
+			// Log configuration information if in debug mode  
+			if (debug)
+			{
+				Console.WriteLine($"Running with settings from {configFile}");
+				Console.WriteLine($"Debug mode: {settings.Debug}");
+				Console.WriteLine($"Window: {settings.Window.Width}x{settings.Window.Height} ({(settings.Window.Fullscreen ? "Fullscreen" : "Windowed")})");
+				Console.WriteLine($"Virtual display: {settings.VirtualDisplay.Width}x{settings.VirtualDisplay.Height}");
+				Console.WriteLine($"Asset root: {settings.AssetRoot}");
+			}
 
-    // Occurs whenever a keyboard key is pressed.
-    window.KeyDown += (KeyboardKeyEventArgs e) =>
+			// Initialize the game  
+			InitializeGame(settings);
+		}
+		catch (Exception ex)
+		{
+			Console.Error.WriteLine($"Error starting the game: {ex.Message}");
+			Environment.Exit(1);
+		}
+	}
+
+	static void InitializeGame(AppSettings settings)
+	{
+		var nativeWindowSettings = new NativeWindowSettings()
+		{
+			ClientSize = new Vector2i(settings.Window.Width, settings.Window.Height),
+			Title = settings.Window.Title,
+			Profile = ContextProfile.Core,
+			APIVersion = new Version(4, 5),
+			WindowState = settings.Window.Fullscreen ? WindowState.Fullscreen : WindowState.Normal
+		};
+
+		using var window = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
+		using var display = new VirtualDisplay(window.ClientSize, settings.VirtualDisplay);
+
+		var rc = new RenderingContext(display);
+
+		var resources = new ResourceManager(settings.AssetRoot);
+		resources.Register<Image, ImageLoader>();
+
+		var eventBus = new EventBus();
+
+		var mouseCursor = new MouseCursor();
+		mouseCursor.Load(resources, eventBus);
+
+		var states = new GameStateManager();
+		states.Load(resources, eventBus);
+		states.EnterState(new MainMenuState());
+
+		// Occurs when the window is about to close.  
+		window.Closing += (CancelEventArgs e) =>
+		{
+			states.Unload(resources, eventBus);
+			mouseCursor.Unload(resources, eventBus);
+		};
+
+		// Occurs when the NativeWindow.IsFocused property of the window changes.  
+		window.FocusedChanged += (FocusedChangedEventArgs e) =>
+		{
+			if (settings.Debug)
+			{
+				Console.WriteLine("Window focused: {0}", e.IsFocused);
+			}
+		};
+
+		// Occurs whenever a keyboard key is pressed.  
+		window.KeyDown += (KeyboardKeyEventArgs e) =>
 		{
 			eventBus.Publish(new KeyEventArgs(e.Key, e.ScanCode, e.Modifiers, e.IsRepeat, true));
 		};
 
-    // Occurs whenever a keyboard key is released.
-    window.KeyUp += (KeyboardKeyEventArgs e) =>
+		// Occurs whenever a keyboard key is released.  
+		window.KeyUp += (KeyboardKeyEventArgs e) =>
 		{
 			eventBus.Publish(new KeyEventArgs(e.Key, e.ScanCode, e.Modifiers, e.IsRepeat, false));
 		};
 
-    // Occurs whenever a OpenTK.Windowing.GraphicsLibraryFramework.MouseButton is clicked.
-    window.MouseDown += (MouseButtonEventArgs e) =>
-    {
-      eventBus.Publish(e);
-    };
-
-    // Occurs whenever a OpenTK.Windowing.GraphicsLibraryFramework.MouseButton is released.
-    window.MouseUp += (MouseButtonEventArgs e) =>
-    {
-      eventBus.Publish(e);
-    };
-
-    // Occurs whenever the mouse cursor enters the window NativeWindow.Bounds.
-    // window.MouseEnter += () => {};
-
-    // Occurs whenever the mouse cursor leaves the window NativeWindow.Bounds.
-    // window.MouseLeave += () => {};
-
-    // Occurs whenever the mouse cursor is moved.
-    window.MouseMove += (MouseMoveEventArgs e) =>
-    {
-      var position = display.ActualToVirtualPoint(e.Position);
-      var delta = e.Delta / display.Scale;
-
-      if (position.X < 0 || position.Y < 0 || position.X > display.Width || position.Y > display.Height)
-      {
-        // The cursor has fallen off the virtual display.
-        window.CursorState = CursorState.Normal;
-      } else {
-        window.CursorState = CursorState.Hidden;
-      }
-
-      eventBus.Publish(new MouseMoveEventArgs(position, delta));
-    };
-
-    // Occurs whenever a mouse wheel is moved.
-    window.MouseWheel += (MouseWheelEventArgs e) => {
+		// Occurs whenever a OpenTK.Windowing.GraphicsLibraryFramework.MouseButton is clicked.  
+		window.MouseDown += (MouseButtonEventArgs e) =>
+		{
 			eventBus.Publish(e);
 		};
 
-    // Occurs whenever the window is moved.
-    // window.Move += (WindowPositionEventArgs e) => {};
+		// Occurs whenever a OpenTK.Windowing.GraphicsLibraryFramework.MouseButton is released.  
+		window.MouseUp += (MouseButtonEventArgs e) =>
+		{
+			eventBus.Publish(e);
+		};
 
-    // Occurs whenever the window is refreshed.
-    // This is happening on resize.
-    // window.Refresh += () => {};
+		// Occurs whenever the mouse cursor is moved.  
+		window.MouseMove += (MouseMoveEventArgs e) =>
+		{
+			var position = display.ActualToVirtualPoint(e.Position);
+			var delta = e.Delta / display.Scale;
 
-    // Occurs whenever a Unicode code point is typed.
-    window.TextInput += (TextInputEventArgs e) => {};
+			if (position.X < 0 || position.Y < 0 || position.X > display.Width || position.Y > display.Height)
+			{
+				// The cursor has fallen off the virtual display.  
+				window.CursorState = CursorState.Normal;
+			}
+			else
+			{
+				window.CursorState = CursorState.Hidden;
+			}
 
-    // Occurs before the window is destroyed.
-    window.Unload += () =>
-    {
-      Console.WriteLine("The window is about to be destroyed.");
-    };
+			eventBus.Publish(new MouseMoveEventArgs(position, delta));
+		};
 
-    // Occurs before the window is displayed for the first time.
-    window.Load += () =>
-    {
-      display.Resize(window.ClientSize);
-      Console.WriteLine("Window is being loaded.");
-    };
+		// Occurs whenever a mouse wheel is moved.  
+		window.MouseWheel += (MouseWheelEventArgs e) =>
+		{
+			eventBus.Publish(e);
+		};
 
-    // Occurs whenever the framebuffer is resized.
-    // This occurs along with a window resize.
-    // window.FramebufferResize += (FramebufferResizeEventArgs e) => {};
+		// Occurs whenever a Unicode code point is typed.  
+		window.TextInput += (TextInputEventArgs e) =>
+		{
+			// Implement if text input handling is needed  
+		};
 
-    // Occurs whenever the window is resized.
-    window.Resize += (ResizeEventArgs e) =>
-    {
-      Console.WriteLine("Window resized: {0}", window.ClientSize);
-      display.Resize(window.ClientSize);
-    };
+		// Occurs before the window is destroyed.  
+		window.Unload += () =>
+		{
+			if (settings.Debug)
+			{
+				Console.WriteLine("The window is about to be destroyed.");
+			}
+		};
 
-    var updateGameTime = new GameTime();
-    var renderGameTime = new GameTime();
+		// Occurs before the window is displayed for the first time.  
+		window.Load += () =>
+		{
+			display.Resize(window.ClientSize);
+			if (settings.Debug)
+			{
+				Console.WriteLine("Window is being loaded.");
+			}
+		};
 
-    // Occurs when it is time to update a frame. This is invoked before GameWindow.RenderFrame.
-    window.UpdateFrame += (FrameEventArgs e) =>
-    {
+		// Occurs whenever the window is resized.  
+		window.Resize += (ResizeEventArgs e) =>
+		{
+			if (settings.Debug)
+			{
+				Console.WriteLine("Window resized: {0}", window.ClientSize);
+			}
+			display.Resize(window.ClientSize);
+		};
+
+		var updateGameTime = new GameTime();
+		var renderGameTime = new GameTime();
+
+		// Occurs when it is time to update a frame. This is invoked before GameWindow.RenderFrame.  
+		window.UpdateFrame += (FrameEventArgs e) =>
+		{
 			if (!states.HasState)
 			{
 				window.Close();
 			}
 
-      updateGameTime = updateGameTime.Add(e.Time);
-      states.Update(updateGameTime);
-      mouseCursor.Update(updateGameTime);
-    };
-    
-    // Occurs when it is time to render a frame. This is invoked after GameWindow.UpdateFrequency.
-    window.RenderFrame += (FrameEventArgs e) =>
-    {
-      renderGameTime = renderGameTime.Add(e.Time);
+			updateGameTime = updateGameTime.Add(e.Time);
+			states.Update(updateGameTime);
+			mouseCursor.Update(updateGameTime);
+		};
 
-      if (states.HasState)
-      {
-        states.Render(rc, renderGameTime);
-      }
+		// Occurs when it is time to render a frame. This is invoked after GameWindow.UpdateFrequency.  
+		window.RenderFrame += (FrameEventArgs e) =>
+		{
+			renderGameTime = renderGameTime.Add(e.Time);
 
-      mouseCursor.Render(rc, renderGameTime);
+			if (states.HasState)
+			{
+				states.Render(rc, renderGameTime);
+			}
 
-      rc.Present();
-      display.Render(); // Render the virtual display
-      window.SwapBuffers();
-    };
+			mouseCursor.Render(rc, renderGameTime);
 
-    window.Run();
-  }
+			rc.Present();
+			display.Render(); // Render the virtual display  
+			window.SwapBuffers();
+		};
+
+		window.Run();
+	}
 }
