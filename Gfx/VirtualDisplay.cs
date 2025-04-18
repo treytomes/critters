@@ -37,7 +37,7 @@ class VirtualDisplay : IDisposable
 
 	#region Constructors
 
-	public VirtualDisplay(Vector2i windowSize, Settings.VirtualDisplaySettings settings)
+	public VirtualDisplay(Vector2i windowSize, VirtualDisplaySettings settings)
 	{
 		// Compile shaders
 		_shaderProgram = ShaderProgram.ForGraphics(settings.VertexShaderPath, settings.FragmentShaderPath);

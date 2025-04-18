@@ -7,11 +7,15 @@ namespace Critters.States.Particles;
 class ParticlesSim : IDisposable
 {
 	#region Constants
+
+	private const int WORKGROUP_SIZE_X = 128;
+	private const int WORKGROUP_SIZE_Y = 1;
+	private const int WORKGROUP_SIZE_Z = 1;
 	
-	private const string PARTICLE_SHADER = @"
+	private const string PARTICLE_SHADER = $@"
 #version 430 core
 
-struct Particle {
+struct Particle {{
 	vec2 position;
 	vec2 velocity;
 	vec2 acceleration;
@@ -27,20 +31,20 @@ struct Particle {
 	// 2 floats of padding to align the struct to a multiple of 16-bytes.
 	float padding2;
 	float padding3;
-};
+}};
 
 // Define work group size - best to use multiples of 32 or 64 for particles
 layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
 // Input buffer containing current particle states
-layout(std430, binding = 0) buffer ParticleBuffer {
+layout(std430, binding = 0) buffer ParticleBuffer {{
 	Particle particles[];
-};
+}};
 
 // Output buffer for next particle states
-layout(std430, binding = 1) buffer NextParticleBuffer {
+layout(std430, binding = 1) buffer NextParticleBuffer {{
 	Particle nextParticles[];
-};
+}};
 
 // Simulation parameters
 uniform int numParticles;
@@ -51,25 +55,25 @@ uniform vec2 attractor;
 uniform float attractorStrength;
 
 // Simple hash function for pseudo-randomness
-float hash(float n) { 
+float hash(float n) {{
 	return fract(sin(n) * 43758.5453123); 
-}
+}}
 
-void main() {
+void main() {{
 	uint index = gl_GlobalInvocationID.x;
 	
 	// Skip if beyond the particle count.
-	if (index >= numParticles) {
+	if (index >= numParticles) {{
 		return;
-	}
+	}}
 	
 	// Read current particle
 	Particle particle = particles[index];
 
 	// Skip dead particles.
-	if (particle.lifetime <= 0.0) {
+	if (particle.lifetime <= 0.0) {{
 		return;
-	}
+	}}
 	
 	// Calculate new acceleration
 	vec2 acceleration = gravity;
@@ -90,9 +94,9 @@ void main() {
 	// Clamp maximum acceleration to prevent instability
 	float maxAccel = 500.0;
 	float accelMagnitude = length(acceleration);
-	if (accelMagnitude > maxAccel) {
+	if (accelMagnitude > maxAccel) {{
 			acceleration = normalize(acceleration) * maxAccel;
-	}
+	}}
 	
 	// Update velocity with acceleration
 	particle.velocity += acceleration * deltaTime;
@@ -104,21 +108,21 @@ void main() {
 	particle.position += particle.velocity * deltaTime;
 	
 	// Boundary collision - bounce with some energy loss
-	if (particle.position.x < 0.0) {
+	if (particle.position.x < 0.0) {{
 		particle.position.x = 0.0;
 		particle.velocity.x = -particle.velocity.x * 0.8;
-	} else if (particle.position.x > bounds.x) {
+	}} else if (particle.position.x > bounds.x) {{
 		particle.position.x = bounds.x;
 		particle.velocity.x = -particle.velocity.x * 0.8;
-	}
+	}}
 	
-	if (particle.position.y < 0.0) {
+	if (particle.position.y < 0.0) {{
 		particle.position.y = 0.0;
 		particle.velocity.y = -particle.velocity.y * 0.8;
-	} else if (particle.position.y > bounds.y) {
+	}} else if (particle.position.y > bounds.y) {{
 		particle.position.y = bounds.y;
 		particle.velocity.y = -particle.velocity.y * 0.8;
-	}
+	}}
 
 	// Apply damping after bounce logic.
 	// particle.velocity *= 0.99;
@@ -136,31 +140,10 @@ void main() {
 		min(1.0, 100.0 / (50.0 + speed)),         // Blue highest at low speed
 		min(1.0, particle.lifetime / 5.0)         // Alpha fades out as lifetime decreases
 	);
-	
-	// // Reset dead particles with randomness
-	// if (particle.lifetime <= 0.0) {
-	// 	float randomSeed = float(index) + deltaTime * hash(float(index) * 1.23);
-
-	// 	particle.acceleration = vec2(0.0);
-		
-	// 	// Reset to a new particle with some randomness
-	// 	particle.position = vec2(
-	// 		bounds.x * (0.5 + 0.2 * hash(randomSeed)),
-	// 		bounds.y * (0.5 + 0.2 * hash(randomSeed))
-	// 	);
-		
-	// 	particle.velocity = vec2(
-	// 		(hash(randomSeed + 2.0) * 200.0 - 100.0) * 2.0,         // Random horizontal velocity
-	// 		(-(50.0 + hash(randomSeed + 3.0)) * 150.0) * 2.0        // Random upward velocity
-	// 	);
-		
-	// 	particle.lifetime = 8.0 + hash(randomSeed + 4.0) * 7.0;  // Random lifetime between 8-15s
-	// 	particle.size = 1.0 + hash(randomSeed + 5.0) * 2.0;      // Random size between 1-3
-	// }
 
 	// Write to output buffer
 	nextParticles[index] = particle;
-}";
+}}";
     
 	#endregion
 

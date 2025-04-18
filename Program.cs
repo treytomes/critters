@@ -1,110 +1,31 @@
-﻿using System.ComponentModel;
+﻿// Program.cs
+
 using Critters.Events;
 using Critters.Gfx;
 using Critters.IO;
 using Critters.States;
 using Critters.UI;
-using OpenTK.Graphics.OpenGL4;
+using Microsoft.Extensions.Configuration;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
+using System.ComponentModel;
 
 namespace Critters;
 
 class Program
 {
-	private const string COMPUTE_SHADER_SOURCE = @"#version 430 core
-
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
-layout(std430, binding = 0) buffer OutputBuffer {
-    vec4 data[];
-};
-
-void main() {
-    uint index = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
-    data[index] = vec4( //5.0, 2.0, 3.0, 4.0);
-				gl_GlobalInvocationID.x,
-				gl_GlobalInvocationID.y,
-        0.0,
-        1.0
-    );
-}
-";
-
-	static int width = 16;
-	static int height = 16;
-	private static void ComputeShaderTest()
-	{
-		// Create and compile the compute shader
-		int computeShader = GL.CreateShader(ShaderType.ComputeShader);
-		GL.ShaderSource(computeShader, COMPUTE_SHADER_SOURCE);
-		GL.CompileShader(computeShader);
-
-		// Check compilation status
-		GL.GetShader(computeShader, ShaderParameter.CompileStatus, out int success);
-		if (success == 0)
-		{
-			string infoLog = GL.GetShaderInfoLog(computeShader);
-			Console.WriteLine($"ERROR::COMPUTE_SHADER::COMPILATION_FAILED\n{infoLog}");
-		}
-
-		// Create shader program
-		int computeProgram = GL.CreateProgram();
-		GL.AttachShader(computeProgram, computeShader);
-		GL.LinkProgram(computeProgram);
-
-		// Check linking status
-		GL.GetProgram(computeProgram, GetProgramParameterName.LinkStatus, out success);
-		if (success == 0)
-		{
-			string infoLog = GL.GetProgramInfoLog(computeProgram);
-			Console.WriteLine($"ERROR::PROGRAM::LINKING_FAILED\n{infoLog}");
-		}
-
-
-		// Now use the thing.
-
-		// Create SSBO to store compute shader output
-		int ssbo;
-		GL.GenBuffers(1, out ssbo);
-		GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo);
-		GL.BufferData(BufferTarget.ShaderStorageBuffer, sizeof(float) * 4 * width * height, IntPtr.Zero, BufferUsageHint.DynamicCopy);
-		GL.BindBufferBase(BufferRangeTarget.ShaderStorageBuffer, 0, ssbo);
-
-
-		// Use the compute shader program
-		GL.UseProgram(computeProgram);
-
-		// Dispatch compute work groups
-		int workGroupSizeX = 16;
-		int workGroupSizeY = 16;
-		GL.DispatchCompute(width / workGroupSizeX, height / workGroupSizeY, 1);
-
-		// Wait for compute shader to finish
-		GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
-
-
-		// Read back data from SSBO if needed
-		float[] data = new float[width * height * 4]; // 4 components per vec4
-		GL.BindBuffer(BufferTarget.ShaderStorageBuffer, ssbo);
-		GL.GetBufferSubData(BufferTarget.ShaderStorageBuffer, IntPtr.Zero, sizeof(float) * data.Length, data);
-
-
-
-		// Delete shader as it's linked to the program and no longer needed
-		GL.DeleteShader(computeShader);
-
-
-		for (var n = 0; n < data.Length; n += 4)
-		{
-			Console.WriteLine("data[{0}] = {1}, {2}, {3}, {4}", n, data[n], data[n + 1], data[n + 2], data[n + 3]);
-		}
-	}
-
   static void Main(string[] args)
   {
-    // Load settings
-    var settings = Settings.Load("assets/settings.json");
+		// Set up configuration.
+    var configuration = new ConfigurationBuilder()  
+        .SetBasePath(Directory.GetCurrentDirectory())  
+        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)  
+        .Build();  
+  
+    // Bind configuration to settings object.
+    var settings = configuration.Get<AppSettings>()   
+        ?? throw new InvalidOperationException("Failed to load application settings.");
 
     var nativeWindowSettings = new NativeWindowSettings()
     {
@@ -116,9 +37,6 @@ void main() {
 
     using var window = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
     using var display = new VirtualDisplay(window.ClientSize, settings.VirtualDisplay);
-
-		// ComputeShaderTest();
-		// return;
 
     var rc = new RenderingContext(display);
 
