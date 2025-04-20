@@ -301,23 +301,18 @@ class VirtualDisplay : IDisposable
 		GL.GetInteger(GetPName.BlendSrc, out previousBlendFunc[0]);
 		GL.GetInteger(GetPName.BlendDst, out previousBlendFunc[1]);
 
-		// Calculate the scaled display area with proper aspect ratio preservation  
-		// int scaledWidth = (int)(Width * _scale);
-		// int scaledHeight = (int)(Height * _scale);
-		// int xOffset = (int)_padding.X;
-		// int yOffset = (int)_padding.Y;
+		// Calculate the final dimensions for the viewport  
+		int scaledWidth = (int)(Width * _scale);
+		int scaledHeight = (int)(Height * _scale);
+		int xOffset = (int)_padding.X;
+		int yOffset = (int)_padding.Y;
 
-		// Set the viewport with padding
-		GL.Viewport((int)_padding.X, (int)_padding.Y, (int)(_texture.Width * _scale), (int)(_texture.Height * _scale));
+		// Set the viewport to match the scaled display area with padding  
+		// This ensures aspect ratio preservation and proper positioning  
+		GL.Viewport(xOffset, yOffset, scaledWidth, scaledHeight);
 
-		// Set the viewport to the full window size  
-		// GL.Viewport(
-		// 	0,
-		// 	0,
-		// 	_lastWindowSize.X,
-		// 	_lastWindowSize.Y
-		// );
-
+		// Clear the color buffer to ensure clean black bars  
+		// Note: This clears the entire framebuffer, not just the viewport area  
 		GL.Clear(ClearBufferMask.ColorBufferBit);
 
 		// Setup blending  
@@ -343,11 +338,6 @@ class VirtualDisplay : IDisposable
 		GL.ActiveTexture(TextureUnit.Texture0);
 		GL.BindTexture(TextureTarget.Texture2D, _texture.Id);
 		GL.Uniform1(_textureUniformLocation, 0);
-
-		// Pass scaling and padding information to the shader if needed  
-		// (This would require adding uniforms to the shader)  
-		// GL.Uniform2(_shaderProgram.GetUniformLocation("uScale"), _scale, _scale);  
-		// GL.Uniform2(_shaderProgram.GetUniformLocation("uPadding"), _padding.X, _padding.Y);  
 
 		// Draw quad  
 		GL.DrawElements(PrimitiveType.Triangles, _quadIndices.Length, DrawElementsType.UnsignedInt, 0);
