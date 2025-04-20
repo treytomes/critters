@@ -1,8 +1,8 @@
 root = true  
   
-[*.cs]  
-# Require braces even for single line control statements  
-csharp_prefer_braces = true:warning  
+# [*.cs]  
+# # Require braces even for single line control statements  
+# csharp_prefer_braces = true:warning  
   
-# Force braces to be on a new line (or same line if you prefer)  
-csharp_new_line_before_open_brace = all  
+# # Force braces to be on a new line (or same line if you prefer)  
+# csharp_new_line_before_open_brace = all  

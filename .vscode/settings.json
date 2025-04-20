@@ -30,7 +30,5 @@
 			"source.fixAll": "always"
 		}
 	},
-	// Enforce braces  
-	"csharp.preferBraces": true,
 	"csharp.debug.expressionEvaluationOptions.allowImplicitFuncEval": false
 }
