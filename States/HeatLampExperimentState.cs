@@ -44,32 +44,32 @@ class HeatLampExperimentState : GameState
 
 	#region Constructors
 
-	public HeatLampExperimentState()
-		: base()
+	public HeatLampExperimentState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
+		: base(resources, eventBus, rc)
 	{
 		_camera = new Camera();
 
 		var y = 0;
 
-		_timeLabel = new Label($"Time:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_timeLabel = new Label(null, resources, eventBus, rc, $"Time:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_timeLabel);
 
-		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_cameraLabel = new Label(null, resources, eventBus, rc, $"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
 
-		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_mouseLabel = new Label(null, resources, eventBus, rc, $"Mouse:(0,0)", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
 
-		_temperatureLabel = new Label($"Temp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_temperatureLabel = new Label(null, resources, eventBus, rc, $"Temp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_temperatureLabel);
 
-		_critterTempLabel = new Label($"CritterTemp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_critterTempLabel = new Label(null, resources, eventBus, rc, $"CritterTemp:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_critterTempLabel);
 
-		_critterStaminaLabel = new Label($"CritterStm:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_critterStaminaLabel = new Label(null, resources, eventBus, rc, $"CritterStm:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_critterStaminaLabel);
 
-		_critterHealthLabel = new Label($"Health:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_critterHealthLabel = new Label(null, resources, eventBus, rc, $"Health:0", new Vector2(0, y += 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_critterHealthLabel);
 	}
 
@@ -93,24 +93,24 @@ class HeatLampExperimentState : GameState
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 	}
 
-	public override void AcquireFocus(IEventBus eventBus)
+	public override void AcquireFocus()
 	{
-		base.AcquireFocus(eventBus);
+		base.AcquireFocus();
 
-		eventBus.Subscribe<KeyEventArgs>(OnKey);
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
+		EventBus.Subscribe<KeyEventArgs>(OnKey);
+		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 
 		if (Path.Exists("critter.json"))
 		{
@@ -120,27 +120,27 @@ class HeatLampExperimentState : GameState
 		}
 	}
 
-	public override void LostFocus(IEventBus eventBus)
+	public override void LostFocus()
 	{
 		_critter.Save("critter.json");
 
-		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
+		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
+		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
 
-		base.LostFocus(eventBus);
+		base.LostFocus();
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		rc.Clear();
-		_camera.ViewportSize = rc.ViewportSize;
+		RC.Clear();
+		_camera.ViewportSize = RC.ViewportSize;
 
-		_heatField.Render(rc, _camera, MouseLamp);
-		_critter.Render(rc, _camera);
+		_heatField.Render(RC, _camera, MouseLamp);
+		_critter.Render(RC, _camera);
 
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 	}
 
 	public override void Update(GameTime gameTime)

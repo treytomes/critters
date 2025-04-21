@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -37,8 +36,8 @@ class SelectableColor : UIElement
 
 	#region Constructors
 
-	public SelectableColor(UIElement? parent, Vector2 position, RadialColor offsetColor)
-		: base(parent)
+	public SelectableColor(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, RadialColor offsetColor)
+		: base(parent, resources, eventBus, rc)
 	{
 		Position = position;
 		Size = new Vector2(SIZE, SIZE);
@@ -151,27 +150,27 @@ class SelectableColor : UIElement
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
+		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
+		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 
 		var x = (int)AbsolutePosition.X;
 		var y = (int)AbsolutePosition.Y;
@@ -179,14 +178,14 @@ class SelectableColor : UIElement
 		if (IsSelected)
 		{
 			borderColor = Palette.GetIndex(5, 0, 0);
-			rc.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
+			RC.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
 		else if (HasMouseHover)
 		{
 			borderColor = Palette.GetIndex(5, 3, 0);
-			rc.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
+			RC.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
-		rc.RenderFilledRect(x + 1, y + 1, (int)(x + Size.X - 1), (int)(y + Size.Y - 1), DerivedColor.Index);
+		RC.RenderFilledRect(x + 1, y + 1, (int)(x + Size.X - 1), (int)(y + Size.Y - 1), DerivedColor.Index);
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)

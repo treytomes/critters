@@ -39,7 +39,7 @@ class ConwayLifeSim
 
 	#region Methods
 
-	public void Render(RenderingContext rc)
+	public void Render(IRenderingContext rc)
 	{
 		rc.Clear();
 

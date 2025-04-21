@@ -19,13 +19,8 @@ class ContentPresenter : UIElement
 
 	#region Constructors
 
-	public ContentPresenter()
-		: this(null)
-	{
-	}
-
-	public ContentPresenter(UIElement? parent)
-		: base(parent)
+	public ContentPresenter(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
+		: base(parent, resources, eventBus, rc)
 	{
 	}
 
@@ -47,7 +42,7 @@ class ContentPresenter : UIElement
 				{
 					if (IsLoaded)
 					{
-						_content.Unload(_resourceManager!, _eventBus!);
+						_content.Unload();
 					}
 					_content.PropertyChanged -= OnContentPropertyChanged;
 				}
@@ -58,7 +53,7 @@ class ContentPresenter : UIElement
 				{
 					if (IsLoaded)
 					{
-						_content.Load(_resourceManager!, _eventBus!);
+						_content.Load();
 					}
 					_content.PropertyChanged += OnContentPropertyChanged;
 					_content.Parent = this;
@@ -72,42 +67,42 @@ class ContentPresenter : UIElement
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
 		if (IsLoaded)
 		{
 			return;
 		}
 
-		base.Load(resources, eventBus);
-		Content?.Load(resources, eventBus);
+		base.Load();
+		Content?.Load();
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
 		if (!IsLoaded)
 		{
 			return;
 		}
 
-		base.Unload(resources, eventBus);
-		Content?.Unload(resources, eventBus);
+		base.Unload();
+		Content?.Unload();
 	}
 
-	public sealed override void Render(RenderingContext rc, GameTime gameTime)
+	public sealed override void Render(GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
-		RenderSelf(rc, gameTime);
-		Content?.Render(rc, gameTime);
+		base.Render(gameTime);
+		RenderSelf(gameTime);
+		Content?.Render(gameTime);
 	}
 
-	protected virtual void RenderSelf(RenderingContext rc, GameTime gameTime)
+	protected virtual void RenderSelf(GameTime gameTime)
 	{
 	}
 
-	protected void RenderContent(RenderingContext rc, GameTime gameTime)
+	protected void RenderContent(GameTime gameTime)
 	{
-		Content?.Render(rc, gameTime);
+		Content?.Render(gameTime);
 	}
 
 	public override void Update(GameTime gameTime)

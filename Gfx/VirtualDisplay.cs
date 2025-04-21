@@ -1,6 +1,5 @@
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using System;
 
 namespace Critters.Gfx;
 
@@ -8,7 +7,7 @@ namespace Critters.Gfx;
 /// Manages a virtual display with fixed resolution that scales to fit the window  
 /// while maintaining aspect ratio.  
 /// </summary>  
-class VirtualDisplay : IDisposable
+class VirtualDisplay : IVirtualDisplay
 {
 	#region Fields  
 
@@ -27,7 +26,6 @@ class VirtualDisplay : IDisposable
 		2, 3, 0
 	};
 
-	public readonly Palette Palette;
 	private readonly int _vao;
 	private readonly int _vbo;
 	private readonly int _ebo;
@@ -40,6 +38,7 @@ class VirtualDisplay : IDisposable
 	private float _scale = 1.0f;
 	private Vector2 _padding = Vector2.Zero;
 	private Vector2i _lastWindowSize;
+	private Palette _palette;
 
 	// Pixel data management  
 	private bool _textureNeedsUpdate = false;
@@ -117,7 +116,7 @@ class VirtualDisplay : IDisposable
 			GL.UseProgram(0);
 
 			// Initialize palette  
-			Palette = new Palette();
+			_palette = new Palette();
 
 			// Set initial window size and calculate scaling  
 			_lastWindowSize = windowSize;
@@ -154,6 +153,11 @@ class VirtualDisplay : IDisposable
 	/// Gets the current padding applied to center the display.  
 	/// </summary>  
 	public Vector2 Padding => _padding;
+
+	/// <summary>  
+	/// Gets the color palette used by the rendering context.  
+	/// </summary>  
+	public Palette Palette => _palette;
 
 	#endregion
 

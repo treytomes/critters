@@ -8,12 +8,32 @@ abstract class GameState : IGameComponent
 {
 	#region Fields
 
+	private readonly IResourceManager _resources;
+	private readonly IEventBus _eventBus;
+	private readonly IRenderingContext _rc;
+
+	#endregion
+
+	#region Constructors
+
+	public GameState(
+		IResourceManager resources,
+		IEventBus eventBus,
+		IRenderingContext rc)
+	{
+		_resources = resources;
+		_eventBus = eventBus;
+		_rc = rc;
+	}
+
 	#endregion
 
 	#region Properties
 
 	protected bool HasFocus { get; private set; }
-	protected IEventBus? EventBus { get; private set; }
+	protected IResourceManager Resources => _resources;
+	protected IEventBus EventBus => _eventBus;
+	protected IRenderingContext RC => _rc;
 	protected List<UIElement> UI { get; } = new List<UIElement>();
 
 	#endregion
@@ -26,13 +46,11 @@ abstract class GameState : IGameComponent
 	/// </summary>
 	/// <param name="resources"></param>
 	/// <param name="eventBus"></param>
-	public virtual void Load(IResourceManager resources, IEventBus eventBus)
+	public virtual void Load()
 	{
-		EventBus = eventBus;
-
 		foreach (var ui in UI)
 		{
-			ui.Load(resources, eventBus);
+			ui.Load();
 		}
 	}
 
@@ -42,11 +60,11 @@ abstract class GameState : IGameComponent
 	/// </summary>
 	/// <param name="resources"></param>
 	/// <param name="eventBus"></param>
-	public virtual void Unload(IResourceManager resources, IEventBus eventBus)
+	public virtual void Unload()
 	{
 		foreach (var ui in UI)
 		{
-			ui.Unload(resources, eventBus);
+			ui.Unload();
 		}
 	}
 
@@ -55,11 +73,11 @@ abstract class GameState : IGameComponent
 	/// </summary>
 	/// <param name="rc"></param>
 	/// <param name="gameTime"></param>
-	public virtual void Render(RenderingContext rc, GameTime gameTime)
+	public virtual void Render(GameTime gameTime)
 	{
 		foreach (var ui in UI)
 		{
-			ui.Render(rc, gameTime);
+			ui.Render(gameTime);
 		}
 	}
 
@@ -81,7 +99,7 @@ abstract class GameState : IGameComponent
 	/// Attach events here.
 	/// </summary>
 	/// <param name="eventBus"></param>
-	public virtual void AcquireFocus(IEventBus eventBus)
+	public virtual void AcquireFocus()
 	{
 		HasFocus = true;
 	}
@@ -92,7 +110,7 @@ abstract class GameState : IGameComponent
 	/// Detach events here.
 	/// </summary>
 	/// <param name="eventBus"></param>
-	public virtual void LostFocus(IEventBus eventBus)
+	public virtual void LostFocus()
 	{
 		HasFocus = false;
 	}

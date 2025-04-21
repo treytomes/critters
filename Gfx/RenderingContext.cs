@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using OpenTK.Mathematics;
 
 namespace Critters.Gfx;
@@ -5,7 +6,7 @@ namespace Critters.Gfx;
 /// <summary>  
 /// Provides a high-level drawing API for rendering to a VirtualDisplay.  
 /// </summary>  
-class RenderingContext : IDisposable
+class RenderingContext : IRenderingContext
 {
 	#region Constants  
 
@@ -15,7 +16,8 @@ class RenderingContext : IDisposable
 
 	#region Fields  
 
-	private readonly VirtualDisplay _display;
+	private readonly IVirtualDisplay _display;
+	private readonly ILogger<RenderingContext> _logger;
 	private bool _isDirty = true;
 	private readonly byte[] _data;
 	private bool _disposed;
@@ -29,9 +31,10 @@ class RenderingContext : IDisposable
 	/// </summary>  
 	/// <param name="display">The virtual display to render to.</param>  
 	/// <exception cref="ArgumentNullException">Thrown if display is null.</exception>  
-	public RenderingContext(VirtualDisplay display)
+	public RenderingContext(IVirtualDisplay display, ILogger<RenderingContext> logger)
 	{
 		_display = display ?? throw new ArgumentNullException(nameof(display));
+		_logger = logger;
 		_data = new byte[display.Width * display.Height * BPP];
 	}
 

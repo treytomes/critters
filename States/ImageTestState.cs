@@ -1,6 +1,4 @@
-using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 
 namespace Critters.States;
@@ -13,21 +11,30 @@ class ImageTestState : GameState
 
 	#endregion
 
-	#region Methods
+	#region Constructors
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public ImageTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
+		: base(resources, eventBus, rc)
 	{
-		base.Load(resources, eventBus);
-
-		_image = resources.Load<Image>("oem437_8.png");
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
-	{
-		base.Render(rc, gameTime);
+	#endregion
 
-		rc.Fill(rc.Palette[1, 1, 0]);
-		_image!.Render(rc, 100, 100);
+	#region Methods
+
+	public override void Load()
+	{
+		base.Load();
+
+		_image = Resources.Load<Image>("oem437_8.png");
+	}
+
+	public override void Render(GameTime gameTime)
+	{
+		base.Render(gameTime);
+
+		RC.Fill(RC.Palette[1, 1, 0]);
+		_image!.Render(RC, 100, 100);
 	}
 
 	#endregion

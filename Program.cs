@@ -8,6 +8,10 @@ using Critters.Services;
 using Critters.Events;
 using Critters.IO;
 using Critters.Gfx;
+using OpenTK.Mathematics;
+using Microsoft.Extensions.Options;
+using OpenTK.Windowing.Desktop;
+using OpenTK.Windowing.Common;
 
 namespace Critters;
 
@@ -129,7 +133,53 @@ class Program
 				services.AddSingleton<IResourceManager, ResourceManager>();
 				services.AddSingleton<IGameEngine, GameEngine>();
 
+				// Register GameWindow as a factory.
+				services.AddSingleton<GameWindow>(serviceProvider =>
+				{
+					// Get window settings from configuration.
+					var appSettings = serviceProvider.GetRequiredService<IOptions<AppSettings>>().Value;
+
+					var nativeWindowSettings = new NativeWindowSettings()
+					{
+						ClientSize = new Vector2i(appSettings.Window.Width, appSettings.Window.Height),
+						Title = appSettings.Window.Title,
+						Profile = ContextProfile.Core,
+						APIVersion = new Version(4, 5),
+						WindowState = appSettings.Window.Fullscreen ? WindowState.Fullscreen : WindowState.Normal
+					};
+
+					return new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
+				});
+
+				// Register IVirtualDisplay as a factory  
+				services.AddSingleton<IVirtualDisplay>(serviceProvider =>
+				{
+					// Get window settings from configuration  
+					var appSettings = serviceProvider.GetRequiredService<IOptions<AppSettings>>().Value;
+
+					// Get or create window  
+					var windowSize = new Vector2i(
+						appSettings.Window.Width,
+						appSettings.Window.Height
+					);
+
+					// Create virtual display settings  
+					var virtualDisplaySettings = new VirtualDisplaySettings
+					{
+						Width = appSettings.VirtualDisplay.Width,
+						Height = appSettings.VirtualDisplay.Height,
+						VertexShaderPath = appSettings.VirtualDisplay.VertexShaderPath,
+						FragmentShaderPath = appSettings.VirtualDisplay.FragmentShaderPath
+					};
+
+					// Create and return the virtual display  
+					return new VirtualDisplay(windowSize, virtualDisplaySettings);
+				});
+
+				services.AddSingleton<IRenderingContext, RenderingContext>();
+
 				services.AddTransient<IResourceLoader<Image>, ImageLoader>();
+				services.AddTransient<IGameStateManager, GameStateManager>();
 
 				// Register game states if needed  
 				// services.AddTransient<MainMenuState>();  

@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using Critters.States;
 using OpenTK.Mathematics;
@@ -23,6 +21,9 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 
 	#region Fields
 
+	private readonly IResourceManager _resources;
+	private readonly IEventBus _eventBus;
+	private readonly IRenderingContext _rc;
 	private bool _isLoaded = false;
 	private UIElement? _parent;
 	private Vector2 _position = Vector2.Zero;
@@ -34,14 +35,21 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 
 	#region Constructors
 
-	public UIElement(UIElement? parent = null)
+	public UIElement(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
 	{
 		_parent = parent;
+		_resources = resources;
+		_eventBus = eventBus;
+		_rc = rc;
 	}
 
 	#endregion
 
 	#region Properties
+
+	protected IResourceManager Resources => _resources;
+	protected IEventBus EventBus => _eventBus;
+	protected IRenderingContext RC => _rc;
 
 	public bool IsLoaded
 	{
@@ -180,7 +188,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 
 	#region Methods
 
-	public virtual void Load(IResourceManager resources, IEventBus eventBus)
+	public virtual void Load()
 	{
 		if (IsLoaded)
 		{
@@ -189,7 +197,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 		IsLoaded = true;
 	}
 
-	public virtual void Unload(IResourceManager resources, IEventBus eventBus)
+	public virtual void Unload()
 	{
 		if (!IsLoaded)
 		{
@@ -198,7 +206,7 @@ class UIElement : IGameComponent, INotifyPropertyChanged
 		IsLoaded = false;
 	}
 
-	public virtual void Render(RenderingContext rc, GameTime gameTime)
+	public virtual void Render(GameTime gameTime)
 	{
 	}
 

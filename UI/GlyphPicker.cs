@@ -20,13 +20,8 @@ class GlyphPicker : UIElement
 
 	#region Constructors
 
-	public GlyphPicker(Vector2 position, byte? initialGlyph = null)
-		: this(null, position, initialGlyph)
-	{
-	}
-
-	public GlyphPicker(UIElement? parent, Vector2 position, byte? initialGlyph = null)
-		: base(parent)
+	public GlyphPicker(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, byte? initialGlyph = null)
+		: base(parent, resources, eventBus, rc)
 	{
 		Position = position;
 
@@ -46,7 +41,7 @@ class GlyphPicker : UIElement
 				var x = xc * 9; // tile size + (border width + padding) * 2
 				var y = yc * 9;
 
-				var elem = new SelectableGlyph(this, padding + new Vector2(x, y), resourcePath, glyphIndex);
+				var elem = new SelectableGlyph(this, resources, eventBus, rc, padding + new Vector2(x, y), resourcePath, glyphIndex);
 				if (selectedGlyphIndex == glyphIndex)
 				{
 					elem.IsSelected = true;
@@ -61,7 +56,7 @@ class GlyphPicker : UIElement
 
 		_selectedGlyph = _selectableGlyphs[selectedGlyphIndex];
 
-		_glyphLabel = new Label(this, "index=0", new Vector2(0, 9 * numGlyphRows + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_glyphLabel = new Label(this, resources, eventBus, rc, "index=0", new Vector2(0, 9 * numGlyphRows + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_glyphLabel);
 
 		_glyphLabel.Text = StringProvider.From($"glyph index={_selectedGlyph.GlyphIndex}");
@@ -117,9 +112,9 @@ class GlyphPicker : UIElement
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 
 		foreach (var c in _selectableGlyphs)
 		{
@@ -129,13 +124,13 @@ class GlyphPicker : UIElement
 
 		foreach (var ui in _ui)
 		{
-			ui.Load(resources, eventBus);
+			ui.Load();
 		}
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 
 		foreach (var c in _selectableGlyphs)
 		{
@@ -145,7 +140,7 @@ class GlyphPicker : UIElement
 
 		foreach (var ui in _ui)
 		{
-			ui.Unload(resources, eventBus);
+			ui.Unload();
 		}
 	}
 
@@ -159,15 +154,15 @@ class GlyphPicker : UIElement
 		}
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 
-		rc.RenderFilledRect(AbsolutePosition, AbsolutePosition + new Vector2(9 * 16, 9 * 16), new RadialColor(5, 5, 5).Index);
+		RC.RenderFilledRect(AbsolutePosition, AbsolutePosition + new Vector2(9 * 16, 9 * 16), new RadialColor(5, 5, 5).Index);
 
 		foreach (var ui in _ui)
 		{
-			ui.Render(rc, gameTime);
+			ui.Render(gameTime);
 		}
 	}
 

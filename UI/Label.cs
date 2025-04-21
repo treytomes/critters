@@ -54,13 +54,8 @@ class Label : UIElement
 
 	#region Constructors
 
-	public Label(object text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
-		: this(null, text, position, fgColor, bgColor)
-	{
-	}
-
-	public Label(UIElement? parent, object text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
-		: base(parent)
+	public Label(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, object text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
+		: base(parent, resources, eventBus, rc)
 	{
 		Text = StringProvider.From(text);
 		Position = position;
@@ -124,27 +119,22 @@ class Label : UIElement
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 
-		var image = resources.Load<Image>("oem437_8.png");
+		var image = Resources.Load<Image>("oem437_8.png");
 		var bmp = new Bitmap(image);
 		var tiles = new GlyphSet<Bitmap>(bmp, 8, 8);
 		_font = new Font(tiles);
 		Size = _font?.MeasureString(Text.ToString()!) ?? Vector2.Zero;
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Render(GameTime gameTime)
 	{
-		base.Unload(resources, eventBus);
-	}
+		base.Render(gameTime);
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
-	{
-		base.Render(rc, gameTime);
-
-		_font?.WriteString(rc, Text.ToString() ?? "", AbsolutePosition, ForegroundColor, BackgroundColor);
+		_font?.WriteString(RC, Text.ToString() ?? "", AbsolutePosition, ForegroundColor, BackgroundColor);
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")

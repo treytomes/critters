@@ -15,7 +15,7 @@ class HeatField
 	private const float DAWN_DUSK_HOUR = 6.0f; // Hours from midnight to dawn/from dusk to midnight
 
 	#endregion
-	
+
 	#region Fields
 
 	/// <summary>
@@ -48,10 +48,10 @@ class HeatField
 	public float AmbientTemperature { get; private set; } = DEFAULT_AMBIENT_TEMPERATURE;
 
 	public List<Lamp> Lamps { get; }
-	
+
 	// Current hour of the day (0-23.999)
 	public float CurrentHour => _currentDayTime;
-	
+
 	// Returns whether it's currently daytime (between sunrise and sunset)
 	public bool IsDaytime => CurrentHour > DAWN_DUSK_HOUR && CurrentHour < (24.0f - DAWN_DUSK_HOUR);
 
@@ -59,7 +59,7 @@ class HeatField
 
 	#region Methods
 
-	public void Render(RenderingContext rc, Camera camera, Lamp cursor)
+	public void Render(IRenderingContext rc, Camera camera, Lamp cursor)
 	{
 		// foreach (var lamp in _lamps)
 		// {
@@ -131,28 +131,28 @@ class HeatField
 				n++;
 			}
 		}
-		
+
 		// Update the day/night cycle
 		UpdateDayNightCycle(gameTime);
 	}
-	
+
 	private void UpdateDayNightCycle(GameTime gameTime)
 	{
 		// Advance the time of day
 		float deltaSeconds = (float)gameTime.ElapsedTime.TotalSeconds;
 		_currentDayTime = (_currentDayTime + (24.0f * deltaSeconds / _dayTimeTotalSeconds)) % 24.0f;
-		
+
 		// Calculate ambient temperature based on time of day
 		// Using a cosine curve to create a smooth transition
-		
+
 		// Map the 24-hour day to a 0-2π value for the cosine function
 		// Offset by π so that midnight is the coldest point
 		float timeRadians = (((_currentDayTime / 24.0f) * MathF.PI * 2.0f) + MathF.PI) % (MathF.PI * 2.0f);
-		
+
 		// Calculate temperature: BASE_TEMP + variation * normalized cosine (-1 to 1)
 		// Cosine gives -1 at midnight, +1 at noon
 		float temperatureVariation = MathF.Cos(timeRadians) * (DAY_NIGHT_TEMPERATURE_VARIATION / 2.0f);
-		
+
 		// Add extra smoothing for dawn and dusk transitions
 		float smoothTransitionFactor = 1.0f;
 		if (_currentDayTime < DAWN_DUSK_HOUR) // Pre-dawn
@@ -165,9 +165,9 @@ class HeatField
 			float transitionProgress = (24.0f - _currentDayTime) / DAWN_DUSK_HOUR;
 			smoothTransitionFactor = 0.8f + (transitionProgress * 0.2f); // Slower cooling in early evening
 		}
-		
+
 		temperatureVariation *= smoothTransitionFactor;
-		
+
 		// Set the new ambient temperature
 		AmbientTemperature = BASE_DAYTIME_TEMPERATURE + temperatureVariation;
 	}
@@ -175,7 +175,7 @@ class HeatField
 	public float CalculateTemperatureAtPoint(Vector2 position)
 	{
 		var totalTemperature = 0f;
-		
+
 		foreach (var lamp in Lamps)
 		{
 			// Skip lamps that aren't contributing heat
@@ -183,17 +183,17 @@ class HeatField
 			{
 				continue;
 			}
-					
+
 			// Calculate distance from point to heat source
 			var distance = Vector2.Distance(position, lamp.Position);
-			
+
 			// Avoid division by zero and limit maximum heat at source
 			var effectiveDistance = Math.Max(1.0f, distance);
-			
+
 			// Calculate heat contribution using inverse-square law
 			// (heat decreases with the square of the distance)
 			var heatContribution = lamp.Temperature / (effectiveDistance * effectiveDistance);
-			
+
 			// // Optional: Apply a cutoff distance beyond which heat is negligible
 			// var cutoffDistance = 100f; // Adjust based on your scale
 			// if (distance > cutoffDistance)
@@ -201,16 +201,16 @@ class HeatField
 			// 		var falloffFactor = Math.Max(0, 1 - ((distance - cutoffDistance) / cutoffDistance));
 			// 		heatContribution *= falloffFactor * falloffFactor; // Smooth falloff
 			// }
-			
+
 			totalTemperature += heatContribution;
 		}
-		
+
 		// Add ambient temperature
 		totalTemperature += AmbientTemperature;
-		
+
 		return totalTemperature;
 	}
-	
+
 	/// <summary>
 	/// Sets the current time of day
 	/// </summary>
@@ -219,9 +219,9 @@ class HeatField
 	{
 		_currentDayTime = MathHelper.Modulus(hour, 24.0f);
 		// Update temperature immediately
-		UpdateDayNightCycle(new GameTime()); 
+		UpdateDayNightCycle(new GameTime());
 	}
-	
+
 	/// <summary>
 	/// Returns a string representation of the current time of day
 	/// </summary>
@@ -237,7 +237,7 @@ class HeatField
 		}
 		return $"{hours:D}:{minutes:D2}{amPm}";
 	}
-	
+
 	/// <summary>
 	/// Adjusts the length of the day cycle
 	/// </summary>
@@ -246,6 +246,6 @@ class HeatField
 	{
 		_dayTimeTotalSeconds = dayLengthMinutes * 60.0f;
 	}
-	
+
 	#endregion
 }

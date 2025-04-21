@@ -1,6 +1,4 @@
-using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using Critters.States;
 using OpenTK.Mathematics;
@@ -12,35 +10,47 @@ class MouseCursor : IGameComponent
 {
 	#region Fields
 
+	private readonly IResourceManager _resources;
+	private readonly IEventBus _eventBus;
+	private readonly IRenderingContext _renderingContext;
 	private Vector2 _position = Vector2.Zero;
 	private Image? _image = null;
 
 	#endregion
 
+	#region Constructors
+
+	public MouseCursor(IResourceManager resources, IEventBus eventBus, IRenderingContext renderingContext)
+	{
+		_resources = resources;
+		_eventBus = eventBus;
+		_renderingContext = renderingContext;
+	}
+
+	#endregion
+
 	#region Methods
 
-	public void Load(IResourceManager resources, IEventBus eventBus)
+	public void Load()
 	{
-		_image = resources.Load<Image>("mouse_cursor.png");
+		_image = _resources.Load<Image>("mouse_cursor.png");
 		_image.Recolor(0, 255);
 		_image.Recolor(129, Palette.GetIndex(1, 1, 1));
-		// Console.WriteLine("mouse colors: {0}", string.Join(',', _image.Data.Distinct().ToArray()));
-
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		_eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
-	public void Unload(IResourceManager resources, IEventBus eventBus)
+	public void Unload()
 	{
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		_eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
-	public void Render(RenderingContext rc, GameTime gameTime)
+	public void Render(GameTime gameTime)
 	{
-		if (_position.X < 0 || _position.Y < 0 || _position.X >= rc.Width || _position.Y >= rc.Height)
+		if (_position.X < 0 || _position.Y < 0 || _position.X >= _renderingContext.Width || _position.Y >= _renderingContext.Height)
 		{
 			return;
 		}
-		_image?.Render(rc, (int)_position.X, (int)_position.Y);
+		_image?.Render(_renderingContext, (int)_position.X, (int)_position.Y);
 	}
 
 	public void Update(GameTime gameTime)
@@ -50,7 +60,6 @@ class MouseCursor : IGameComponent
 	private void OnMouseMove(MouseMoveEventArgs e)
 	{
 		_position = e.Position;
-		// Console.WriteLine("Mouse position: {0}, delta: {1}", e.Position, e.Delta);
 	}
 
 	#endregion

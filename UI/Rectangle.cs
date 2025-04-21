@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Critters.Gfx;
 using OpenTK.Mathematics;
 
@@ -15,13 +14,8 @@ class Rectangle : UIElement
 
 	#region Constructors
 
-	public Rectangle(Box2 bounds, RadialColor borderColor, RadialColor fillColor)
-		: this(null, bounds, borderColor, fillColor)
-	{
-	}
-
-	public Rectangle(UIElement? parent, Box2 bounds, RadialColor borderColor, RadialColor fillColor)
-		: base(parent)
+	public Rectangle(UIElement? parent, Services.IResourceManager resources, Services.IEventBus eventBus, IRenderingContext rc, Box2 bounds, RadialColor borderColor, RadialColor fillColor)
+		: base(parent, resources, eventBus, rc)
 	{
 		Position = bounds.Min;
 		Size = bounds.Size;
@@ -57,12 +51,12 @@ class Rectangle : UIElement
 
 	#region Methods
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 
-		rc.RenderFilledRect(AbsoluteBounds, FillColor);
-		rc.RenderRect(AbsoluteBounds, BorderColor);
+		RC.RenderFilledRect(AbsoluteBounds, FillColor);
+		RC.RenderRect(AbsoluteBounds, BorderColor);
 	}
 
 	#endregion

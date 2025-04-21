@@ -40,105 +40,105 @@ class TileMapTestState : GameState
 
 	#region Constructors
 
-	public TileMapTestState()
-		: base()
+	public TileMapTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
+		: base(resources, eventBus, rc)
 	{
 		_camera = new Camera();
-		
+
 		_tiles = new TileRepo();
 		_level = new Level(64, 8);
 
-		_cameraLabel = new Label($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_cameraLabel = new Label(null, resources, eventBus, rc, $"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
-		
-		_mouseLabel = new Label($"Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+
+		_mouseLabel = new Label(null, resources, eventBus, rc, "Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
 
-		_sampleButton = new Button(new Vector2(32, 32), ButtonStyle.Raised);
-		_sampleButton.Content = new Label("> Button <", new Vector2(0, 0), new RadialColor(0, 0, 0));
+		_sampleButton = new Button(null, resources, eventBus, rc, new Vector2(32, 32), ButtonStyle.Raised);
+		_sampleButton.Content = new Label(null, resources, eventBus, rc, "> Button <", new Vector2(0, 0), new RadialColor(0, 0, 0));
 		UI.Add(_sampleButton);
 	}
 
 	#endregion
 
 	#region Methods
-	
-	public override void Load(IResourceManager resources, IEventBus eventBus)
-	{
-		base.Load(resources, eventBus);
 
-		_tiles.Load(resources, eventBus);
+	public override void Load()
+	{
+		base.Load();
+
+		_tiles.Load(Resources);
 
 		_level = Level.Load("sample.json");
 		// _level = LevelBuilder.BuildSample();
 		// _level.Save("sample.json");
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 	}
 
-	public override void AcquireFocus(IEventBus eventBus)
+	public override void AcquireFocus()
 	{
-		base.AcquireFocus(eventBus);
+		base.AcquireFocus();
 
 		_sampleButton.Clicked += OnButtonClicked;
 
-		eventBus.Subscribe<KeyEventArgs>(OnKey);
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Subscribe<KeyEventArgs>(OnKey);
+		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
-	public override void LostFocus(IEventBus eventBus)
+	public override void LostFocus()
 	{
 		_sampleButton.Clicked -= OnButtonClicked;
 
-		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
+		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
 
-		base.LostFocus(eventBus);
+		base.LostFocus();
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		rc.Clear();
-		_camera.ViewportSize = rc.ViewportSize;
+		RC.Clear();
+		_camera.ViewportSize = RC.ViewportSize;
 
 		const int GRID_SPACING = 16;
 		const byte GRID_INTENSITY = 3;
 		var gridColor = Palette.GetIndex(GRID_INTENSITY, GRID_INTENSITY, 0);
 		var gridDeltaX = MathHelper.FloorDiv((int)_camera.Position.X, GRID_SPACING) % GRID_SPACING;
 		var gridDeltaY = MathHelper.FloorDiv((int)_camera.Position.Y, GRID_SPACING) % GRID_SPACING;
-		for (var y = -GRID_SPACING; y < rc.Height + GRID_SPACING; y += GRID_SPACING)
+		for (var y = -GRID_SPACING; y < RC.Height + GRID_SPACING; y += GRID_SPACING)
 		{
-			rc.RenderHLine(0, rc.Width - 1, y - gridDeltaY, gridColor);
+			RC.RenderHLine(0, RC.Width - 1, y - gridDeltaY, gridColor);
 		}
-		for (var x = -GRID_SPACING; x < rc.Width + GRID_SPACING; x += GRID_SPACING)
+		for (var x = -GRID_SPACING; x < RC.Width + GRID_SPACING; x += GRID_SPACING)
 		{
-			rc.RenderVLine(x - gridDeltaX, 0, rc.Height - 1, gridColor);
+			RC.RenderVLine(x - gridDeltaX, 0, RC.Height - 1, gridColor);
 		}
 
 		_generator.UpdateViewPosition(_camera.Position);
 
 		// _level?.Render(rc, _tiles, _camera);
-		Render(rc, _tiles, _camera);
+		Render(_tiles, _camera);
 
 		// Render the map cursor.
-		_mapCursor.Render(rc, gameTime, _camera);
+		_mapCursor.Render(RC, gameTime, _camera);
 
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 	}
-	
+
 	const int _tileSize = 8;
-	public void Render(RenderingContext rc, TileRepo tiles, Camera camera)
+	public void Render(TileRepo tiles, Camera camera)
 	{
 		// Calculate visible tile range.
-		var startPos = ((camera.Position - rc.ViewportSize / 2) / _tileSize).Floor() * _tileSize;
+		var startPos = ((camera.Position - RC.ViewportSize / 2) / _tileSize).Floor() * _tileSize;
 
 		// Render one extra tile around the edges.
-		var endPos = startPos + rc.ViewportSize + Vector2.One * _tileSize;
+		var endPos = startPos + RC.ViewportSize + Vector2.One * _tileSize;
 
 		for (var y = startPos.Y; y < endPos.Y; y += _tileSize)
 		{
@@ -160,8 +160,8 @@ class TileMapTestState : GameState
 					_ => new RadialColor(5, 0, 5),
 				};
 
-				rc.RenderFilledRect(new Box2(screenPos, screenPos + new Vector2(_tileSize, _tileSize)), color.Index);
-				
+				RC.RenderFilledRect(new Box2(screenPos, screenPos + new Vector2(_tileSize, _tileSize)), color.Index);
+
 				// var tileRef = GetTile(tileX, tileY);
 				// if (!tileRef.IsEmpty)
 				// {
@@ -171,13 +171,12 @@ class TileMapTestState : GameState
 		}
 	}
 
-
 	public override void Update(GameTime gameTime)
 	{
 		base.Update(gameTime);
-		
+
 		_camera.ScrollBy(_cameraDelta * (float)gameTime.ElapsedTime.TotalSeconds * _cameraSpeed * (_cameraFastMove ? 4 : 1));
-		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{ (int)_camera.Position.Y})");
+		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})");
 	}
 
 	private void OnKey(KeyEventArgs e)

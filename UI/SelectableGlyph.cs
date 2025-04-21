@@ -1,6 +1,5 @@
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -29,8 +28,8 @@ class SelectableGlyph : UIElement
 
 	#region Constructors
 
-	public SelectableGlyph(UIElement? parent, Vector2 position, string glyphResourcePath, byte glyphIndex)
-		: base(parent)
+	public SelectableGlyph(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, string glyphResourcePath, byte glyphIndex)
+		: base(parent, resources, eventBus, rc)
 	{
 		Position = position;
 		_glyphResourcePath = glyphResourcePath;
@@ -98,46 +97,46 @@ class SelectableGlyph : UIElement
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
+		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 
-		var image = resources.Load<Image>(_glyphResourcePath);
+		var image = Resources.Load<Image>(_glyphResourcePath);
 		_glyphs = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
 		Size = new Vector2(_glyphs.TileWidth, _glyphs.TileHeight) + Vector2.One;
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-		eventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
+		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 
 		var x = (int)AbsolutePosition.X;
 		var y = (int)AbsolutePosition.Y;
 		if (IsSelected)
 		{
 			var borderColor = Palette.GetIndex(5, 0, 0);
-			rc.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
+			RC.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
 		else if (HasMouseHover)
 		{
 			var borderColor = Palette.GetIndex(5, 3, 0);
-			rc.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
+			RC.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
 		// rc.RenderFilledRect(x + 1, y + 1, (int)(x + Size.X - 2), (int)(y + Size.Y) - 2, 0);
-		_glyphs?[GlyphIndex].Render(rc, new Vector2(x, y) + Vector2.One, ForegroundColor, BackgroundColor);
+		_glyphs?[GlyphIndex].Render(RC, new Vector2(x, y) + Vector2.One, ForegroundColor, BackgroundColor);
 	}
 
 	private void OnMouseMove(MouseMoveEventArgs e)

@@ -1,6 +1,5 @@
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -31,13 +30,8 @@ class ColorPicker : UIElement
 
 	#region Constructors
 
-	public ColorPicker(Vector2 position, RadialColor? initialColor = null)
-		: this(null, position, initialColor)
-	{
-	}
-
-	public ColorPicker(UIElement? parent, Vector2 position, RadialColor? initialColor = null)
-		: base(parent)
+	public ColorPicker(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, RadialColor? initialColor = null)
+		: base(parent, resources, eventBus, rc)
 	{
 		Position = position;
 
@@ -50,7 +44,7 @@ class ColorPicker : UIElement
 				var x = xc * (BUTTON_SIZE + BUTTON_PADDING);
 				var y = 0;
 				var color = new RadialColor(0, 0, xc);
-				var elem = new SelectableColor(this, new Vector2(x, y), color);
+				var elem = new SelectableColor(this, resources, eventBus, rc, new Vector2(x, y), color);
 				if (initialColor?.Blue == xc)
 				{
 					elem.IsSelected = true;
@@ -67,7 +61,7 @@ class ColorPicker : UIElement
 				var x = yc * (BUTTON_SIZE + BUTTON_PADDING);
 
 				var color = new RadialColor(xc, yc, 0);
-				var elem = new SelectableColor(this, new Vector2(x, y), color);
+				var elem = new SelectableColor(this, resources, eventBus, rc, new Vector2(x, y), color);
 				elem.BaseColor = selectedBaseColor;
 				if (initialColor?.Red == xc && initialColor?.Green == yc)
 				{
@@ -98,10 +92,10 @@ class ColorPicker : UIElement
 			_selectedDerivedColor = _derivedColors.First(x => x.IsSelected);
 		}
 
-		_selectedColor = new Rectangle(this, new Box2((BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2, 0, (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2 + 22, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_selectedColor = new Rectangle(this, Resources, EventBus, RC, new Box2((BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2, 0, (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE + 2 + 22, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_selectedColor);
 
-		_colorLabel = new Label(this, "000==0", new Vector2(0, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 4), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_colorLabel = new Label(this, Resources, EventBus, RC, "000==0", new Vector2(0, (BUTTON_SIZE + BUTTON_PADDING) * (GRID_SIZE + 1) + 4), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		_ui.Add(_colorLabel);
 
 		_selectedColor.FillColor = _selectedDerivedColor!.DerivedColor;
@@ -133,9 +127,9 @@ class ColorPicker : UIElement
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 
 		foreach (var c in _baseColors)
 		{
@@ -150,13 +144,13 @@ class ColorPicker : UIElement
 
 		foreach (var ui in _ui)
 		{
-			ui.Load(resources, eventBus);
+			ui.Load();
 		}
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 
 		foreach (var c in _baseColors)
 		{
@@ -170,7 +164,7 @@ class ColorPicker : UIElement
 
 		foreach (var ui in _ui)
 		{
-			ui.Unload(resources, eventBus);
+			ui.Unload();
 		}
 	}
 
@@ -184,16 +178,16 @@ class ColorPicker : UIElement
 		}
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 
-		rc.RenderFilledRect(new Box2(AbsolutePosition, new Vector2(AbsolutePosition.X + (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE, AbsolutePosition.Y + (BUTTON_SIZE + BUTTON_PADDING))), new RadialColor(5, 5, 5));
-		rc.RenderFilledRect(new Box2(new Vector2(AbsolutePosition.X, AbsolutePosition.Y + (BUTTON_SIZE + BUTTON_PADDING + 2)), new Vector2(AbsolutePosition.X + (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE, AbsolutePosition.Y + 2 + (GRID_SIZE + 1) * (BUTTON_SIZE + BUTTON_PADDING))), new RadialColor(5, 5, 5));
+		RC.RenderFilledRect(new Box2(AbsolutePosition, new Vector2(AbsolutePosition.X + (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE, AbsolutePosition.Y + (BUTTON_SIZE + BUTTON_PADDING))), new RadialColor(5, 5, 5));
+		RC.RenderFilledRect(new Box2(new Vector2(AbsolutePosition.X, AbsolutePosition.Y + (BUTTON_SIZE + BUTTON_PADDING + 2)), new Vector2(AbsolutePosition.X + (BUTTON_SIZE + BUTTON_PADDING) * GRID_SIZE, AbsolutePosition.Y + 2 + (GRID_SIZE + 1) * (BUTTON_SIZE + BUTTON_PADDING))), new RadialColor(5, 5, 5));
 
 		foreach (var ui in _ui)
 		{
-			ui.Render(rc, gameTime);
+			ui.Render(gameTime);
 		}
 	}
 

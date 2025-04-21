@@ -25,7 +25,7 @@ class MapCursor
 	{
 	}
 
-	public void Render(RenderingContext rc, GameTime gameTime, Camera camera)
+	public void Render(IRenderingContext rc, GameTime gameTime, Camera camera)
 	{
 		var mapCursorScreenPosition = camera.WorldToScreen(_position);
 

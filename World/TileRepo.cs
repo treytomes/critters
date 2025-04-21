@@ -11,7 +11,7 @@ class TileRepo
 
 	private Dictionary<int, Tile> _tiles = new();
 
-	public void Load(IResourceManager resources, IEventBus eventBus)
+	public void Load(IResourceManager resources)
 	{
 		var image = resources.Load<Image>("oem437_8.png");
 		var bmp = new Bitmap(image);

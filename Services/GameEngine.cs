@@ -20,11 +20,11 @@ class GameEngine : IGameEngine, IDisposable
 	private readonly IResourceManager _resourceManager;
 	private readonly IEventBus _eventBus;
 	private readonly ILogger<GameEngine> _logger;
+	private readonly IVirtualDisplay _display;
+	private readonly IRenderingContext _renderingContext;
 	private GameWindow? _window;
-	private VirtualDisplay? _display;
-	private RenderingContext? _renderingContext;
 	private MouseCursor? _mouseCursor;
-	private GameStateManager? _stateManager;
+	private IGameStateManager _stateManager;
 	private GameTime _renderGameTime = new();
 	private GameTime _updateGameTime = new();
 
@@ -33,14 +33,22 @@ class GameEngine : IGameEngine, IDisposable
 	#region Constructors
 
 	public GameEngine(
+		GameWindow window,
 		IOptions<AppSettings> settings,
 		IResourceManager resourceManager,
 		IEventBus eventBus,
+		IVirtualDisplay display,
+		IRenderingContext renderingContext,
+		IGameStateManager stateManager,
 		ILogger<GameEngine> logger)
 	{
+		_window = window;
 		_settings = settings.Value;
 		_resourceManager = resourceManager;
 		_eventBus = eventBus;
+		_display = display;
+		_renderingContext = renderingContext;
+		_stateManager = stateManager;
 		_logger = logger;
 	}
 
@@ -52,7 +60,7 @@ class GameEngine : IGameEngine, IDisposable
 	{
 		try
 		{
-			InitializeWindow();
+			SetupWindowEvents();
 			InitializeResources();
 
 			// Register a cancellation handler  
@@ -69,34 +77,15 @@ class GameEngine : IGameEngine, IDisposable
 		}
 	}
 
-	private void InitializeWindow()
-	{
-		var nativeWindowSettings = new NativeWindowSettings()
-		{
-			ClientSize = new Vector2i(_settings.Window.Width, _settings.Window.Height),
-			Title = _settings.Window.Title,
-			Profile = ContextProfile.Core,
-			APIVersion = new Version(4, 5),
-			WindowState = _settings.Window.Fullscreen ? WindowState.Fullscreen : WindowState.Normal
-		};
-
-		_window = new GameWindow(GameWindowSettings.Default, nativeWindowSettings);
-		_display = new VirtualDisplay(_window.ClientSize, _settings.VirtualDisplay);
-		_renderingContext = new RenderingContext(_display);
-
-		SetupWindowEvents();
-	}
-
 	private void InitializeResources()
 	{
 		_resourceManager.Register<Image, ImageLoader>();
 
-		_mouseCursor = new MouseCursor();
-		_mouseCursor.Load(_resourceManager, _eventBus);
+		_mouseCursor = new MouseCursor(_resourceManager, _eventBus, _renderingContext);
+		_mouseCursor.Load();
 
-		_stateManager = new GameStateManager();
-		_stateManager.Load(_resourceManager, _eventBus);
-		_stateManager.EnterState(new MainMenuState());
+		_stateManager.Load();
+		_stateManager.EnterState(new MainMenuState(_resourceManager, _eventBus, _renderingContext));
 	}
 
 	private void SetupWindowEvents()
@@ -125,8 +114,8 @@ class GameEngine : IGameEngine, IDisposable
 
 	private void HandleWindowClosing(CancelEventArgs e)
 	{
-		_stateManager?.Unload(_resourceManager, _eventBus);
-		_mouseCursor?.Unload(_resourceManager, _eventBus);
+		_stateManager?.Unload();
+		_mouseCursor?.Unload();
 	}
 
 	private void HandleFocusedChanged(FocusedChangedEventArgs e)
@@ -254,10 +243,10 @@ class GameEngine : IGameEngine, IDisposable
 
 		if (_stateManager.HasState)
 		{
-			_stateManager.Render(_renderingContext, _renderGameTime);
+			_stateManager.Render(_renderGameTime);
 		}
 
-		_mouseCursor.Render(_renderingContext, _renderGameTime);
+		_mouseCursor.Render(_renderGameTime);
 
 		_renderingContext.Present();
 		_display.Render(); // Render the virtual display  

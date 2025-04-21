@@ -21,10 +21,10 @@ class FloatingConwayLifeState : GameState
 
 	#region Constructors
 
-	public FloatingConwayLifeState()
-		: base()
+	public FloatingConwayLifeState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
+		: base(resources, eventBus, rc)
 	{
-		UI.Add(new Label(() => _sim?.CAType ?? "N/A", new Vector2(0, 0), new RadialColor(5, 5, 5)));
+		UI.Add(new Label(null, resources, eventBus, rc, () => _sim?.CAType ?? "N/A", new Vector2(0, 0), new RadialColor(5, 5, 5)));
 	}
 
 	#endregion
@@ -35,45 +35,45 @@ class FloatingConwayLifeState : GameState
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 	}
 
-	public override void AcquireFocus(IEventBus eventBus)
+	public override void AcquireFocus()
 	{
-		base.AcquireFocus(eventBus);
+		base.AcquireFocus();
 
-		eventBus.Subscribe<KeyEventArgs>(OnKey);
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Subscribe<KeyEventArgs>(OnKey);
+		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
-	public override void LostFocus(IEventBus eventBus)
+	public override void LostFocus()
 	{
-		eventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
+		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
 
-		base.LostFocus(eventBus);
+		base.LostFocus();
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
 		if (_sim == null)
 		{
-			_sim = new ConwayLifeSim(rc.Width, rc.Height);
+			_sim = new ConwayLifeSim(RC.Width, RC.Height);
 			_sim.Randomize();
 		}
 
-		_sim.Render(rc);
+		_sim.Render(RC);
 
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 	}
 
 	public override void Update(GameTime gameTime)

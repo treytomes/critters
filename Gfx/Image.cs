@@ -30,13 +30,13 @@ class Image : IImage<Image, byte>
 		Width = width * scale;
 		Height = height * scale;
 		Data = new byte[Width * Height];
-		
+
 		for (var y = 0; y < height; y++)
 		{
 			for (var x = 0; x < width; x++)
 			{
 				var color = data[y * width + x];
-				
+
 				for (var sy = 0; sy < scale; sy++)
 				{
 					for (var sx = 0; sx < scale; sx++)
@@ -102,7 +102,7 @@ class Image : IImage<Image, byte>
 	// 		{
 	// 			break;
 	// 		}
-			
+
 	// 		Array.Copy(Data, srcIndex, rc.Data, dstIndex, len);
 	// 		srcIndex += len;
 	// 		dstIndex += rc.Width * BPP;
@@ -110,7 +110,7 @@ class Image : IImage<Image, byte>
 	// }
 
 
-	public void Render(RenderingContext rc, Vector2 position)
+	public void Render(IRenderingContext rc, Vector2 position)
 	{
 		Render(rc, (int)position.X, (int)position.Y);
 	}
@@ -118,7 +118,7 @@ class Image : IImage<Image, byte>
 	/// <summary>
 	/// A value of 255 in either color indicates transparent.
 	/// </summary>
-	public void Render(RenderingContext rc, int x, int y)
+	public void Render(IRenderingContext rc, int x, int y)
 	{
 		for (var dy = 0; dy < Height; dy++)
 		{

@@ -36,13 +36,13 @@ class Bitmap : IImage<Bitmap, bool>
 		Width = image.Width * scale;
 		Height = image.Height * scale;
 		Data = new bool[Width * Height];
-		
+
 		for (var y = 0; y < image.Height; y++)
 		{
 			for (var x = 0; x < image.Width; x++)
 			{
 				var color = image.GetPixel(x, y);
-				
+
 				for (var sy = 0; sy < scale; sy++)
 				{
 					for (var sx = 0; sx < scale; sx++)
@@ -69,13 +69,13 @@ class Bitmap : IImage<Bitmap, bool>
 		Width = image.Width * scale;
 		Height = image.Height * scale;
 		Data = new bool[Width * Height];
-		
+
 		for (var y = 0; y < image.Height; y++)
 		{
 			for (var x = 0; x < image.Width; x++)
 			{
 				var color = image.GetPixel(x, y);
-				
+
 				for (var sy = 0; sy < scale; sy++)
 				{
 					for (var sx = 0; sx < scale; sx++)
@@ -119,12 +119,12 @@ class Bitmap : IImage<Bitmap, bool>
 
 	#region Methods
 
-	public void Render(RenderingContext rc, Vector2 position, RadialColor fgColor, RadialColor bgColor)
+	public void Render(IRenderingContext rc, Vector2 position, RadialColor fgColor, RadialColor bgColor)
 	{
 		Render(rc, position, fgColor.Index, bgColor.Index);
 	}
 
-	public void Render(RenderingContext rc, Vector2 position, byte fgColor, byte bgColor)
+	public void Render(IRenderingContext rc, Vector2 position, byte fgColor, byte bgColor)
 	{
 		Render(rc, (int)position.X, (int)position.Y, fgColor, bgColor);
 	}
@@ -133,7 +133,7 @@ class Bitmap : IImage<Bitmap, bool>
 	/// Render a bitmap with the set foreground and background colors.
 	/// A value of 255 in either color indicates transparent.
 	/// </summary>
-	public void Render(RenderingContext rc, int x, int y, byte fgColor, byte bgColor)
+	public void Render(IRenderingContext rc, int x, int y, byte fgColor, byte bgColor)
 	{
 		for (var dy = 0; dy < Height; dy++)
 		{

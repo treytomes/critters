@@ -40,13 +40,8 @@ class Button : ContentPresenter
 
 	#region Constructors
 
-	public Button(Vector2 position, ButtonStyle style = ButtonStyle.Raised)
-		: this(null, position, style)
-	{
-	}
-
-	public Button(UIElement? parent, Vector2 position, ButtonStyle style = ButtonStyle.Raised)
-		: base(parent)
+	public Button(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, ButtonStyle style = ButtonStyle.Raised)
+		: base(parent, resources, eventBus, rc)
 	{
 		Position = position;
 		if (_style == ButtonStyle.Flat)
@@ -70,72 +65,73 @@ class Button : ContentPresenter
 
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 
 		if (Content != null)
 		{
-			Content.Load(resources, eventBus);
+			Content.Load();
 		}
 
-		eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		eventBus.Subscribe<MouseButtonEventArgs>(OnMouseClick);
+		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseClick);
 	}
 
-	public override void Unload(IResourceManager resources, IEventBus eventBus)
+	public override void Unload()
 	{
-		base.Unload(resources, eventBus);
+		base.Unload();
 
-		eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseClick);
 	}
 
-	protected override void RenderSelf(RenderingContext rc, GameTime gameTime)
+	protected override void RenderSelf(GameTime gameTime)
 	{
 		if (_style == ButtonStyle.Flat)
 		{
-			RenderFlat(rc, gameTime);
+			RenderFlat(gameTime);
 		}
 		else if (_style == ButtonStyle.Raised)
 		{
-			RenderRaised(rc, gameTime);
+			RenderRaised(gameTime);
 		}
 
-		Content?.Render(rc, gameTime);
+		Content?.Render(gameTime);
 	}
 
-	private void RenderFlat(RenderingContext rc, GameTime gameTime)
+	private void RenderFlat(GameTime gameTime)
 	{
-		var color = rc.Palette[2, 2, 2];
+		var color = RC.Palette[2, 2, 2];
 		if (_hasMouseFocus)
 		{
-			color = rc.Palette[4, 4, 4];
+			color = RC.Palette[4, 4, 4];
 		}
 		else if (_hasMouseHover)
 		{
-			color = rc.Palette[3, 3, 3];
+			color = RC.Palette[3, 3, 3];
 		}
-		rc.RenderFilledRect(AbsoluteBounds, color);
+		RC.RenderFilledRect(AbsoluteBounds, color);
 	}
 
-	private void RenderRaised(RenderingContext rc, GameTime gameTime)
+	private void RenderRaised(GameTime gameTime)
 	{
 		if (!_hasMouseFocus)
 		{
 			// Render the drop-shadow.
-			rc.RenderFilledRect(AbsoluteBounds.Min + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), AbsoluteBounds.Max + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), 0);
+			RC.RenderFilledRect(AbsoluteBounds.Min + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), AbsoluteBounds.Max + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), 0);
 		}
 
-		var color = rc.Palette[2, 2, 2];
+		var color = RC.Palette[2, 2, 2];
 		if (_hasMouseFocus)
 		{
-			color = rc.Palette[4, 4, 4];
+			color = RC.Palette[4, 4, 4];
 		}
 		else if (_hasMouseHover)
 		{
-			color = rc.Palette[3, 3, 3];
+			color = RC.Palette[3, 3, 3];
 		}
-		rc.RenderFilledRect(AbsoluteBounds, color);
+		RC.RenderFilledRect(AbsoluteBounds, color);
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")

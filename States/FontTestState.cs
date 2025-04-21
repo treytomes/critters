@@ -12,26 +12,35 @@ class FontTestState : GameState
 
 	#endregion
 
+	#region Constructors
+
+	public FontTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
+		: base(resources, eventBus, rc)
+	{
+	}
+
+	#endregion
+
 	#region Methods
 
-	public override void Load(IResourceManager resources, IEventBus eventBus)
+	public override void Load()
 	{
-		base.Load(resources, eventBus);
+		base.Load();
 
-		var image = resources.Load<Image>("oem437_8.png");
+		var image = Resources.Load<Image>("oem437_8.png");
 		_tiles = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
 		_font = new Font(_tiles);
 	}
 
-	public override void Render(RenderingContext rc, GameTime gameTime)
+	public override void Render(GameTime gameTime)
 	{
-		base.Render(rc, gameTime);
+		base.Render(gameTime);
 
-		rc.Fill(rc.Palette[1, 1, 0]);
+		RC.Fill(RC.Palette[1, 1, 0]);
 
-		_tiles?[1].Render(rc, 100, 100, rc.Palette[5, 5, 5], 255);
+		_tiles?[1].Render(RC, 100, 100, RC.Palette[5, 5, 5], 255);
 
-		_font?.WriteString(rc, "Hello world!", 150, 120, rc.Palette[5, 4, 3], rc.Palette[0, 0, 0]);
+		_font?.WriteString(RC, "Hello world!", 150, 120, RC.Palette[5, 4, 3], RC.Palette[0, 0, 0]);
 	}
 
 	#endregion

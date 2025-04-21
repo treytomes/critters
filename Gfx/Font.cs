@@ -21,17 +21,17 @@ class Font
 
 	#region Methods
 
-	public void WriteString(RenderingContext rc, string text, Vector2 position, RadialColor fg, RadialColor? bg = null)
+	public void WriteString(IRenderingContext rc, string text, Vector2 position, RadialColor fg, RadialColor? bg = null)
 	{
 		WriteString(rc, text, (int)position.X, (int)position.Y, fg.Index, bg?.Index ?? 255);
 	}
 
-	public void WriteString(RenderingContext rc, string text, Vector2 position, byte fg, byte bg = 255)
+	public void WriteString(IRenderingContext rc, string text, Vector2 position, byte fg, byte bg = 255)
 	{
 		WriteString(rc, text, (int)position.X, (int)position.Y, fg, bg);
 	}
 
-	public void WriteString(RenderingContext rc, string text, int x, int y, byte fg, byte bg = 255)
+	public void WriteString(IRenderingContext rc, string text, int x, int y, byte fg, byte bg = 255)
 	{
 		for (int i = 0; i < text.Length; i++)
 		{
