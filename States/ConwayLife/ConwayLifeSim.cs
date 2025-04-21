@@ -3,7 +3,7 @@ using OpenTK.Mathematics;
 
 namespace Critters.States.ConwayLife;
 
-class ConwayLifeSim
+class ConwayLifeSim : IDisposable
 {
 	#region Constants
 
@@ -15,16 +15,28 @@ class ConwayLifeSim
 	#region Fields
 
 	private ICellularAutomata _shader;
+	private readonly SimulationConfig _config;
+	private bool _disposedValue;
+
+	// Predefined patterns
+	private static readonly bool[,] GLIDER = new bool[3, 3]
+	{
+		{ false, true, false },
+		{ false, false, true },
+		{ true, true, true }
+	};
 
 	#endregion
 
 	#region Constructors
 
-	public ConwayLifeSim(int width, int height)
+	public ConwayLifeSim(int width, int height, SimulationConfig? config = null)
 	{
 		Width = width;
 		Height = height;
+		_config = config ?? new SimulationConfig();
 		_shader = new ConwayLifeSimCPU(width, height);
+		_shader.Configure(_config);
 	}
 
 	#endregion
@@ -47,14 +59,7 @@ class ConwayLifeSim
 		{
 			for (var x = 0; x < Width; x++)
 			{
-				if (_shader[y, x])
-				{
-					rc.SetPixel(new Vector2(x, y), ON_COLOR);
-				}
-				else
-				{
-					rc.SetPixel(new Vector2(x, y), OFF_COLOR);
-				}
+				rc.SetPixel(new Vector2(x, y), _shader[y, x] ? ON_COLOR : OFF_COLOR);
 			}
 		}
 	}
@@ -71,6 +76,17 @@ class ConwayLifeSim
 			for (var x = 0; x < Width; x++)
 			{
 				_shader[y, x] = Random.Shared.Next(2) == 0;
+			}
+		}
+	}
+
+	public void Clear()
+	{
+		for (var y = 0; y < Height; y++)
+		{
+			for (var x = 0; x < Width; x++)
+			{
+				_shader[y, x] = false;
 			}
 		}
 	}
@@ -101,20 +117,98 @@ class ConwayLifeSim
 		return _shader[y, x];
 	}
 
+	public void PlacePattern(Vector2 position)
+	{
+		int centerX = (int)position.X;
+		int centerY = (int)position.Y;
+
+		// Place a glider pattern
+		int patternHeight = GLIDER.GetLength(0);
+		int patternWidth = GLIDER.GetLength(1);
+
+		int startY = centerY - patternHeight / 2;
+		int startX = centerX - patternWidth / 2;
+
+		for (int y = 0; y < patternHeight; y++)
+		{
+			for (int x = 0; x < patternWidth; x++)
+			{
+				int targetY = startY + y;
+				int targetX = startX + x;
+
+				if (targetX >= 0 && targetX < Width && targetY >= 0 && targetY < Height)
+				{
+					_shader[targetY, targetX] = GLIDER[y, x];
+				}
+			}
+		}
+	}
+
 	public void SwapGenerators()
 	{
+		ICellularAutomata newShader;
+
 		if (_shader is ConwayLifeSimComputeShader)
 		{
-			var newShader = new ConwayLifeSimCPU(Width, Height);
-			_shader.CopyTo(newShader);
-			_shader = newShader;
+			newShader = new ConwayLifeSimCPU(Width, Height);
 		}
 		else
 		{
-			var newShader = new ConwayLifeSimComputeShader(Width, Height);
-			_shader.CopyTo(newShader);
-			_shader = newShader;
+			try
+			{
+				newShader = new ConwayLifeSimComputeShader(Width, Height);
+			}
+			catch (Exception ex)
+			{
+				// If compute shader creation fails, fall back to CPU
+				Console.WriteLine($"Failed to create compute shader: {ex.Message}");
+				return;
+			}
 		}
+
+		// Configure the new shader with current settings
+		newShader.Configure(_config);
+
+		// Copy the current state to the new shader
+		_shader.CopyTo(newShader);
+
+		// Dispose the old shader if it's disposable
+		if (_shader is IDisposable disposable)
+		{
+			disposable.Dispose();
+		}
+
+		_shader = newShader;
+	}
+
+	public void Configure(SimulationConfig config)
+	{
+		_config.UpdatesPerSecond = config.UpdatesPerSecond;
+		_config.WrapEdges = config.WrapEdges;
+		_shader.Configure(_config);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if (!_disposedValue)
+		{
+			if (disposing)
+			{
+				// Dispose managed resources
+				if (_shader is IDisposable disposable)
+				{
+					disposable.Dispose();
+				}
+			}
+
+			_disposedValue = true;
+		}
+	}
+
+	public void Dispose()
+	{
+		Dispose(disposing: true);
+		GC.SuppressFinalize(this);
 	}
 
 	#endregion

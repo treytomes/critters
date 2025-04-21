@@ -47,7 +47,6 @@ class MouseCursor : IGameComponent
 			return;
 		}
 		_image?.Render(_renderingContext, (int)_position.X, (int)_position.Y);
-		Console.WriteLine("Mouse drawn!");
 	}
 
 	public void Update(GameTime gameTime)

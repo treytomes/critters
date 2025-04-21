@@ -1,5 +1,6 @@
 using Critters.Gfx;
 using OpenTK.Graphics.OpenGL4;
+using System;
 
 namespace Critters.States.ConwayLife;
 
@@ -7,101 +8,14 @@ class ConwayLifeSimComputeShader : ICellularAutomata, IDisposable
 {
 	#region Constants
 
+	// Make workgroup size adaptive based on grid dimensions
 	private const int WORKGROUP_SIZE_X = 16;
 	private const int WORKGROUP_SIZE_Y = 16;
 	private const int WORKGROUP_SIZE_Z = 1;
 
 	private const string NAME_WIDTH = "width";
 	private const string NAME_HEIGHT = "height";
-
-	private static readonly string SHADER_SOURCE = @$"
-#version 430 core
-
-// Define work group size.
-layout(local_size_x = {WORKGROUP_SIZE_X}, local_size_y = {WORKGROUP_SIZE_Y}, local_size_z = {WORKGROUP_SIZE_Z}) in;
-
-// Input buffer containing current cell states (1.0 = alive, 0.0 = dead).
-layout(std430, binding = 0) buffer CellBuffer {{
-	vec4 cells[];
-}};
-
-// Output buffer for next generation.
-layout(std430, binding = 1) buffer NextGenBuffer {{
-	vec4 nextGen[];
-}};
-
-// Grid dimensions as uniform variables.
-uniform int {NAME_WIDTH};
-uniform int {NAME_HEIGHT};
-
-// Helper function to get cell state (1.0 = alive, 0.0 = dead).
-float getCellState(int x, int y) {{
-	// Handle wrap-around edges (toroidal grid).
-	x = (x + {NAME_WIDTH}) % {NAME_WIDTH};
-	y = (y + {NAME_HEIGHT}) % {NAME_HEIGHT};
-	
-	// Calculate buffer index.
-	uint index = uint(x + y * {NAME_WIDTH});
-	
-	// The cell state is stored in the x component of the vec4.
-	return cells[index].x;
-}}
-
-void main() {{
-	// Get global position.
-	uint x = gl_GlobalInvocationID.x;
-	uint y = gl_GlobalInvocationID.y;
-	
-	// Skip computation if outside grid bounds.
-	if (x >= {NAME_WIDTH} || y >= {NAME_HEIGHT}) {{
-		return;
-	}}
-	
-	// Calculate index in the buffer.
-	uint index = x + y * {NAME_WIDTH};
-	
-	// Get current cell state.
-	float currentState = getCellState(int(x), int(y));
-	
-	// Count live neighbors.
-	float liveNeighbors = 0.0;
-	for (int dy = -1; dy <= 1; dy++) {{
-		for (int dx = -1; dx <= 1; dx++) {{
-			// Skip the cell itself.
-			if (dx == 0 && dy == 0) continue;
-			
-			// Add the state of this neighbor.
-			liveNeighbors += getCellState(int(x) + dx, int(y) + dy);
-		}}
-	}}
-	
-	// Apply Conway's Game of Life rules.
-	float newState = 0.0;
-	
-	if (currentState > 0.5) {{
-		// Cell is currently alive.
-		if (liveNeighbors < 2.0 || liveNeighbors > 3.0) {{
-			// Dies from underpopulation or overpopulation.
-			newState = 0.0;
-		}} else {{
-			// Stays alive.
-			newState = 1.0;
-		}}
-	}} else {{
-		// Cell is currently dead.
-		if (liveNeighbors == 3.0) {{
-			// Becomes alive through reproduction.
-			newState = 1.0;
-		}} else {{
-			// Stays dead.
-			newState = 0.0;
-		}}
-	}}
-	
-	// Update the output buffer.
-	nextGen[index] = vec4(newState, 0.0, 0.0, 1.0);
-}}
-";
+	private const string NAME_WRAP_EDGES = "wrapEdges";
 
 	#endregion
 
@@ -112,6 +26,7 @@ void main() {{
 	private ShaderBuffer<float> _currentStateSSBO;
 	private ShaderBuffer<float> _nextStateSSBO;
 	private bool _disposedValue;
+	private bool _wrapEdges = true;
 
 	#endregion
 
@@ -119,23 +34,41 @@ void main() {{
 
 	public ConwayLifeSimComputeShader(int width, int height)
 	{
-		Width = width;
-		Height = height;
-		_cellData = new float[4 * Width * Height];
+		try
+		{
+			Width = width;
+			Height = height;
+			_cellData = new float[4 * Width * Height];
 
-		_computeProgram = ShaderProgram.ForCompute(SHADER_SOURCE);
+			// Check if compute shaders are supported
+			int majorVersion = GL.GetInteger(GetPName.MajorVersion);
+			int minorVersion = GL.GetInteger(GetPName.MinorVersion);
 
-		// Create and compile the compute shader
-		using var computeShader = new Shader(ShaderType.ComputeShader, SHADER_SOURCE);
+			if (majorVersion < 4 || (majorVersion == 4 && minorVersion < 3))
+			{
+				throw new NotSupportedException("Compute shaders require OpenGL 4.3 or higher.");
+			}
 
-		// Create and bind two SSBOs
-		_currentStateSSBO = new ShaderBuffer<float>(4 * Width * Height, 0);
-		_nextStateSSBO = new ShaderBuffer<float>(4 * Width * Height, 1);
+			// Create compute shader program
+			var shaderSource = File.ReadAllText("assets/shaders/compute/conway.glsl");
+			_computeProgram = ShaderProgram.ForCompute(shaderSource);
 
-		// Set uniform variables.
-		// Width and height are readonly, so we should only need to do this once.
-		_computeProgram.GetUniform1(NAME_WIDTH).Set(width);
-		_computeProgram.GetUniform1(NAME_HEIGHT).Set(height);
+			// Create and bind two SSBOs
+			_currentStateSSBO = new ShaderBuffer<float>(4 * Width * Height, 0);
+			_nextStateSSBO = new ShaderBuffer<float>(4 * Width * Height, 1);
+
+			// Set uniform variables
+			_computeProgram.Use();
+			_computeProgram.GetUniform1(NAME_WIDTH).Set(width);
+			_computeProgram.GetUniform1(NAME_HEIGHT).Set(height);
+			_computeProgram.GetUniform1(NAME_WRAP_EDGES).Set(_wrapEdges);
+		}
+		catch (Exception ex)
+		{
+			// Clean up any resources that were created before the exception
+			Dispose(true);
+			throw new Exception($"Failed to initialize compute shader: {ex.Message}", ex);
+		}
 	}
 
 	#endregion
@@ -176,30 +109,47 @@ void main() {{
 
 	public void Step()
 	{
-    // Use the compute shader program.
-		_computeProgram.Use();
+		try
+		{
+			// Use the compute shader program
+			_computeProgram.Use();
 
-		_currentStateSSBO.Set(_cellData);
+			// Update the current state buffer
+			_currentStateSSBO.Set(_cellData);
 
-    // Make sure uniforms are set (might be necessary to set every frame).
-		_computeProgram.GetUniform1(NAME_WIDTH).Set(Width);
-		_computeProgram.GetUniform1(NAME_HEIGHT).Set(Height);
+			// Set uniform for wrap edges (might change during runtime)
+			_computeProgram.GetUniform1(NAME_WRAP_EDGES).Set(_wrapEdges);
 
-    // Run the compute shader.
-    GL.DispatchCompute(Width / WORKGROUP_SIZE_X, Height / WORKGROUP_SIZE_Y, WORKGROUP_SIZE_Z);
-    GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
+			// Calculate dispatch dimensions - ensure we cover the entire grid
+			int dispatchX = (Width + WORKGROUP_SIZE_X - 1) / WORKGROUP_SIZE_X;
+			int dispatchY = (Height + WORKGROUP_SIZE_Y - 1) / WORKGROUP_SIZE_Y;
 
-    // Read back data from the OUTPUT buffer (before swapping).
-		_cellData = _nextStateSSBO.Get();
+			// Run the compute shader
+			GL.DispatchCompute(dispatchX, dispatchY, WORKGROUP_SIZE_Z);
+			GL.MemoryBarrier(MemoryBarrierFlags.ShaderStorageBarrierBit);
 
-    // Swap buffers for next iteration.
-    var temp = _currentStateSSBO;
-    _currentStateSSBO = _nextStateSSBO;
-    _nextStateSSBO = temp;
+			// Read back data from the output buffer
+			_cellData = _nextStateSSBO.Get();
 
-    // Update binding points after swapping.
-		_currentStateSSBO.BaseIndex = 0;
-		_nextStateSSBO.BaseIndex = 1;
+			// Swap buffers for next iteration
+			var temp = _currentStateSSBO;
+			_currentStateSSBO = _nextStateSSBO;
+			_nextStateSSBO = temp;
+
+			// Update binding points after swapping
+			_currentStateSSBO.BaseIndex = 0;
+			_nextStateSSBO.BaseIndex = 1;
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Error in compute shader execution: {ex.Message}");
+			// Continue with previous state
+		}
+	}
+
+	public void Configure(SimulationConfig config)
+	{
+		_wrapEdges = config.WrapEdges;
 	}
 
 	protected virtual void Dispose(bool disposing)
@@ -208,10 +158,10 @@ void main() {{
 		{
 			if (disposing)
 			{
-				// Dispose managed state (managed objects).
-				_currentStateSSBO.Dispose();
-				_nextStateSSBO.Dispose();
-				_computeProgram.Dispose();
+				// Dispose managed state (managed objects)
+				_currentStateSSBO?.Dispose();
+				_nextStateSSBO?.Dispose();
+				_computeProgram?.Dispose();
 			}
 
 			_disposedValue = true;
@@ -220,13 +170,11 @@ void main() {{
 
 	~ConwayLifeSimComputeShader()
 	{
-	    // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method.
-	    Dispose(disposing: false);
+		Dispose(disposing: false);
 	}
 
 	void IDisposable.Dispose()
 	{
-		// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method.
 		Dispose(disposing: true);
 		GC.SuppressFinalize(this);
 	}
