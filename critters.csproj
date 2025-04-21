@@ -14,7 +14,8 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="9.0.4" />
-		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.4" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"
+			Version="9.0.4" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="OpenTK" Version="4.9.3" />
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
@@ -37,6 +38,9 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Update="assets/shaders/vertex.glsl">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Update="assets/shaders/compute/particles.glsl">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 
