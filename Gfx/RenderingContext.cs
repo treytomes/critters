@@ -264,50 +264,73 @@ class RenderingContext : IRenderingContext
 	}
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified bounds and color.  
+	/// Renders a rectangle outline with the specified bounds, color, and thickness.  
 	/// </summary>  
 	/// <param name="bounds">The bounds of the rectangle.</param>  
-	/// <param name="color">The color of the outline.</param>  
-	public void RenderRect(Box2 bounds, RadialColor color)
+	/// <param name="color">The color of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	public void RenderRect(Box2 bounds, RadialColor color, float thickness = 1)
 	{
-		RenderRect(bounds, color.Index);
+		RenderRect(bounds, color.Index, thickness);
 	}
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified bounds and palette index.  
+	/// Renders a rectangle outline with the specified bounds, palette index, and thickness.  
 	/// </summary>  
 	/// <param name="bounds">The bounds of the rectangle.</param>  
-	/// <param name="paletteIndex">The palette index of the outline.</param>  
-	public void RenderRect(Box2 bounds, byte paletteIndex)
+	/// <param name="paletteIndex">The palette index of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	public void RenderRect(Box2 bounds, byte paletteIndex, float thickness = 1)
 	{
-		RenderRect(bounds.Min, bounds.Max, paletteIndex);
+		RenderRect(bounds.Min, bounds.Max, paletteIndex, thickness);
 	}
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified corners and palette index.  
+	/// Renders a rectangle outline with the specified corners, palette index, and thickness.  
 	/// </summary>  
 	/// <param name="pnt1">The first corner of the rectangle.</param>  
 	/// <param name="pnt2">The opposite corner of the rectangle.</param>  
-	/// <param name="paletteIndex">The palette index of the outline.</param>  
-	public void RenderRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex)
+	/// <param name="paletteIndex">The palette index of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	public void RenderRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex, float thickness = 1)
 	{
-		RenderRect((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex);
+		RenderRect((int)pnt1.X, (int)pnt1.Y, (int)pnt2.X, (int)pnt2.Y, paletteIndex, thickness);
 	}
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified corners and palette index.  
+	/// Renders a rectangle outline with the specified corners, palette index, and thickness.  
 	/// </summary>  
 	/// <param name="x1">The x-coordinate of the first corner.</param>  
 	/// <param name="y1">The y-coordinate of the first corner.</param>  
 	/// <param name="x2">The x-coordinate of the opposite corner.</param>  
 	/// <param name="y2">The y-coordinate of the opposite corner.</param>  
-	/// <param name="paletteIndex">The palette index of the outline.</param>  
-	public void RenderRect(int x1, int y1, int x2, int y2, byte paletteIndex)
+	/// <param name="paletteIndex">The palette index of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	public void RenderRect(int x1, int y1, int x2, int y2, byte paletteIndex, float thickness = 1)
 	{
-		RenderHLine(x1, x2, y1, paletteIndex);
-		RenderHLine(x1, x2, y2, paletteIndex);
-		RenderVLine(x1, y1, y2, paletteIndex);
-		RenderVLine(x2, y1, y2, paletteIndex);
+		// Ensure x1,y1 is the top-left and x2,y2 is the bottom-right
+		if (x1 > x2)
+		{
+			(x1, x2) = (x2, x1);
+		}
+		if (y1 > y2)
+		{
+			(y1, y2) = (y2, y1);
+		}
+
+		// Calculate the actual thickness (clamped to available space)
+		int thicknessInt = (int)Math.Ceiling(thickness);
+		thicknessInt = Math.Min(thicknessInt, Math.Min((x2 - x1) / 2, (y2 - y1) / 2));
+
+		// Draw multiple concentric rectangles to achieve the desired thickness
+		for (int i = 0; i < thicknessInt; i++)
+		{
+			// Draw the four sides of the rectangle
+			RenderHLine(x1 + i, x2 - i, y1 + i, paletteIndex);  // Top
+			RenderHLine(x1 + i, x2 - i, y2 - i, paletteIndex);  // Bottom
+			RenderVLine(x1 + i, y1 + i + 1, y2 - i - 1, paletteIndex);  // Left
+			RenderVLine(x2 - i, y1 + i + 1, y2 - i - 1, paletteIndex);  // Right
+		}
 	}
 
 	/// <summary>  

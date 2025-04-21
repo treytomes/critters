@@ -130,36 +130,40 @@ interface IRenderingContext : IDisposable
 	public void RenderFilledRect(int x1, int y1, int x2, int y2, byte paletteIndex);
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified bounds and color.  
+	/// Renders a rectangle outline with the specified bounds, color, and thickness.  
 	/// </summary>  
 	/// <param name="bounds">The bounds of the rectangle.</param>  
-	/// <param name="color">The color of the outline.</param>  
-	public void RenderRect(Box2 bounds, RadialColor color);
+	/// <param name="color">The color of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	void RenderRect(Box2 bounds, RadialColor color, float thickness = 1);
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified bounds and palette index.  
+	/// Renders a rectangle outline with the specified bounds, palette index, and thickness.  
 	/// </summary>  
 	/// <param name="bounds">The bounds of the rectangle.</param>  
-	/// <param name="paletteIndex">The palette index of the outline.</param>  
-	public void RenderRect(Box2 bounds, byte paletteIndex);
+	/// <param name="paletteIndex">The palette index of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	void RenderRect(Box2 bounds, byte paletteIndex, float thickness = 1);
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified corners and palette index.  
+	/// Renders a rectangle outline with the specified corners, palette index, and thickness.  
 	/// </summary>  
 	/// <param name="pnt1">The first corner of the rectangle.</param>  
 	/// <param name="pnt2">The opposite corner of the rectangle.</param>  
-	/// <param name="paletteIndex">The palette index of the outline.</param>  
-	public void RenderRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex);
+	/// <param name="paletteIndex">The palette index of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	void RenderRect(Vector2 pnt1, Vector2 pnt2, byte paletteIndex, float thickness = 1);
 
 	/// <summary>  
-	/// Renders a rectangle outline with the specified corners and palette index.  
+	/// Renders a rectangle outline with the specified corners, palette index, and thickness.  
 	/// </summary>  
 	/// <param name="x1">The x-coordinate of the first corner.</param>  
 	/// <param name="y1">The y-coordinate of the first corner.</param>  
 	/// <param name="x2">The x-coordinate of the opposite corner.</param>  
 	/// <param name="y2">The y-coordinate of the opposite corner.</param>  
-	/// <param name="paletteIndex">The palette index of the outline.</param>  
-	public void RenderRect(int x1, int y1, int x2, int y2, byte paletteIndex);
+	/// <param name="paletteIndex">The palette index of the outline.</param>
+	/// <param name="thickness">The thickness of the outline (default is 1).</param>
+	void RenderRect(int x1, int y1, int x2, int y2, byte paletteIndex, float thickness = 1);
 
 	/// <summary>  
 	/// Renders a horizontal line with the specified starting point, length, and palette index.  

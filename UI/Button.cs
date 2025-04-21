@@ -1,4 +1,8 @@
-using System.Runtime.CompilerServices;
+using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Reactive.Disposables;
+using Critters.Core;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.Services;
@@ -8,15 +12,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Critters.UI;
 
-// TODO: Button styles for 3D or Flat.
-
-enum ButtonStyle
-{
-	Flat,
-	Raised,
-}
-
-class Button : ContentPresenter
+class Button : UIElement, IButton
 {
 	#region Constants
 
@@ -24,35 +20,58 @@ class Button : ContentPresenter
 
 	#endregion
 
-	#region Events
+	#region Fields
 
-	public event EventHandler<ButtonClickedEventArgs>? Clicked;
+	/// <summary>
+	/// Sets the visual style of the button.
+	/// </summary>
+	/// <remarks>
+	/// Different button styles have different visual appearances and behaviors:
+	/// - Flat: A simple rectangular button without shadows
+	/// - Raised: A button with a drop shadow that appears to be raised from the surface
+	/// </remarks>
+	private readonly ButtonStyle _style;
+
+	private bool _hasMouseHover = false;
+	private bool _hasMouseFocus = false;
+	private UIElement? _content;
+	private readonly Subject<ButtonClickedEventArgs> _clickedSubject = new();
+	private readonly CompositeDisposable _contentSubscriptions = new();
 
 	#endregion
 
-	#region Fields
+	#region Observables
 
-	private readonly ButtonStyle _style;
-	private bool _hasMouseHover = false;
-	private bool _hasMouseFocus = false;
+	public IObservable<ButtonClickedEventArgs> ClickEvents => _clickedSubject.AsObservable();
 
 	#endregion
 
 	#region Constructors
 
-	public Button(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, ButtonStyle style = ButtonStyle.Raised)
-		: base(parent, resources, eventBus, rc)
+	public Button(IResourceManager resources, IRenderingContext rc, ButtonStyle style = ButtonStyle.Raised)
+		: base(resources, rc)
 	{
-		Position = position;
+		_style = style;
+
 		if (_style == ButtonStyle.Flat)
 		{
 			Padding = new(3, 1, 0, 0);
 		}
 		else
 		{
-			Padding = new(8, 10, 8, 10);
+			// Padding = new(8, 10, 8, 10);
+			Padding = new(3, 2, 3, 1);
 		}
-		_style = style;
+
+		// Clean up subscriptions and subjects when disposed
+		DisposalEvents.Subscribe(e =>
+		{
+			if (e.Stage == DisposalStage.Started)
+			{
+				_clickedSubject.OnCompleted();
+				_contentSubscriptions.Dispose();
+			}
+		});
 	}
 
 	#endregion
@@ -61,33 +80,81 @@ class Button : ContentPresenter
 
 	public object? Metadata { get; set; } = null;
 
+	public UIElement? Content
+	{
+		get => _content;
+		set
+		{
+			ThrowIfDisposed();
+
+			if (_content == value)
+				return;
+
+			// Clear existing subscriptions
+			_contentSubscriptions.Clear();
+
+			// Remove old content
+			if (_content != null)
+			{
+				RemoveChild(_content);
+			}
+
+			_content = value;
+
+			// Add new content
+			if (_content != null)
+			{
+				AddChild(_content);
+
+				// Subscribe to content size changes
+				_content.SizeChanged
+					.Subscribe(newSize => UpdateContentSize())
+					.AddTo(_contentSubscriptions);
+
+				// Also subscribe to content's position changes as they might affect layout
+				_content.WhenPropertyChanges(nameof(Position), c => c.Position)
+					.Subscribe(_ => UpdateContentSize())
+					.AddTo(_contentSubscriptions);
+
+				// Subscribe to content's padding changes
+				_content.WhenPropertyChanges(nameof(Padding), c => c.Padding)
+					.Subscribe(_ => UpdateContentSize())
+					.AddTo(_contentSubscriptions);
+
+				// Initial size update
+				UpdateContentSize();
+			}
+			else
+			{
+				ContentSize = Vector2.Zero;
+			}
+
+			OnPropertyChanged();
+		}
+	}
+
 	#endregion
 
 	#region Methods
 
-	public override void Load()
+	/// <summary>
+	/// Updates the button's content size based on its content element
+	/// </summary>
+	private void UpdateContentSize()
 	{
-		base.Load();
-
-		if (Content != null)
+		if (_content != null && !IsDisposed && !_content.IsDisposed)
 		{
-			Content.Load();
+			ContentSize = _content.Size;
 		}
-
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseClick);
 	}
 
-	public override void Unload()
+	public override void Render(GameTime gameTime)
 	{
-		base.Unload();
+		ThrowIfDisposed();
 
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseClick);
-	}
+		if (!IsVisible)
+			return;
 
-	protected override void RenderSelf(GameTime gameTime)
-	{
 		if (_style == ButtonStyle.Flat)
 		{
 			RenderFlat(gameTime);
@@ -97,7 +164,8 @@ class Button : ContentPresenter
 			RenderRaised(gameTime);
 		}
 
-		Content?.Render(gameTime);
+		// Render children (including content)
+		base.Render(gameTime);
 	}
 
 	private void RenderFlat(GameTime gameTime)
@@ -119,7 +187,11 @@ class Button : ContentPresenter
 		if (!_hasMouseFocus)
 		{
 			// Render the drop-shadow.
-			RC.RenderFilledRect(AbsoluteBounds.Min + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), AbsoluteBounds.Max + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET), 0);
+			RC.RenderFilledRect(
+				AbsoluteBounds.Min + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET),
+				AbsoluteBounds.Max + new Vector2(SHADOW_OFFSET, SHADOW_OFFSET),
+				RC.Palette[0, 0, 0]
+			);
 		}
 
 		var color = RC.Palette[2, 2, 2];
@@ -134,50 +206,71 @@ class Button : ContentPresenter
 		RC.RenderFilledRect(AbsoluteBounds, color);
 	}
 
-	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
-		base.OnPropertyChanged(propertyName);
+		ThrowIfDisposed();
 
-		if (propertyName == nameof(Content))
-		{
-			var contentSize = Content?.Size ?? Vector2.Zero;
-			Size = contentSize + new Vector2(Padding.Left + Padding.Right, Padding.Top + Padding.Bottom);
-		}
-	}
-
-	private void OnMouseMove(MouseMoveEventArgs e)
-	{
+		bool wasHovering = _hasMouseHover;
 		_hasMouseHover = AbsoluteBounds.ContainsInclusive(e.Position);
+
+		// If hover state changed, we need to handle it
+		bool hoverChanged = wasHovering != _hasMouseHover;
+
+		// Process child events first
+		bool childHandled = base.MouseMove(e);
+
+		// Return true if either a child handled it or the hover state changed
+		return childHandled || hoverChanged || _hasMouseHover;
 	}
 
-	private void OnMouseClick(MouseButtonEventArgs e)
+	public override bool MouseDown(MouseButtonEventArgs e)
 	{
+		ThrowIfDisposed();
+
+		if (e.Button == MouseButton.Left && _hasMouseHover)
+		{
+			if (_style == ButtonStyle.Raised)
+			{
+				Margin = new(SHADOW_OFFSET, SHADOW_OFFSET, 0, 0);
+			}
+			_hasMouseFocus = true;
+			return true;
+		}
+
+		return base.MouseDown(e);
+	}
+
+	public override bool MouseUp(MouseButtonEventArgs e)
+	{
+		ThrowIfDisposed();
+
 		if (e.Button == MouseButton.Left)
 		{
-			if (e.Action == InputAction.Press)
+			bool wasClicked = _hasMouseFocus && _hasMouseHover;
+
+			if (_style == ButtonStyle.Raised)
 			{
-				if (_hasMouseHover)
-				{
-					if (_style == ButtonStyle.Raised)
-					{
-						Margin = new(SHADOW_OFFSET, SHADOW_OFFSET, 0, 0);
-					}
-					_hasMouseFocus = true;
-				}
+				Margin = new(0);
 			}
-			else if (e.Action == InputAction.Release)
+
+			_hasMouseFocus = false;
+
+			if (wasClicked)
 			{
-				if (_hasMouseFocus && _hasMouseHover)
-				{
-					Clicked?.Invoke(this, new ButtonClickedEventArgs());
-				}
-				if (_style == ButtonStyle.Raised)
-				{
-					Margin = new(0);
-				}
-				_hasMouseFocus = false;
+				var args = new ButtonClickedEventArgs(Metadata);
+				_clickedSubject.OnNext(args);
+				return true;
 			}
 		}
+
+		return base.MouseUp(e);
+	}
+
+	protected override void DisposeManagedResources()
+	{
+		_clickedSubject.Dispose();
+		_contentSubscriptions.Dispose();
+		base.DisposeManagedResources();
 	}
 
 	#endregion

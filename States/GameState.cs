@@ -1,40 +1,71 @@
+using Critters.Core;
 using Critters.Gfx;
 using Critters.Services;
 using Critters.UI;
+using OpenTK.Windowing.Common;
+using System.ComponentModel;
+using System.Reactive.Subjects;
 
 namespace Critters.States;
 
-abstract class GameState : IGameComponent
+/// <summary>
+/// Base class for all game states that can be managed by the GameStateManager.
+/// Provides common functionality for UI management and state transitions.
+/// </summary>
+abstract class GameState : Disposable, IGameState
 {
 	#region Fields
 
 	private readonly IResourceManager _resources;
-	private readonly IEventBus _eventBus;
 	private readonly IRenderingContext _rc;
+	private readonly Subject<GameStateTransitionRequest> _transitionRequests = new();
 
 	#endregion
 
 	#region Constructors
 
+	/// <summary>
+	/// Initializes a new instance of the <see cref="GameState"/> class.
+	/// </summary>
+	/// <param name="resources">Resource manager for loading assets.</param>
+	/// <param name="rc">Rendering context for drawing.</param>
+	/// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
 	public GameState(
 		IResourceManager resources,
-		IEventBus eventBus,
 		IRenderingContext rc)
 	{
-		_resources = resources;
-		_eventBus = eventBus;
-		_rc = rc;
+		_resources = resources ?? throw new ArgumentNullException(nameof(resources));
+		_rc = rc ?? throw new ArgumentNullException(nameof(rc));
 	}
 
 	#endregion
 
 	#region Properties
 
+	/// <summary>
+	/// Gets an observable sequence of state transition requests.
+	/// </summary>
+	public IObservable<GameStateTransitionRequest> TransitionRequests => _transitionRequests;
+
+	/// <summary>
+	/// Gets a value indicating whether this state currently has focus.
+	/// </summary>
 	protected bool HasFocus { get; private set; }
+
+	/// <summary>
+	/// Gets the resource manager for loading game assets.
+	/// </summary>
 	protected IResourceManager Resources => _resources;
-	protected IEventBus EventBus => _eventBus;
+
+	/// <summary>
+	/// Gets the rendering context for drawing operations.
+	/// </summary>
 	protected IRenderingContext RC => _rc;
-	protected List<UIElement> UI { get; } = new List<UIElement>();
+
+	/// <summary>
+	/// Gets the collection of UI elements in this state.
+	/// </summary>
+	protected List<UIElement> UI { get; } = new();
 
 	#endregion
 
@@ -42,10 +73,8 @@ abstract class GameState : IGameComponent
 
 	/// <summary>
 	/// Called once when this state is first activated.
-	/// Loads all UI elements.  Instantiate your UI before calling this.
+	/// Loads all UI elements. Instantiate your UI before calling this.
 	/// </summary>
-	/// <param name="resources"></param>
-	/// <param name="eventBus"></param>
 	public virtual void Load()
 	{
 		foreach (var ui in UI)
@@ -55,24 +84,31 @@ abstract class GameState : IGameComponent
 	}
 
 	/// <summary>
-	/// Called once when this state so removed.
+	/// Called once when this state is removed.
 	/// Unloads all UI.
 	/// </summary>
-	/// <param name="resources"></param>
-	/// <param name="eventBus"></param>
 	public virtual void Unload()
 	{
 		foreach (var ui in UI)
 		{
 			ui.Unload();
 		}
+
+		// Complete the subject when the state is unloaded
+		try
+		{
+			_transitionRequests.OnCompleted();
+		}
+		catch (Exception)
+		{
+			// Subject might already be completed or disposed
+		}
 	}
 
 	/// <summary>
-	/// Render all UI elements.
+	/// Renders all UI elements.
 	/// </summary>
-	/// <param name="rc"></param>
-	/// <param name="gameTime"></param>
+	/// <param name="gameTime">Timing values for the current frame.</param>
 	public virtual void Render(GameTime gameTime)
 	{
 		foreach (var ui in UI)
@@ -82,9 +118,9 @@ abstract class GameState : IGameComponent
 	}
 
 	/// <summary>
-	/// Update all UI elements.
+	/// Updates all UI elements.
 	/// </summary>
-	/// <param name="gameTime"></param>
+	/// <param name="gameTime">Timing values for the current frame.</param>
 	public virtual void Update(GameTime gameTime)
 	{
 		foreach (var ui in UI)
@@ -95,10 +131,8 @@ abstract class GameState : IGameComponent
 
 	/// <summary>
 	/// Called when this state becomes the active state.
-	/// 
-	/// Attach events here.
+	/// Override to attach event handlers.
 	/// </summary>
-	/// <param name="eventBus"></param>
 	public virtual void AcquireFocus()
 	{
 		HasFocus = true;
@@ -106,23 +140,143 @@ abstract class GameState : IGameComponent
 
 	/// <summary>
 	/// Called when this state is no longer the active state.
-	/// 
-	/// Detach events here.
+	/// Override to detach event handlers.
 	/// </summary>
-	/// <param name="eventBus"></param>
 	public virtual void LostFocus()
 	{
 		HasFocus = false;
 	}
 
+	/// <summary>
+	/// Requests to leave the current state.
+	/// </summary>
 	protected void Leave()
 	{
-		EventBus?.Publish(new LeaveGameStateEventArgs());
+		_transitionRequests.OnNext(new GameStateTransitionRequest(TransitionType.Leave, null));
 	}
 
+	/// <summary>
+	/// Requests to enter a new state.
+	/// </summary>
+	/// <param name="state">The state to enter.</param>
+	/// <exception cref="ArgumentNullException">Thrown when state is null.</exception>
 	protected void Enter(GameState state)
 	{
-		EventBus?.Publish(new EnterGameStateEventArgs(state));
+		if (state == null)
+		{
+			throw new ArgumentNullException(nameof(state));
+		}
+
+		_transitionRequests.OnNext(new GameStateTransitionRequest(TransitionType.Enter, state));
+	}
+
+	/// <summary>
+	/// Requests to clear all states.
+	/// </summary>
+	protected void ClearAllStates()
+	{
+		_transitionRequests.OnNext(new GameStateTransitionRequest(TransitionType.ClearAll, null));
+	}
+
+	/// <summary>
+	/// Disposes resources used by this state.
+	/// </summary>
+	protected override void DisposeManagedResources()
+	{
+		try
+		{
+			// Complete and dispose the subject
+			_transitionRequests.OnCompleted();
+			_transitionRequests.Dispose();
+		}
+		catch (Exception)
+		{
+			// Subject might already be completed or disposed
+		}
+	}
+
+	public virtual bool KeyDown(KeyboardKeyEventArgs e)
+	{
+		foreach (var ui in UI)
+		{
+			if (ui.KeyDown(e))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public virtual bool KeyUp(KeyboardKeyEventArgs e)
+	{
+		foreach (var ui in UI)
+		{
+			if (ui.KeyUp(e))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public virtual bool MouseDown(MouseButtonEventArgs e)
+	{
+		foreach (var ui in UI)
+		{
+			if (ui.MouseDown(e))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public virtual bool MouseUp(MouseButtonEventArgs e)
+	{
+		foreach (var ui in UI)
+		{
+			if (ui.MouseUp(e))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public virtual bool MouseMove(MouseMoveEventArgs e)
+	{
+		foreach (var ui in UI)
+		{
+			if (ui.MouseMove(e))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public virtual bool MouseWheel(MouseWheelEventArgs e)
+	{
+		foreach (var ui in UI)
+		{
+			if (ui.MouseWheel(e))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public virtual bool TextInput(TextInputEventArgs e)
+	{
+		foreach (var ui in UI)
+		{
+			if (ui.TextInput(e))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	#endregion

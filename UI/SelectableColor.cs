@@ -1,4 +1,7 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
+using Critters.Core;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.Services;
@@ -16,10 +19,25 @@ class SelectableColor : UIElement
 
 	#endregion
 
-	#region Events
+	#region Subjects
 
+	private readonly Subject<ButtonClickedEventArgs> _clickedSubject = new();
+	private readonly Subject<MouseWheelEventArgs> _scrolledSubject = new();
+
+	#endregion
+
+	#region Events (Legacy)
+
+	// Kept for backward compatibility
 	public event EventHandler<ButtonClickedEventArgs>? Clicked;
 	public event EventHandler<MouseWheelEventArgs>? Scrolled;
+
+	#endregion
+
+	#region Observables
+
+	public IObservable<ButtonClickedEventArgs> ClickEvents => _clickedSubject.AsObservable();
+	public IObservable<MouseWheelEventArgs> ScrollEvents => _scrolledSubject.AsObservable();
 
 	#endregion
 
@@ -36,14 +54,26 @@ class SelectableColor : UIElement
 
 	#region Constructors
 
-	public SelectableColor(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, RadialColor offsetColor)
-		: base(parent, resources, eventBus, rc)
+	public SelectableColor(IResourceManager resources, IRenderingContext rc, Vector2 position, RadialColor offsetColor)
+		: base(resources, rc)
 	{
 		Position = position;
-		Size = new Vector2(SIZE, SIZE);
-		BaseColor = new RadialColor(0, 0, 0);
-		OffsetColor = offsetColor;
-		DerivedColor = _baseColor + _offsetColor;
+		// Set padding to 0 and content size to SIZE
+		Padding = new Thickness(0);
+		ContentSize = new Vector2(SIZE, SIZE);
+		_baseColor = RadialColor.Black;
+		_offsetColor = offsetColor;
+		_derivedColor = _baseColor + _offsetColor;
+
+		// Setup disposal
+		DisposalEvents.Subscribe(e =>
+		{
+			if (e.Stage == DisposalStage.Started)
+			{
+				_clickedSubject.OnCompleted();
+				_scrolledSubject.OnCompleted();
+			}
+		});
 	}
 
 	#endregion
@@ -52,12 +82,10 @@ class SelectableColor : UIElement
 
 	public RadialColor BaseColor
 	{
-		get
-		{
-			return _baseColor;
-		}
+		get => _baseColor;
 		set
 		{
+			ThrowIfDisposed();
 			if (_baseColor != value)
 			{
 				_baseColor = value;
@@ -68,12 +96,10 @@ class SelectableColor : UIElement
 
 	public RadialColor OffsetColor
 	{
-		get
-		{
-			return _offsetColor;
-		}
+		get => _offsetColor;
 		set
 		{
+			ThrowIfDisposed();
 			if (_offsetColor != value)
 			{
 				_offsetColor = value;
@@ -84,12 +110,10 @@ class SelectableColor : UIElement
 
 	public RadialColor DerivedColor
 	{
-		get
-		{
-			return _derivedColor;
-		}
+		get => _derivedColor;
 		private set
 		{
+			ThrowIfDisposed();
 			if (_derivedColor != value)
 			{
 				_derivedColor = value;
@@ -100,12 +124,10 @@ class SelectableColor : UIElement
 
 	public bool HasMouseHover
 	{
-		get
-		{
-			return _hasMouseHover;
-		}
+		get => _hasMouseHover;
 		private set
 		{
+			ThrowIfDisposed();
 			if (_hasMouseHover != value)
 			{
 				_hasMouseHover = value;
@@ -116,12 +138,10 @@ class SelectableColor : UIElement
 
 	public bool IsFocused
 	{
-		get
-		{
-			return _isFocused;
-		}
+		get => _isFocused;
 		private set
 		{
+			ThrowIfDisposed();
 			if (_isFocused != value)
 			{
 				_isFocused = value;
@@ -132,12 +152,10 @@ class SelectableColor : UIElement
 
 	public bool IsSelected
 	{
-		get
-		{
-			return _isSelected;
-		}
+		get => _isSelected;
 		set
 		{
+			ThrowIfDisposed();
 			if (_isSelected != value)
 			{
 				_isSelected = value;
@@ -152,29 +170,27 @@ class SelectableColor : UIElement
 
 	public override void Load()
 	{
+		ThrowIfDisposed();
 		base.Load();
-
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
-		EventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
 	public override void Unload()
 	{
+		ThrowIfDisposed();
 		base.Unload();
-
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-		EventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
 	}
 
 	public override void Render(GameTime gameTime)
 	{
+		ThrowIfDisposed();
 		base.Render(gameTime);
+
+		if (!IsVisible) return;
 
 		var x = (int)AbsolutePosition.X;
 		var y = (int)AbsolutePosition.Y;
 		var borderColor = Palette.GetIndex(5, 5, 5);
+
 		if (IsSelected)
 		{
 			borderColor = Palette.GetIndex(5, 0, 0);
@@ -185,42 +201,71 @@ class SelectableColor : UIElement
 			borderColor = Palette.GetIndex(5, 3, 0);
 			RC.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
+
 		RC.RenderFilledRect(x + 1, y + 1, (int)(x + Size.X - 1), (int)(y + Size.Y - 1), DerivedColor.Index);
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
-		HasMouseHover = AbsoluteBounds.ContainsInclusive(e.Position);
+		ThrowIfDisposed();
+		HasMouseHover = IsVisible && AbsoluteBounds.ContainsInclusive(e.Position);
+		return false;
 	}
 
-	private void OnMouseButton(MouseButtonEventArgs e)
+	public override bool MouseDown(MouseButtonEventArgs e)
 	{
+		ThrowIfDisposed();
 		if (e.Button == MouseButton.Left)
 		{
-			if (e.IsPressed)
+			if (IsVisible && HasMouseHover)
 			{
-				if (HasMouseHover)
-				{
-					IsFocused = true;
-				}
-			}
-			else
-			{
-				if (IsFocused && HasMouseHover)
-				{
-					Clicked?.Invoke(this, new ButtonClickedEventArgs());
-				}
-				IsFocused = false;
+				IsFocused = true;
+				return true;
 			}
 		}
+		return base.MouseDown(e);
 	}
 
-	private void OnMouseWheel(MouseWheelEventArgs e)
+	public override bool MouseUp(MouseButtonEventArgs e)
 	{
-		if (HasMouseHover)
+		ThrowIfDisposed();
+		if (e.Button == MouseButton.Left)
 		{
-			Scrolled?.Invoke(this, e);
+			if (IsFocused && HasMouseHover)
+			{
+				var args = new ButtonClickedEventArgs();
+				_clickedSubject.OnNext(args);
+				Clicked?.Invoke(this, args);
+				return true;
+			}
+			IsFocused = false;
 		}
+		return base.MouseUp(e);
+	}
+
+	public override bool MouseWheel(MouseWheelEventArgs e)
+	{
+		ThrowIfDisposed();
+		if (IsVisible && HasMouseHover)
+		{
+			_scrolledSubject.OnNext(e);
+			Scrolled?.Invoke(this, e);
+			return true;
+		}
+		return base.MouseWheel(e);
+	}
+
+	public override bool KeyDown(KeyboardKeyEventArgs e)
+	{
+		ThrowIfDisposed();
+		if (IsFocused && (e.Key == Keys.Enter || e.Key == Keys.Space))
+		{
+			var args = new ButtonClickedEventArgs();
+			_clickedSubject.OnNext(args);
+			Clicked?.Invoke(this, args);
+			return true;
+		}
+		return base.KeyDown(e);
 	}
 
 	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
@@ -231,6 +276,23 @@ class SelectableColor : UIElement
 		{
 			DerivedColor = BaseColor + OffsetColor;
 		}
+	}
+
+	#endregion
+
+	#region Disposable Implementation
+
+	protected override void DisposeManagedResources()
+	{
+		// Clear event handlers
+		Clicked = null;
+		Scrolled = null;
+
+		// Dispose subjects
+		_clickedSubject.Dispose();
+		_scrolledSubject.Dispose();
+
+		base.DisposeManagedResources();
 	}
 
 	#endregion

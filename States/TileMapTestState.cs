@@ -1,6 +1,5 @@
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using Critters.States.TileMapTest;
 using Critters.UI;
@@ -20,6 +19,7 @@ class TileMapTestState : GameState
 	private Label _cameraLabel;
 	private Label _mouseLabel;
 	private Button _sampleButton;
+	private IDisposable? _buttonClickSubscription;
 
 	private Camera _camera;
 	private TileRepo _tiles;
@@ -40,22 +40,23 @@ class TileMapTestState : GameState
 
 	#region Constructors
 
-	public TileMapTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public TileMapTestState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 		_camera = new Camera();
 
 		_tiles = new TileRepo();
 		_level = new Level(64, 8);
 
-		_cameraLabel = new Label(null, resources, eventBus, rc, $"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_cameraLabel = new Label(resources, rc, $"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
 
-		_mouseLabel = new Label(null, resources, eventBus, rc, "Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_mouseLabel = new Label(resources, rc, "Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
 
-		_sampleButton = new Button(null, resources, eventBus, rc, new Vector2(32, 32), ButtonStyle.Raised);
-		_sampleButton.Content = new Label(null, resources, eventBus, rc, "> Button <", new Vector2(0, 0), new RadialColor(0, 0, 0));
+		_sampleButton = new Button(resources, rc, ButtonStyle.Raised);
+		_sampleButton.Position = new Vector2(32, 32);
+		_sampleButton.Content = new Label(resources, rc, "> Button <", new Vector2(0, 0), new RadialColor(0, 0, 0));
 		UI.Add(_sampleButton);
 	}
 
@@ -76,6 +77,9 @@ class TileMapTestState : GameState
 
 	public override void Unload()
 	{
+		_buttonClickSubscription?.Dispose();
+		_buttonClickSubscription = null;
+
 		base.Unload();
 	}
 
@@ -83,20 +87,15 @@ class TileMapTestState : GameState
 	{
 		base.AcquireFocus();
 
-		_sampleButton.Clicked += OnButtonClicked;
-
-		EventBus.Subscribe<KeyEventArgs>(OnKey);
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
+		// Subscribe to button click events using Rx
+		_buttonClickSubscription = _sampleButton.ClickEvents.Subscribe(OnButtonClicked);
 	}
 
 	public override void LostFocus()
 	{
-		_sampleButton.Clicked -= OnButtonClicked;
-
-		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
+		// Dispose of the subscription when losing focus
+		_buttonClickSubscription?.Dispose();
+		_buttonClickSubscription = null;
 
 		base.LostFocus();
 	}
@@ -161,12 +160,6 @@ class TileMapTestState : GameState
 				};
 
 				RC.RenderFilledRect(new Box2(screenPos, screenPos + new Vector2(_tileSize, _tileSize)), color.Index);
-
-				// var tileRef = GetTile(tileX, tileY);
-				// if (!tileRef.IsEmpty)
-				// {
-				// 	tiles.Get(tileRef.TileId).Render(rc, screenPos); // Render the tile at the correct screen position.
-				// }
 			}
 		}
 	}
@@ -179,48 +172,48 @@ class TileMapTestState : GameState
 		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})");
 	}
 
-	private void OnKey(KeyEventArgs e)
+	public override bool KeyDown(KeyboardKeyEventArgs e)
 	{
-		if (e.IsPressed)
-		{
-			switch (e.Key)
-			{
-				case Keys.Escape:
-					Leave();
-					break;
-				case Keys.W:
-					_cameraDelta = new Vector2(_cameraDelta.X, -1);
-					break;
-				case Keys.S:
-					_cameraDelta = new Vector2(_cameraDelta.X, 1);
-					break;
-				case Keys.A:
-					_cameraDelta = new Vector2(-1, _cameraDelta.Y);
-					break;
-				case Keys.D:
-					_cameraDelta = new Vector2(1, _cameraDelta.Y);
-					break;
-			}
-		}
-		else
-		{
-			switch (e.Key)
-			{
-				case Keys.W:
-				case Keys.S:
-					_cameraDelta = new Vector2(_cameraDelta.X, 0);
-					break;
-				case Keys.A:
-				case Keys.D:
-					_cameraDelta = new Vector2(0, _cameraDelta.Y);
-					break;
-			}
-		}
-
 		_cameraFastMove = e.Shift;
+		switch (e.Key)
+		{
+			case Keys.Escape:
+				Leave();
+				return true;
+			case Keys.W:
+				_cameraDelta = new Vector2(_cameraDelta.X, -1);
+				return true;
+			case Keys.S:
+				_cameraDelta = new Vector2(_cameraDelta.X, 1);
+				return true;
+			case Keys.A:
+				_cameraDelta = new Vector2(-1, _cameraDelta.Y);
+				return true;
+			case Keys.D:
+				_cameraDelta = new Vector2(1, _cameraDelta.Y);
+				return true;
+		}
+		return base.KeyDown(e);
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool KeyUp(KeyboardKeyEventArgs e)
+	{
+		_cameraFastMove = e.Shift;
+		switch (e.Key)
+		{
+			case Keys.W:
+			case Keys.S:
+				_cameraDelta = new Vector2(_cameraDelta.X, 0);
+				return true;
+			case Keys.A:
+			case Keys.D:
+				_cameraDelta = new Vector2(0, _cameraDelta.Y);
+				return true;
+		}
+		return base.KeyUp(e);
+	}
+
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
 		_mouseLabel.Text = StringProvider.From($"Mouse:({(int)e.Position.X},{(int)e.Position.Y})");
 
@@ -233,17 +226,11 @@ class TileMapTestState : GameState
 		const int TILE_SIZE = 8;
 		var tilePos = (worldPos / TILE_SIZE).Floor();
 		_mapCursor.MoveTo(tilePos * TILE_SIZE);
+		return base.MouseMove(e);
 	}
 
-	private void OnMouseButton(MouseButtonEventArgs e)
-	{
-		if (e.Button == MouseButton.Middle)
-		{
-			_isDraggingCamera = e.IsPressed;
-		}
-	}
-
-	private void OnButtonClicked(object? sender, ButtonClickedEventArgs e)
+	// Changed method signature to accept just the event args
+	private void OnButtonClicked(ButtonClickedEventArgs e)
 	{
 		Console.WriteLine($"Button pressed.");
 		_camera.ScrollBy(new Vector2(8, 0));

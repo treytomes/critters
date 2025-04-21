@@ -81,11 +81,11 @@ class GameEngine : IGameEngine, IDisposable
 	{
 		_resourceManager.Register<Image, ImageLoader>();
 
-		_mouseCursor = new MouseCursor(_resourceManager, _eventBus, _renderingContext);
+		_mouseCursor = new MouseCursor(_resourceManager, _renderingContext);
 		_mouseCursor.Load();
 
 		_stateManager.Load();
-		_stateManager.EnterState(new MainMenuState(_resourceManager, _eventBus, _renderingContext));
+		_stateManager.EnterState(new MainMenuState(_resourceManager, _renderingContext));
 	}
 
 	private void SetupWindowEvents()
@@ -128,21 +128,25 @@ class GameEngine : IGameEngine, IDisposable
 
 	private void HandleKeyDown(KeyboardKeyEventArgs e)
 	{
+		_stateManager.KeyDown(e);
 		_eventBus.Publish(new KeyEventArgs(e.Key, e.ScanCode, e.Modifiers, e.IsRepeat, true));
 	}
 
 	private void HandleKeyUp(KeyboardKeyEventArgs e)
 	{
+		_stateManager.KeyUp(e);
 		_eventBus.Publish(new KeyEventArgs(e.Key, e.ScanCode, e.Modifiers, e.IsRepeat, false));
 	}
 
 	private void HandleMouseDown(MouseButtonEventArgs e)
 	{
+		_stateManager.MouseDown(e);
 		_eventBus.Publish(e);
 	}
 
 	private void HandleMouseUp(MouseButtonEventArgs e)
 	{
+		_stateManager.MouseUp(e);
 		_eventBus.Publish(e);
 	}
 
@@ -166,17 +170,22 @@ class GameEngine : IGameEngine, IDisposable
 			_window.CursorState = CursorState.Hidden;
 		}
 
-		_eventBus.Publish(new MouseMoveEventArgs(position, delta));
+		e = new MouseMoveEventArgs(position, delta);
+
+		_stateManager.MouseMove(e);
+		_mouseCursor?.MouseMove(e);
+		_eventBus.Publish(e);
 	}
 
 	private void HandleMouseWheel(MouseWheelEventArgs e)
 	{
+		_stateManager.MouseWheel(e);
 		_eventBus.Publish(e);
 	}
 
 	private void HandleTextInput(TextInputEventArgs e)
 	{
-		// Implement if text input handling is needed  
+		_stateManager.TextInput(e);
 	}
 
 	private void HandleWindowUnload()
@@ -217,19 +226,23 @@ class GameEngine : IGameEngine, IDisposable
 
 	private void HandleUpdateFrame(FrameEventArgs e)
 	{
-		if (_window == null || _stateManager == null || _mouseCursor == null)
+		if (_window == null)
 		{
 			return;
 		}
 
-		if (!_stateManager.HasState)
+		_updateGameTime = _updateGameTime.Add(e.Time);
+
+		if (_stateManager.HasState)
+		{
+			_stateManager.Update(_updateGameTime);
+		}
+		else
 		{
 			_window.Close();
 		}
 
-		_updateGameTime = _updateGameTime.Add(e.Time);
-		_stateManager.Update(_updateGameTime);
-		_mouseCursor.Update(_updateGameTime);
+		_mouseCursor?.Update(_updateGameTime);
 	}
 
 	private void HandleRenderFrame(FrameEventArgs e)
@@ -247,7 +260,6 @@ class GameEngine : IGameEngine, IDisposable
 		}
 
 		_mouseCursor.Render(_renderGameTime);
-
 		_renderingContext.Present();
 		_display.Render(); // Render the virtual display  
 		_window.SwapBuffers();

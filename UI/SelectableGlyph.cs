@@ -1,3 +1,6 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using Critters.Core;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.Services;
@@ -8,10 +11,24 @@ namespace Critters.UI;
 
 class SelectableGlyph : UIElement
 {
-	#region Events
+	#region Subjects
+
+	private readonly Subject<ButtonClickedEventArgs> _clickedSubject = new();
+	private readonly Subject<MouseWheelEventArgs> _scrolledSubject = new();
+
+	#endregion
+
+	#region Events (Legacy)
 
 	public event EventHandler<ButtonClickedEventArgs>? Clicked;
 	public event EventHandler<MouseWheelEventArgs>? Scrolled;
+
+	#endregion
+
+	#region Observables
+
+	public IObservable<ButtonClickedEventArgs> ClickEvents => _clickedSubject.AsObservable();
+	public IObservable<MouseWheelEventArgs> ScrollEvents => _scrolledSubject.AsObservable();
 
 	#endregion
 
@@ -20,22 +37,32 @@ class SelectableGlyph : UIElement
 	private bool _hasMouseHover = false;
 	private bool _isFocused = false;
 	private bool _isSelected = false;
-	private string _glyphResourcePath;
+	private readonly string _glyphResourcePath;
 	private GlyphSet<Bitmap>? _glyphs;
-	public byte GlyphIndex;
+	private byte _glyphIndex;
+	private RadialColor _foregroundColor = new(5, 5, 0);
+	private RadialColor _backgroundColor = new(0, 0, 5);
 
 	#endregion
 
 	#region Constructors
 
-	public SelectableGlyph(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, string glyphResourcePath, byte glyphIndex)
-		: base(parent, resources, eventBus, rc)
+	public SelectableGlyph(IResourceManager resources, IRenderingContext rc, Vector2 position, string glyphResourcePath, byte glyphIndex)
+		: base(resources, rc)
 	{
+		_glyphResourcePath = glyphResourcePath ?? throw new ArgumentNullException(nameof(glyphResourcePath));
+		_glyphIndex = glyphIndex;
 		Position = position;
-		_glyphResourcePath = glyphResourcePath;
-		GlyphIndex = glyphIndex;
-		ForegroundColor = new RadialColor(5, 5, 0);
-		BackgroundColor = new RadialColor(0, 0, 5);
+
+		// Setup disposal
+		DisposalEvents.Subscribe(e =>
+		{
+			if (e.Stage == DisposalStage.Started)
+			{
+				_clickedSubject.OnCompleted();
+				_scrolledSubject.OnCompleted();
+			}
+		});
 	}
 
 	#endregion
@@ -44,12 +71,10 @@ class SelectableGlyph : UIElement
 
 	public bool HasMouseHover
 	{
-		get
-		{
-			return _hasMouseHover;
-		}
+		get => _hasMouseHover;
 		private set
 		{
+			ThrowIfDisposed();
 			if (_hasMouseHover != value)
 			{
 				_hasMouseHover = value;
@@ -60,12 +85,10 @@ class SelectableGlyph : UIElement
 
 	public bool IsFocused
 	{
-		get
-		{
-			return _isFocused;
-		}
+		get => _isFocused;
 		private set
 		{
+			ThrowIfDisposed();
 			if (_isFocused != value)
 			{
 				_isFocused = value;
@@ -76,12 +99,10 @@ class SelectableGlyph : UIElement
 
 	public bool IsSelected
 	{
-		get
-		{
-			return _isSelected;
-		}
+		get => _isSelected;
 		set
 		{
+			ThrowIfDisposed();
 			if (_isSelected != value)
 			{
 				_isSelected = value;
@@ -90,8 +111,47 @@ class SelectableGlyph : UIElement
 		}
 	}
 
-	public RadialColor ForegroundColor { get; set; }
-	public RadialColor BackgroundColor { get; set; }
+	public RadialColor ForegroundColor
+	{
+		get => _foregroundColor;
+		set
+		{
+			ThrowIfDisposed();
+			if (_foregroundColor != value)
+			{
+				_foregroundColor = value;
+				OnPropertyChanged();
+			}
+		}
+	}
+
+	public RadialColor BackgroundColor
+	{
+		get => _backgroundColor;
+		set
+		{
+			ThrowIfDisposed();
+			if (_backgroundColor != value)
+			{
+				_backgroundColor = value;
+				OnPropertyChanged();
+			}
+		}
+	}
+
+	public byte GlyphIndex
+	{
+		get => _glyphIndex;
+		set
+		{
+			ThrowIfDisposed();
+			if (_glyphIndex != value)
+			{
+				_glyphIndex = value;
+				OnPropertyChanged();
+			}
+		}
+	}
 
 	#endregion
 
@@ -99,32 +159,47 @@ class SelectableGlyph : UIElement
 
 	public override void Load()
 	{
-		base.Load();
+		ThrowIfDisposed();
 
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
-		EventBus.Subscribe<MouseWheelEventArgs>(OnMouseWheel);
+		if (IsLoaded)
+			return;
+
+		base.Load();
 
 		var image = Resources.Load<Image>(_glyphResourcePath);
 		_glyphs = new GlyphSet<Bitmap>(new Bitmap(image), 8, 8);
-		Size = new Vector2(_glyphs.TileWidth, _glyphs.TileHeight) + Vector2.One;
+
+		// Set content size based on glyph dimensions
+		// Add 2 pixels for the border (1 pixel on each side)
+		ContentSize = new Vector2(_glyphs.TileWidth, _glyphs.TileHeight);
+		Padding = new Thickness(1);
 	}
 
 	public override void Unload()
 	{
-		base.Unload();
+		ThrowIfDisposed();
 
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-		EventBus.Unsubscribe<MouseWheelEventArgs>(OnMouseWheel);
+		if (!IsLoaded)
+			return;
+
+		_glyphs = null;
+
+		base.Unload();
 	}
 
 	public override void Render(GameTime gameTime)
 	{
+		ThrowIfDisposed();
+
+		if (!IsVisible)
+			return;
+
 		base.Render(gameTime);
 
 		var x = (int)AbsolutePosition.X;
 		var y = (int)AbsolutePosition.Y;
+
+		// Draw selection/hover border
 		if (IsSelected)
 		{
 			var borderColor = Palette.GetIndex(5, 0, 0);
@@ -135,49 +210,121 @@ class SelectableGlyph : UIElement
 			var borderColor = Palette.GetIndex(5, 3, 0);
 			RC.RenderRect(x, y, (int)(x + Size.X), (int)(y + Size.Y), borderColor);
 		}
-		// rc.RenderFilledRect(x + 1, y + 1, (int)(x + Size.X - 2), (int)(y + Size.Y) - 2, 0);
-		_glyphs?[GlyphIndex].Render(RC, new Vector2(x, y) + Vector2.One, ForegroundColor, BackgroundColor);
+
+		// Draw the glyph with padding offset
+		if (_glyphs != null)
+		{
+			var contentX = x + Padding.Left;
+			var contentY = y + Padding.Top;
+			_glyphs[GlyphIndex].Render(RC, new Vector2(contentX, contentY), ForegroundColor, BackgroundColor);
+		}
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
-		HasMouseHover = AbsoluteBounds.ContainsInclusive(e.Position);
+		ThrowIfDisposed();
+
+		var wasHovering = HasMouseHover;
+		HasMouseHover = IsVisible && AbsoluteBounds.ContainsInclusive(e.Position);
+
+		// Return true if state changed or is hovering
+		return HasMouseHover || (wasHovering != HasMouseHover);
 	}
 
-	private void OnMouseButton(MouseButtonEventArgs e)
+	public override bool MouseDown(MouseButtonEventArgs e)
 	{
+		ThrowIfDisposed();
+
+		if (!IsVisible)
+			return false;
+
+		if (e.Button == OpenTK.Windowing.GraphicsLibraryFramework.MouseButton.Left && HasMouseHover)
+		{
+			IsFocused = true;
+			return true;
+		}
+
+		return false;
+	}
+
+	public override bool MouseUp(MouseButtonEventArgs e)
+	{
+		ThrowIfDisposed();
+
+		if (!IsVisible)
+			return false;
+
 		if (e.Button == OpenTK.Windowing.GraphicsLibraryFramework.MouseButton.Left)
 		{
-			if (e.IsPressed)
+			if (IsFocused && HasMouseHover)
 			{
-				if (HasMouseHover)
-				{
-					IsFocused = true;
-				}
-			}
-			else
-			{
-				if (IsFocused && HasMouseHover)
-				{
-					Clicked?.Invoke(this, new ButtonClickedEventArgs());
-				}
+				var args = new ButtonClickedEventArgs();
+				_clickedSubject.OnNext(args);
+				Clicked?.Invoke(this, args);
 				IsFocused = false;
+				return true;
 			}
+
+			IsFocused = false;
 		}
+
+		return false;
 	}
 
-	private void OnMouseWheel(MouseWheelEventArgs e)
+	public override bool MouseWheel(MouseWheelEventArgs e)
 	{
+		ThrowIfDisposed();
+
+		if (!IsVisible)
+			return false;
+
 		if (HasMouseHover)
 		{
+			_scrolledSubject.OnNext(e);
 			Scrolled?.Invoke(this, e);
+			return true;
 		}
+
+		return false;
 	}
 
-	// protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
-	// {
-	// 	base.OnPropertyChanged(propertyName);
-	// }
+	public override bool KeyDown(KeyboardKeyEventArgs e)
+	{
+		ThrowIfDisposed();
+
+		if (!IsVisible)
+			return false;
+
+		if (IsFocused && (e.Key == OpenTK.Windowing.GraphicsLibraryFramework.Keys.Enter || e.Key == OpenTK.Windowing.GraphicsLibraryFramework.Keys.Space))
+		{
+			var args = new ButtonClickedEventArgs();
+			_clickedSubject.OnNext(args);
+			Clicked?.Invoke(this, args);
+			return true;
+		}
+
+		return base.KeyDown(e);
+	}
+
+	#endregion
+
+	#region Disposable Implementation
+
+	protected override void DisposeManagedResources()
+	{
+		// Clear event handlers
+		Clicked = null;
+		Scrolled = null;
+
+		// Dispose subjects
+		_clickedSubject.Dispose();
+		_scrolledSubject.Dispose();
+
+		// Clean up resources
+		_glyphs = null;
+
+		base.DisposeManagedResources();
+	}
 
 	#endregion
 }

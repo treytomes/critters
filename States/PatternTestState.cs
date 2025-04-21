@@ -5,8 +5,8 @@ namespace Critters.States;
 
 class PatternTestState : GameState
 {
-	public PatternTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public PatternTestState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 	}
 

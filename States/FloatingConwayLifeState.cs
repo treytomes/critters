@@ -21,10 +21,10 @@ class FloatingConwayLifeState : GameState
 
 	#region Constructors
 
-	public FloatingConwayLifeState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public FloatingConwayLifeState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
-		UI.Add(new Label(null, resources, eventBus, rc, () => _sim?.CAType ?? "N/A", new Vector2(0, 0), new RadialColor(5, 5, 5)));
+		UI.Add(new Label(resources, rc, () => _sim?.CAType ?? "N/A", new Vector2(0, 0), new RadialColor(5, 5, 5)));
 	}
 
 	#endregion
@@ -48,18 +48,10 @@ class FloatingConwayLifeState : GameState
 	public override void AcquireFocus()
 	{
 		base.AcquireFocus();
-
-		EventBus.Subscribe<KeyEventArgs>(OnKey);
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
 	public override void LostFocus()
 	{
-		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-
 		base.LostFocus();
 	}
 
@@ -83,42 +75,32 @@ class FloatingConwayLifeState : GameState
 		base.Update(gameTime);
 	}
 
-	private void OnKey(KeyEventArgs e)
+	public override bool KeyDown(KeyboardKeyEventArgs e)
 	{
-		if (e.IsPressed)
+		switch (e.Key)
 		{
-			switch (e.Key)
-			{
-				case Keys.Escape:
-					Leave();
-					break;
-			}
+			case Keys.Escape:
+				Leave();
+				return true;
 		}
-		else
-		{
-			switch (e.Key)
-			{
-				case Keys.R:
-					_sim?.Randomize();
-					break;
-			}
-		}
+		return base.KeyDown(e);
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool KeyUp(KeyboardKeyEventArgs e)
+	{
+		switch (e.Key)
+		{
+			case Keys.R:
+				_sim?.Randomize();
+				return true;
+		}
+		return base.KeyUp(e);
+	}
+
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
 		_mousePosition = e.Position;
-	}
-
-	private void OnMouseButton(MouseButtonEventArgs e)
-	{
-		if (e.Button == MouseButton.Left && e.Action == InputAction.Release)
-		{
-			if (_sim == null)
-			{
-				return;
-			}
-		}
+		return base.MouseMove(e);
 	}
 
 	#endregion

@@ -24,8 +24,8 @@ class GlyphEditState : GameState
 
 	#region Constructors
 
-	public GlyphEditState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public GlyphEditState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 		var screenWidth = 320;
 		var colorPickerWidth = 79;
@@ -34,8 +34,8 @@ class GlyphEditState : GameState
 		{
 			var x = screenWidth - colorPickerWidth;
 			var y = 0;
-			UI.Add(new Label(null, resources, eventBus, rc, "Background", new Vector2(x, y), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
-			_bgPicker = new ColorPicker(null, resources, eventBus, rc, new Vector2(x, y + 8));
+			UI.Add(new Label(resources, rc, "Background", new Vector2(x, y), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
+			_bgPicker = new ColorPicker(resources, rc, new Vector2(x, y + 8));
 			_bgPicker.SelectedColor = new RadialColor(3, 4, 5);
 			UI.Add(_bgPicker);
 		}
@@ -43,15 +43,15 @@ class GlyphEditState : GameState
 		{
 			var x = screenWidth - colorPickerWidth * 2 - padding;
 			var y = 0;
-			UI.Add(new Label(null, resources, eventBus, rc, "Foreground", new Vector2(x, y), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
-			_fgPicker = new ColorPicker(null, resources, eventBus, rc, new Vector2(x, y + 8));
+			UI.Add(new Label(resources, rc, "Foreground", new Vector2(x, y), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
+			_fgPicker = new ColorPicker(resources, rc, new Vector2(x, y + 8));
 			_fgPicker.SelectedColor = new RadialColor(5, 4, 3);
 			UI.Add(_fgPicker);
 		}
 
 		// height=168
-		UI.Add(new Label(null, resources, eventBus, rc, "Glyphs", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
-		_glyphPicker = new GlyphPicker(null, resources, eventBus, rc, new Vector2(0, 8));
+		UI.Add(new Label(resources, rc, "Glyphs", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0)));
+		_glyphPicker = new GlyphPicker(resources, rc, new Vector2(0, 8));
 		_glyphPicker.SelectedGlyphIndex = 2;
 		_glyphPicker.ForegroundColor = _fgPicker.SelectedColor;
 		_glyphPicker.BackgroundColor = _bgPicker.SelectedColor;

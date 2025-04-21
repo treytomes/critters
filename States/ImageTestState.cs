@@ -13,8 +13,8 @@ class ImageTestState : GameState
 
 	#region Constructors
 
-	public ImageTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public ImageTestState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 	}
 

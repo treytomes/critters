@@ -1,9 +1,9 @@
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-
+using System;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
-using Critters.Events;
+using Critters.Core;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using OpenTK.Mathematics;
 
@@ -11,33 +11,68 @@ namespace Critters.UI;
 
 interface IStringProvider
 {
+	string GetText();
+	IObservable<string> TextChanged { get; }
 }
 
-class ConstantStringProvider(string text) : IStringProvider
+class ConstantStringProvider : IStringProvider
 {
-	public override string ToString()
+	private readonly string _text;
+	private readonly Subject<string> _textChanged = new();
+
+	public ConstantStringProvider(string text)
 	{
-		return text;
+		_text = text ?? string.Empty;
 	}
+
+	public string GetText() => _text;
+	public IObservable<string> TextChanged => _textChanged.AsObservable();
+
+	public override string ToString() => _text;
 }
 
-class FuncStringProvider(Func<string> func) : IStringProvider
+class FuncStringProvider : Disposable, IStringProvider
 {
-	public override string ToString()
+	private readonly Func<string> _func;
+	private readonly Subject<string> _textChanged = new();
+	private string _lastValue;
+
+	public FuncStringProvider(Func<string> func)
 	{
-		return func();
+		_func = func ?? throw new ArgumentNullException(nameof(func));
+		_lastValue = func();
+	}
+
+	public string GetText()
+	{
+		string newValue = _func();
+		if (newValue != _lastValue)
+		{
+			_lastValue = newValue;
+			_textChanged.OnNext(newValue);
+		}
+		return newValue;
+	}
+
+	public IObservable<string> TextChanged => _textChanged.AsObservable();
+
+	public override string ToString() => GetText();
+
+	protected override void DisposeManagedResources()
+	{
+		_textChanged.OnCompleted();
+		_textChanged.Dispose();
+		base.DisposeManagedResources();
 	}
 }
 
 static class StringProvider
 {
-	public static IStringProvider From(object text)
+	public static IStringProvider From(object? text)
 	{
-		return (text is Func<string>) switch
-		{
-			true => new FuncStringProvider((Func<string>)text),
-			_ => new ConstantStringProvider(text?.ToString() ?? "")
-		};
+		if (text is Func<string> func)
+			return new FuncStringProvider(func);
+		return new ConstantStringProvider(text?.ToString() ?? string.Empty);
 	}
 }
 
@@ -47,20 +82,32 @@ class Label : UIElement
 
 	private Font? _font;
 	private IStringProvider _text;
-	private RadialColor _foregroundColor;
+	private RadialColor _foregroundColor = RadialColor.White;
 	private RadialColor? _backgroundColor;
+	private IDisposable? _textChangedSubscription;
+	private bool _textMeasurementNeeded = true;
+	private Vector2 _measuredSize = Vector2.Zero;
 
 	#endregion
 
 	#region Constructors
 
-	public Label(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, object text, Vector2 position, RadialColor fgColor, RadialColor? bgColor = null)
-		: base(parent, resources, eventBus, rc)
+	public Label(IResourceManager resources, IRenderingContext rc, object text)
+		: base(resources, rc)
 	{
-		Text = StringProvider.From(text);
+		_text = StringProvider.From(text);
+		SubscribeToTextChanges();
+	}
+
+	public Label(IResourceManager resources, IRenderingContext rc, object text, Vector2 position,
+				 RadialColor fgColor, RadialColor? bgColor = null)
+		: base(resources, rc)
+	{
+		_text = StringProvider.From(text);
 		Position = position;
-		ForegroundColor = fgColor;
-		BackgroundColor = bgColor;
+		_foregroundColor = fgColor;
+		_backgroundColor = bgColor;
+		SubscribeToTextChanges();
 	}
 
 	#endregion
@@ -69,28 +116,35 @@ class Label : UIElement
 
 	public IStringProvider Text
 	{
-		get
-		{
-			return _text;
-		}
+		get => _text;
 		set
 		{
+			ThrowIfDisposed();
+
 			if (_text != value)
 			{
-				_text = value;
+				// Unsubscribe from old text provider
+				_textChangedSubscription?.Dispose();
+
+				_text = value ?? StringProvider.From(string.Empty);
+				_textMeasurementNeeded = true;
+
+				// Subscribe to new text provider
+				SubscribeToTextChanges();
+
 				OnPropertyChanged();
+				UpdateSize();
 			}
 		}
 	}
 
 	public RadialColor ForegroundColor
 	{
-		get
-		{
-			return _foregroundColor;
-		}
+		get => _foregroundColor;
 		set
 		{
+			ThrowIfDisposed();
+
 			if (_foregroundColor != value)
 			{
 				_foregroundColor = value;
@@ -101,12 +155,11 @@ class Label : UIElement
 
 	public RadialColor? BackgroundColor
 	{
-		get
-		{
-			return _backgroundColor;
-		}
+		get => _backgroundColor;
 		set
 		{
+			ThrowIfDisposed();
+
 			if (_backgroundColor != value)
 			{
 				_backgroundColor = value;
@@ -119,32 +172,77 @@ class Label : UIElement
 
 	#region Methods
 
+	private void SubscribeToTextChanges()
+	{
+		_textChangedSubscription = _text.TextChanged.Subscribe(_ =>
+		{
+			_textMeasurementNeeded = true;
+			UpdateSize();
+		});
+	}
+
+	private void UpdateSize()
+	{
+		if (_textMeasurementNeeded && _font != null)
+		{
+			_measuredSize = _font.MeasureString(_text.GetText());
+			_textMeasurementNeeded = false;
+			ContentSize = _measuredSize;
+		}
+	}
+
 	public override void Load()
 	{
+		if (IsLoaded)
+			return;
+
 		base.Load();
 
 		var image = Resources.Load<Image>("oem437_8.png");
 		var bmp = new Bitmap(image);
 		var tiles = new GlyphSet<Bitmap>(bmp, 8, 8);
 		_font = new Font(tiles);
-		Size = _font?.MeasureString(Text.ToString()!) ?? Vector2.Zero;
+
+		_textMeasurementNeeded = true;
+		UpdateSize();
+	}
+
+	public override void Unload()
+	{
+		if (!IsLoaded)
+			return;
+
+		_font = null;
+		base.Unload();
 	}
 
 	public override void Render(GameTime gameTime)
 	{
+		ThrowIfDisposed();
+
+		if (!IsVisible)
+			return;
+
 		base.Render(gameTime);
 
-		_font?.WriteString(RC, Text.ToString() ?? "", AbsolutePosition, ForegroundColor, BackgroundColor);
+		if (_font != null)
+		{
+			string text = _text.GetText();
+			_font.WriteString(RC, text, AbsolutePosition, ForegroundColor, BackgroundColor);
+		}
 	}
 
-	protected override void OnPropertyChanged([CallerMemberName] string propertyName = "")
+	protected override void DisposeManagedResources()
 	{
-		base.OnPropertyChanged(propertyName);
+		_textChangedSubscription?.Dispose();
 
-		if (propertyName == nameof(Text))
+		// If the text provider is disposable, dispose it
+		if (_text is IDisposable disposableText)
 		{
-			Size = _font?.MeasureString(Text.ToString() ?? "") ?? Vector2.Zero;
+			disposableText.Dispose();
 		}
+
+		base.DisposeManagedResources();
 	}
 
 	#endregion

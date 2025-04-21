@@ -1,6 +1,7 @@
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using Critters.UI;
 using OpenTK.Mathematics;
@@ -16,13 +17,14 @@ class MainMenuState : GameState
 	private bool _hasMouseHover = false;
 	private Box2 _bounds = new Box2(32, 32, 128, 96);
 	private List<Button> _menuButtons = new List<Button>();
+	private CompositeDisposable _subscriptions = new CompositeDisposable();
 
 	#endregion
 
 	#region Constructors
 
-	public MainMenuState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public MainMenuState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 	}
 
@@ -43,8 +45,9 @@ class MainMenuState : GameState
 
 		for (var n = 0; n < items.Length; n++)
 		{
-			var btn = new Button(null, Resources, EventBus, RC, new Vector2(32, 32 + n * 14), ButtonStyle.Raised);
-			btn.Content = new Label(null, Resources, EventBus, RC, items[n], new Vector2(0, 0), new RadialColor(0, 0, 0));
+			var btn = new Button(Resources, RC, ButtonStyle.Raised);
+			btn.Position = new Vector2(32, 32 + n * 16);
+			btn.Content = new Label(Resources, RC, items[n], new Vector2(0, 0), new RadialColor(0, 0, 0));
 			btn.Metadata = n;
 			UI.Add(btn);
 			_menuButtons.Add(btn);
@@ -57,23 +60,24 @@ class MainMenuState : GameState
 	{
 		base.AcquireFocus();
 
+		// Clear any existing subscriptions
+		_subscriptions.Clear();
+
+		// Create new subscriptions for all buttons
 		foreach (var btn in _menuButtons)
 		{
-			btn.Clicked += OnButtonClicked;
-		}
+			// Subscribe to ClickEvents observable
+			var subscription = btn.ClickEvents.Subscribe(OnButtonClicked);
 
-		EventBus.Subscribe<KeyEventArgs>(OnKey);
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
+			// Add to composite disposable for easy cleanup
+			_subscriptions.Add(subscription);
+		}
 	}
 
 	public override void LostFocus()
 	{
-		foreach (var btn in _menuButtons)
-		{
-			btn.Clicked -= OnButtonClicked;
-		}
-		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
+		// Dispose all button click subscriptions
+		_subscriptions.Clear();
 
 		base.LostFocus();
 	}
@@ -107,49 +111,58 @@ class MainMenuState : GameState
 		base.Render(gameTime);
 	}
 
-	private void OnKey(KeyEventArgs e)
+	public override bool KeyDown(KeyboardKeyEventArgs e)
 	{
-		if (e.IsPressed)
+		switch (e.Key)
 		{
-			switch (e.Key)
-			{
-				case Keys.Escape:
-					Leave();
-					break;
-			}
+			case Keys.Escape:
+				Leave();
+				return true;
 		}
+		return base.KeyDown(e);
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
 		_hasMouseHover = _bounds.ContainsInclusive(e.Position);
+		return base.MouseMove(e);
 	}
 
-	private void OnButtonClicked(object? sender, ButtonClickedEventArgs e)
+	// Modified to accept ButtonClickedEventArgs directly
+	private void OnButtonClicked(ButtonClickedEventArgs e)
 	{
-		var btn = sender as Button;
-		var metadata = (int)btn!.Metadata!;
+		var metadata = (int)e.Metadata!;
 		switch (metadata)
 		{
 			case 0:
-				Enter(new TileMapTestState(Resources, EventBus, RC));
+				Enter(new TileMapTestState(Resources, RC));
 				break;
 			case 1:
-				Enter(new SimplexNoiseState(Resources, EventBus, RC));
+				Enter(new SimplexNoiseState(Resources, RC));
 				break;
 			case 2:
-				Enter(new HeatLampExperimentState(Resources, EventBus, RC));
+				Enter(new HeatLampExperimentState(Resources, RC));
 				break;
 			case 3:
-				Enter(new ConwayLifeState(Resources, EventBus, RC));
+				Enter(new ConwayLifeState(Resources, RC));
 				break;
 			case 4:
-				Enter(new FloatingConwayLifeState(Resources, EventBus, RC));
+				Enter(new FloatingConwayLifeState(Resources, RC));
 				break;
 			case 5:
-				Enter(new ParticlesState(Resources, EventBus, RC));
+				Enter(new ParticlesState(Resources, RC));
 				break;
 		}
+	}
+
+	// Override Dispose to clean up subscriptions
+	protected override void Dispose(bool disposing)
+	{
+		if (disposing)
+		{
+			_subscriptions.Dispose();
+		}
+		base.Dispose(disposing);
 	}
 
 	#endregion

@@ -16,8 +16,8 @@ class RasterGraphicsTestState : GameState
 
 	#region Constructors
 
-	public RasterGraphicsTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public RasterGraphicsTestState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 	}
 
@@ -25,12 +25,10 @@ class RasterGraphicsTestState : GameState
 	public override void AcquireFocus()
 	{
 		base.AcquireFocus();
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public override void LostFocus()
 	{
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 		base.LostFocus();
 	}
 
@@ -63,8 +61,9 @@ class RasterGraphicsTestState : GameState
 		RC.FloodFill(new Vector2(310, 220), RC.Palette[1, 0, 2]);
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
 		_hasMouseHover = _bounds.ContainsInclusive(e.Position);
+		return base.MouseMove(e);
 	}
 }

@@ -11,7 +11,6 @@ class MouseCursor : IGameComponent
 	#region Fields
 
 	private readonly IResourceManager _resources;
-	private readonly IEventBus _eventBus;
 	private readonly IRenderingContext _renderingContext;
 	private Vector2 _position = Vector2.Zero;
 	private Image? _image = null;
@@ -20,10 +19,9 @@ class MouseCursor : IGameComponent
 
 	#region Constructors
 
-	public MouseCursor(IResourceManager resources, IEventBus eventBus, IRenderingContext renderingContext)
+	public MouseCursor(IResourceManager resources, IRenderingContext renderingContext)
 	{
 		_resources = resources;
-		_eventBus = eventBus;
 		_renderingContext = renderingContext;
 	}
 
@@ -36,12 +34,10 @@ class MouseCursor : IGameComponent
 		_image = _resources.Load<Image>("mouse_cursor.png");
 		_image.Recolor(0, 255);
 		_image.Recolor(129, Palette.GetIndex(1, 1, 1));
-		_eventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public void Unload()
 	{
-		_eventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
 	}
 
 	public void Render(GameTime gameTime)
@@ -51,15 +47,17 @@ class MouseCursor : IGameComponent
 			return;
 		}
 		_image?.Render(_renderingContext, (int)_position.X, (int)_position.Y);
+		Console.WriteLine("Mouse drawn!");
 	}
 
 	public void Update(GameTime gameTime)
 	{
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public bool MouseMove(MouseMoveEventArgs e)
 	{
 		_position = e.Position;
+		return false;
 	}
 
 	#endregion

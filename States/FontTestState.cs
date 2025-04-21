@@ -14,8 +14,8 @@ class FontTestState : GameState
 
 	#region Constructors
 
-	public FontTestState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public FontTestState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 	}
 

@@ -31,15 +31,15 @@ class SimplexNoiseState : GameState
 
 	#region Constructors
 
-	public SimplexNoiseState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public SimplexNoiseState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
 		_camera = new Camera();
 
-		_cameraLabel = new Label(null, resources, eventBus, rc, $"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_cameraLabel = new Label(resources, rc, $"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})", new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
 
-		_mouseLabel = new Label(null, resources, eventBus, rc, $"Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
+		_mouseLabel = new Label(resources, rc, $"Mouse:(0,0)", new Vector2(0, 8), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_mouseLabel);
 	}
 
@@ -60,18 +60,10 @@ class SimplexNoiseState : GameState
 	public override void AcquireFocus()
 	{
 		base.AcquireFocus();
-
-		EventBus.Subscribe<KeyEventArgs>(OnKey);
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
 	public override void LostFocus()
 	{
-		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-
 		base.LostFocus();
 	}
 
@@ -127,48 +119,48 @@ class SimplexNoiseState : GameState
 		_cameraLabel.Text = StringProvider.From($"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})");
 	}
 
-	private void OnKey(KeyEventArgs e)
+	public override bool KeyDown(KeyboardKeyEventArgs e)
 	{
-		if (e.IsPressed)
-		{
-			switch (e.Key)
-			{
-				case Keys.Escape:
-					Leave();
-					break;
-				case Keys.W:
-					_cameraDelta = new Vector2(_cameraDelta.X, -1);
-					break;
-				case Keys.S:
-					_cameraDelta = new Vector2(_cameraDelta.X, 1);
-					break;
-				case Keys.A:
-					_cameraDelta = new Vector2(-1, _cameraDelta.Y);
-					break;
-				case Keys.D:
-					_cameraDelta = new Vector2(1, _cameraDelta.Y);
-					break;
-			}
-		}
-		else
-		{
-			switch (e.Key)
-			{
-				case Keys.W:
-				case Keys.S:
-					_cameraDelta = new Vector2(_cameraDelta.X, 0);
-					break;
-				case Keys.A:
-				case Keys.D:
-					_cameraDelta = new Vector2(0, _cameraDelta.Y);
-					break;
-			}
-		}
-
 		_cameraFastMove = e.Shift;
+		switch (e.Key)
+		{
+			case Keys.Escape:
+				Leave();
+				return true;
+			case Keys.W:
+				_cameraDelta = new Vector2(_cameraDelta.X, -1);
+				return true;
+			case Keys.S:
+				_cameraDelta = new Vector2(_cameraDelta.X, 1);
+				return true;
+			case Keys.A:
+				_cameraDelta = new Vector2(-1, _cameraDelta.Y);
+				return true;
+			case Keys.D:
+				_cameraDelta = new Vector2(1, _cameraDelta.Y);
+				return true;
+		}
+		return base.KeyDown(e);
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool KeyUp(KeyboardKeyEventArgs e)
+	{
+		_cameraFastMove = e.Shift;
+		switch (e.Key)
+		{
+			case Keys.W:
+			case Keys.S:
+				_cameraDelta = new Vector2(_cameraDelta.X, 0);
+				return true;
+			case Keys.A:
+			case Keys.D:
+				_cameraDelta = new Vector2(0, _cameraDelta.Y);
+				return true;
+		}
+		return base.KeyUp(e);
+	}
+
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
 		_mouseLabel.Text = StringProvider.From($"Mouse:({(int)e.Position.X},{(int)e.Position.Y})");
 
@@ -176,14 +168,27 @@ class SimplexNoiseState : GameState
 		{
 			_camera.ScrollBy(-e.Delta);
 		}
+		return base.MouseMove(e);
 	}
 
-	private void OnMouseButton(MouseButtonEventArgs e)
+	public override bool MouseDown(MouseButtonEventArgs e)
+	{
+		return OnMouseButton(e) || base.MouseDown(e);
+	}
+
+	public override bool MouseUp(MouseButtonEventArgs e)
+	{
+		return OnMouseButton(e) || base.MouseUp(e);
+	}
+
+	private bool OnMouseButton(MouseButtonEventArgs e)
 	{
 		if (e.Button == MouseButton.Middle)
 		{
 			_isDraggingCamera = e.IsPressed;
+			return true;
 		}
+		return false;
 	}
 
 	#endregion

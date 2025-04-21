@@ -11,6 +11,12 @@ namespace Critters.States;
 
 class ParticlesState : GameState
 {
+	#region Constants
+
+	private const int NUM_PARTICLES = 4096 * 8;
+
+	#endregion
+
 	#region Fields
 
 	private Vector2 _mousePosition = Vector2.Zero;
@@ -21,10 +27,10 @@ class ParticlesState : GameState
 
 	#region Constructors
 
-	public ParticlesState(IResourceManager resources, IEventBus eventBus, IRenderingContext rc)
-		: base(resources, eventBus, rc)
+	public ParticlesState(IResourceManager resources, IRenderingContext rc)
+		: base(resources, rc)
 	{
-		UI.Add(new Label(null, resources, eventBus, rc, () => _sim?.GetType().Name ?? "N/A", new Vector2(0, 0), new RadialColor(5, 5, 5)));
+		UI.Add(new Label(resources, rc, () => _sim?.GetType().Name ?? "N/A", new Vector2(0, 0), new RadialColor(5, 5, 5)));
 	}
 
 	#endregion
@@ -48,22 +54,13 @@ class ParticlesState : GameState
 	public override void AcquireFocus()
 	{
 		base.AcquireFocus();
-
-		EventBus.Subscribe<KeyEventArgs>(OnKey);
-		EventBus.Subscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Subscribe<MouseButtonEventArgs>(OnMouseButton);
 	}
 
 	public override void LostFocus()
 	{
-		EventBus.Unsubscribe<KeyEventArgs>(OnKey);
-		EventBus.Unsubscribe<MouseMoveEventArgs>(OnMouseMove);
-		EventBus.Unsubscribe<MouseButtonEventArgs>(OnMouseButton);
-
 		base.LostFocus();
 	}
 
-	private const int NUM_PARTICLES = 4096 * 8;
 	public override void Render(GameTime gameTime)
 	{
 		RC.Clear();
@@ -100,29 +97,38 @@ class ParticlesState : GameState
 		base.Update(gameTime);
 	}
 
-	private void OnKey(KeyEventArgs e)
+	public override bool KeyDown(KeyboardKeyEventArgs e)
 	{
-		if (e.IsPressed)
+		switch (e.Key)
 		{
-			switch (e.Key)
-			{
-				case Keys.Escape:
-					Leave();
-					break;
-			}
+			case Keys.Escape:
+				Leave();
+				return true;
 		}
+		return base.KeyDown(e);
 	}
 
-	private void OnMouseMove(MouseMoveEventArgs e)
+	public override bool MouseMove(MouseMoveEventArgs e)
 	{
 		_mousePosition = e.Position;
 		if (_isDragging)
 		{
 			_sim?.SetAttractor(_mousePosition.X, _mousePosition.Y, 5000);
 		}
+		return base.MouseMove(e);
 	}
 
-	private void OnMouseButton(MouseButtonEventArgs e)
+	public override bool MouseDown(MouseButtonEventArgs e)
+	{
+		return OnMouseButton(e) || base.MouseDown(e);
+	}
+
+	public override bool MouseUp(MouseButtonEventArgs e)
+	{
+		return OnMouseButton(e) || base.MouseUp(e);
+	}
+
+	private bool OnMouseButton(MouseButtonEventArgs e)
 	{
 		if (e.Button == MouseButton.Left)
 		{
@@ -135,7 +141,9 @@ class ParticlesState : GameState
 			{
 				_sim?.SetAttractor(0, 0, 0);
 			}
+			return true;
 		}
+		return false;
 	}
 
 	#endregion

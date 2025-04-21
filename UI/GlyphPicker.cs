@@ -1,6 +1,8 @@
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using Critters.Core;
 using Critters.Events;
 using Critters.Gfx;
-using Critters.IO;
 using Critters.Services;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -9,57 +11,77 @@ namespace Critters.UI;
 
 class GlyphPicker : UIElement
 {
+	#region Constants
+
+	private const int GLYPH_SIZE = 8;
+	private const int GLYPH_SPACING = 1;
+	private const int GLYPH_CELL_SIZE = GLYPH_SIZE + GLYPH_SPACING;
+	private const int NUM_GLYPHS = 256;
+	private const string DEFAULT_FONT_PATH = "oem437_8.png";
+
+	#endregion
+
+	#region Subjects
+
+	private readonly Subject<byte> _glyphSelectedSubject = new();
+
+	#endregion
+
+	#region Events (Legacy)
+
+	public event EventHandler<GlyphSelectedEventArgs>? GlyphSelected;
+
+	#endregion
+
+	#region Observables
+
+	public IObservable<byte> GlyphSelections => _glyphSelectedSubject.AsObservable();
+
+	#endregion
+
 	#region Fields
 
-	private List<SelectableGlyph> _selectableGlyphs = new List<SelectableGlyph>();
-	private List<UIElement> _ui = new List<UIElement>();
-	private SelectableGlyph _selectedGlyph;
-	private Label _glyphLabel;
+	private readonly List<SelectableGlyph> _selectableGlyphs = new();
+	private SelectableGlyph? _selectedGlyph;
+	private Label? _glyphLabel;
+	private readonly string _fontPath;
+	private readonly int _glyphsPerRow;
+	private readonly int _numGlyphRows;
+	private RadialColor _foregroundColor = new(5, 5, 0);
+	private RadialColor _backgroundColor = new(0, 0, 5);
 
 	#endregion
 
 	#region Constructors
 
-	public GlyphPicker(UIElement? parent, IResourceManager resources, IEventBus eventBus, IRenderingContext rc, Vector2 position, byte? initialGlyph = null)
-		: base(parent, resources, eventBus, rc)
+	public GlyphPicker(IResourceManager resources, IRenderingContext rc, Vector2 position,
+					  string? fontPath = null, byte? initialGlyph = null)
+		: base(resources, rc)
 	{
 		Position = position;
+		_fontPath = fontPath ?? DEFAULT_FONT_PATH;
 
-		byte selectedGlyphIndex = initialGlyph ?? 0;
+		// Calculate layout
+		_glyphsPerRow = (int)Math.Sqrt(NUM_GLYPHS);
+		_numGlyphRows = (int)Math.Ceiling((double)NUM_GLYPHS / _glyphsPerRow);
 
-		var resourcePath = "oem437_8.png";
-		var padding = Vector2.Zero;
-		var numGlyphs = 256;
-		var glyphsPerRow = (int)Math.Sqrt(numGlyphs);
-		var numGlyphRows = (int)(numGlyphs / glyphsPerRow);
-		byte glyphIndex = 0;
-		for (byte yc = 0; yc < numGlyphRows; yc++)
+		// Set content size based on grid dimensions plus space for label
+		ContentSize = new Vector2(
+			_glyphsPerRow * GLYPH_CELL_SIZE,
+			_numGlyphRows * GLYPH_CELL_SIZE + 20); // Extra space for label
+
+		Padding = new Thickness(1);
+
+		// Setup disposal
+		DisposalEvents.Subscribe(e =>
 		{
-			for (byte xc = 0; xc < glyphsPerRow; xc++)
+			if (e.Stage == DisposalStage.Started)
 			{
-				// I'm inverting these on person.  Mouse scrolling will make more sense.
-				var x = xc * 9; // tile size + (border width + padding) * 2
-				var y = yc * 9;
-
-				var elem = new SelectableGlyph(this, resources, eventBus, rc, padding + new Vector2(x, y), resourcePath, glyphIndex);
-				if (selectedGlyphIndex == glyphIndex)
-				{
-					elem.IsSelected = true;
-					_selectedGlyph = elem;
-				}
-				_selectableGlyphs.Add(elem);
-				_ui.Add(elem);
-
-				glyphIndex++;
+				_glyphSelectedSubject.OnCompleted();
 			}
-		}
+		});
 
-		_selectedGlyph = _selectableGlyphs[selectedGlyphIndex];
-
-		_glyphLabel = new Label(this, resources, eventBus, rc, "index=0", new Vector2(0, 9 * numGlyphRows + 2), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
-		_ui.Add(_glyphLabel);
-
-		_glyphLabel.Text = StringProvider.From($"glyph index={_selectedGlyph.GlyphIndex}");
+		InitializeUI(initialGlyph ?? 0);
 	}
 
 	#endregion
@@ -68,139 +90,217 @@ class GlyphPicker : UIElement
 
 	public byte SelectedGlyphIndex
 	{
-		get
-		{
-			return _selectedGlyph!.GlyphIndex;
-		}
+		get => _selectedGlyph?.GlyphIndex ?? 0;
 		set
 		{
-			SelectGlyph(_selectableGlyphs.First(x => x.GlyphIndex == value));
+			ThrowIfDisposed();
+
+			var glyph = _selectableGlyphs.FirstOrDefault(x => x.GlyphIndex == value);
+			if (glyph != null && (_selectedGlyph == null || _selectedGlyph.GlyphIndex != value))
+			{
+				SelectGlyph(glyph);
+				_glyphSelectedSubject.OnNext(value);
+				GlyphSelected?.Invoke(this, new GlyphSelectedEventArgs(value));
+				OnPropertyChanged();
+			}
 		}
 	}
 
 	public RadialColor ForegroundColor
 	{
-		get
-		{
-			return _selectableGlyphs[0].ForegroundColor;
-		}
+		get => _foregroundColor;
 		set
 		{
-			foreach (var glyph in _selectableGlyphs)
+			ThrowIfDisposed();
+
+			if (_foregroundColor != value)
 			{
-				glyph.ForegroundColor = value;
+				_foregroundColor = value;
+
+				foreach (var glyph in _selectableGlyphs)
+				{
+					glyph.ForegroundColor = value;
+				}
+
+				OnPropertyChanged();
 			}
 		}
 	}
 
 	public RadialColor BackgroundColor
 	{
-		get
-		{
-			return _selectableGlyphs[0].BackgroundColor;
-		}
+		get => _backgroundColor;
 		set
 		{
-			foreach (var glyph in _selectableGlyphs)
+			ThrowIfDisposed();
+
+			if (_backgroundColor != value)
 			{
-				glyph.BackgroundColor = value;
+				_backgroundColor = value;
+
+				foreach (var glyph in _selectableGlyphs)
+				{
+					glyph.BackgroundColor = value;
+				}
+
+				OnPropertyChanged();
 			}
 		}
 	}
 
 	#endregion
 
+	#region Initialization
+
+	private void InitializeUI(byte initialGlyphIndex)
+	{
+		// Create all the selectable glyphs
+		var glyphIndex = 0;
+
+		for (int y = 0; y < _numGlyphRows; y++)
+		{
+			for (int x = 0; x < _glyphsPerRow && glyphIndex < NUM_GLYPHS; x++)
+			{
+				var position = new Vector2(x * GLYPH_CELL_SIZE, y * GLYPH_CELL_SIZE);
+
+				var glyph = new SelectableGlyph(Resources, RC, position, _fontPath, (byte)glyphIndex);
+				glyph.ForegroundColor = _foregroundColor;
+				glyph.BackgroundColor = _backgroundColor;
+
+				// Subscribe to events using Rx
+				glyph.ClickEvents.Subscribe(_ => OnGlyphClicked(glyph));
+				glyph.ScrollEvents.Subscribe(e => OnGlyphScrolled(glyph, e));
+
+				// Set selected state if this is the initial glyph
+				if (glyphIndex == initialGlyphIndex)
+				{
+					glyph.IsSelected = true;
+					_selectedGlyph = glyph;
+				}
+
+				_selectableGlyphs.Add(glyph);
+				AddChild(glyph);
+
+				glyphIndex++;
+			}
+		}
+
+		// If no glyph was selected, select the first one
+		if (_selectedGlyph == null && _selectableGlyphs.Count > 0)
+		{
+			_selectedGlyph = _selectableGlyphs[0];
+			_selectedGlyph.IsSelected = true;
+		}
+
+		// Create the label showing the current glyph index
+		_glyphLabel = new Label(
+			Resources,
+			RC,
+			$"glyph index={_selectedGlyph?.GlyphIndex ?? 0}",
+			new Vector2(0, _numGlyphRows * GLYPH_CELL_SIZE + 2),
+			new RadialColor(5, 5, 5),
+			new RadialColor(0, 0, 0)
+		);
+
+		AddChild(_glyphLabel);
+
+		// Update the label
+		UpdateGlyphLabel();
+	}
+
+	#endregion
+
 	#region Methods
-
-	public override void Load()
-	{
-		base.Load();
-
-		foreach (var c in _selectableGlyphs)
-		{
-			c.Clicked += OnGlyphClicked;
-			c.Scrolled += OnGlyphScrolled;
-		}
-
-		foreach (var ui in _ui)
-		{
-			ui.Load();
-		}
-	}
-
-	public override void Unload()
-	{
-		base.Unload();
-
-		foreach (var c in _selectableGlyphs)
-		{
-			c.Clicked -= OnGlyphClicked;
-			c.Scrolled -= OnGlyphScrolled;
-		}
-
-		foreach (var ui in _ui)
-		{
-			ui.Unload();
-		}
-	}
-
-	public override void Update(GameTime gameTime)
-	{
-		base.Update(gameTime);
-
-		foreach (var ui in _ui)
-		{
-			ui.Update(gameTime);
-		}
-	}
 
 	public override void Render(GameTime gameTime)
 	{
+		ThrowIfDisposed();
+
+		if (!IsVisible)
+			return;
+
+		// Render background panel
+		RC.RenderFilledRect(
+			new Box2(
+				AbsolutePosition,
+				AbsolutePosition + new Vector2(_glyphsPerRow * GLYPH_CELL_SIZE, _numGlyphRows * GLYPH_CELL_SIZE)
+			),
+			new RadialColor(5, 5, 5).Index
+		);
+
+		// Render children (which includes all the glyphs and the label)
 		base.Render(gameTime);
-
-		RC.RenderFilledRect(AbsolutePosition, AbsolutePosition + new Vector2(9 * 16, 9 * 16), new RadialColor(5, 5, 5).Index);
-
-		foreach (var ui in _ui)
-		{
-			ui.Render(gameTime);
-		}
 	}
 
-	private void SelectGlyph(SelectableGlyph c)
+	private void SelectGlyph(SelectableGlyph glyph)
 	{
+		ThrowIfDisposed();
+
 		if (_selectedGlyph != null)
 		{
 			_selectedGlyph.IsSelected = false;
 		}
-		_selectedGlyph = c;
+
+		_selectedGlyph = glyph;
 		_selectedGlyph.IsSelected = true;
 
-		_glyphLabel.Text = StringProvider.From($"glyph index={_selectedGlyph.GlyphIndex}");
+		UpdateGlyphLabel();
 	}
 
-	private void OnGlyphClicked(object? sender, ButtonClickedEventArgs e)
+	private void UpdateGlyphLabel()
 	{
-		var glyph = sender as SelectableGlyph;
-		if (glyph == null)
+		if (_glyphLabel != null && _selectedGlyph != null)
 		{
-			throw new ArgumentException($"Must be a {nameof(SelectableGlyph)}.", nameof(sender));
+			_glyphLabel.Text = StringProvider.From($"glyph index={_selectedGlyph.GlyphIndex}");
 		}
-
-		SelectGlyph(glyph);
 	}
 
-	private void OnGlyphScrolled(object? sender, MouseWheelEventArgs e)
+	private void OnGlyphClicked(SelectableGlyph glyph)
+	{
+		SelectGlyph(glyph);
+		_glyphSelectedSubject.OnNext(glyph.GlyphIndex);
+		GlyphSelected?.Invoke(this, new GlyphSelectedEventArgs(glyph.GlyphIndex));
+		OnPropertyChanged(nameof(SelectedGlyphIndex));
+	}
+
+	private void OnGlyphScrolled(SelectableGlyph glyph, MouseWheelEventArgs e)
 	{
 		var delta = -Math.Sign(e.OffsetY);
+
 		for (var n = 0; n < _selectableGlyphs.Count; n++)
 		{
 			if (_selectableGlyphs[n].IsSelected)
 			{
 				var newIndex = (n + delta + _selectableGlyphs.Count) % _selectableGlyphs.Count;
-				SelectGlyph(_selectableGlyphs[newIndex]);
+				var newGlyph = _selectableGlyphs[newIndex];
+
+				SelectGlyph(newGlyph);
+				_glyphSelectedSubject.OnNext(newGlyph.GlyphIndex);
+				GlyphSelected?.Invoke(this, new GlyphSelectedEventArgs(newGlyph.GlyphIndex));
+				OnPropertyChanged(nameof(SelectedGlyphIndex));
 				break;
 			}
 		}
+	}
+
+	#endregion
+
+	#region Disposable Implementation
+
+	protected override void DisposeManagedResources()
+	{
+		// Dispose the subject
+		_glyphSelectedSubject.Dispose();
+
+		// Clear event handlers
+		GlyphSelected = null;
+
+		// Clear references
+		_selectedGlyph = null;
+		_glyphLabel = null;
+
+		// The base class will handle disposing all children
+		base.DisposeManagedResources();
 	}
 
 	#endregion

@@ -6,9 +6,9 @@ readonly struct RadialColor : IEquatable<RadialColor>
 {
 	#region Fields
 
-	public readonly byte Red;
-	public readonly byte Green;
-	public readonly byte Blue;
+	public readonly byte R;
+	public readonly byte G;
+	public readonly byte B;
 
 	#endregion
 
@@ -28,20 +28,20 @@ readonly struct RadialColor : IEquatable<RadialColor>
 		{
 			throw new ArgumentException($"Invalid color value: {b}", nameof(b));
 		}
-		Red = r;
-		Green = g;
-		Blue = b;
+		R = r;
+		G = g;
+		B = b;
 	}
 
 	#endregion
 
 	#region Properties
 
-	// public static RadialColor Black => new RadialColor(0, 0, 0);
-	// public static RadialColor White => new RadialColor(5, 5, 5);
-	// public static RadialColor Red => new RadialColor(5, 0, 0);
-	// public static RadialColor Green => new RadialColor(0, 5, 0);
-	// public static RadialColor Blue => new RadialColor(0, 0, 5);
+	public static RadialColor Black => new RadialColor(0, 0, 0);
+	public static RadialColor White => new RadialColor(5, 5, 5);
+	public static RadialColor Red => new RadialColor(5, 0, 0);
+	public static RadialColor Green => new RadialColor(0, 5, 0);
+	public static RadialColor Blue => new RadialColor(0, 0, 5);
 
 	/// <summary>
 	/// Calculate the palette index for this color.
@@ -50,7 +50,7 @@ readonly struct RadialColor : IEquatable<RadialColor>
 	{
 		get
 		{
-			return (byte)((Red * 6 * 6) + (Green * 6) + Blue);
+			return (byte)((R * 6 * 6) + (G * 6) + B);
 		}
 	}
 
@@ -60,11 +60,11 @@ readonly struct RadialColor : IEquatable<RadialColor>
 
 	public override string ToString()
 	{
-		return $"{nameof(RadialColor)}({Red},{Green},{Blue})";
+		return $"{nameof(RadialColor)}({R},{G},{B})";
 	}
 	public bool Equals(RadialColor other)
 	{
-		return Red == other.Red && Green == other.Green && Blue == other.Blue;
+		return R == other.R && G == other.G && B == other.B;
 	}
 
 	public override bool Equals(object? obj)
@@ -80,9 +80,9 @@ readonly struct RadialColor : IEquatable<RadialColor>
 	public RadialColor Add(RadialColor other)
 	{
 		return new RadialColor(
-			(byte)Math.Min(5, Red + other.Red),
-			(byte)Math.Min(5, Green + other.Green),
-			(byte)Math.Min(5, Blue + other.Blue)
+			(byte)Math.Min(5, R + other.R),
+			(byte)Math.Min(5, G + other.G),
+			(byte)Math.Min(5, B + other.B)
 		);
 	}
 
@@ -102,7 +102,7 @@ readonly struct RadialColor : IEquatable<RadialColor>
 	/// </summary>  
 	public Color4 ToColor()
 	{
-		return new Color4(Red / 5.0f, Green / 5.0f, Blue / 5.0f, 1.0f);
+		return new Color4(R / 5.0f, G / 5.0f, B / 5.0f, 1.0f);
 	}
 	/// <summary>  
 	/// Linearly interpolates between two RadialColors.  
@@ -113,9 +113,9 @@ readonly struct RadialColor : IEquatable<RadialColor>
 	public RadialColor Lerp(RadialColor other, float t)
 	{
 		t = Math.Clamp(t, 0.0f, 1.0f);
-		float r = MathHelper.Lerp(Red, other.Red, t);
-		float g = MathHelper.Lerp(Green, other.Green, t);
-		float b = MathHelper.Lerp(Blue, other.Blue, t);
+		float r = MathHelper.Lerp(R, other.R, t);
+		float g = MathHelper.Lerp(G, other.G, t);
+		float b = MathHelper.Lerp(B, other.B, t);
 		return new RadialColor(
 			(byte)Math.Round(r),
 			(byte)Math.Round(g),
