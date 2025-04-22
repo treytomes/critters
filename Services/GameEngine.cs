@@ -163,11 +163,11 @@ class GameEngine : IGameEngine, IDisposable
 		if (position.X < 0 || position.Y < 0 || position.X > _display.Width || position.Y > _display.Height)
 		{
 			// The cursor has fallen off the virtual display.  
-			_window.CursorState = CursorState.Normal;
+			_window.CursorState = OpenTK.Windowing.Common.CursorState.Normal;
 		}
 		else
 		{
-			_window.CursorState = CursorState.Hidden;
+			_window.CursorState = OpenTK.Windowing.Common.CursorState.Hidden;
 		}
 
 		e = new MouseMoveEventArgs(position, delta);

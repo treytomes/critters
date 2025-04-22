@@ -11,7 +11,7 @@ class ImageRef : IImageRef
 		_image = image;
 	}
 
-	public void Render(RenderingContext rc, Vector2 position)
+	public void Render(IRenderingContext rc, Vector2 position)
 	{
 		_image.Render(rc, position);
 	}

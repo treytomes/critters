@@ -7,7 +7,6 @@ using Critters.World;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using System;
 
 namespace Critters.States;
 
@@ -33,6 +32,7 @@ class TileMapTestState : GameState
 	private Label _mouseLabel;
 	private Button _sampleButton;
 	private IDisposable? _buttonClickSubscription;
+	private Vector2 _mousePosition = Vector2.Zero;
 
 	private Camera _camera;
 	private TileRepo _tiles;
@@ -62,18 +62,7 @@ class TileMapTestState : GameState
 		_generator = new InfiniteTerrainGenerator();
 		_mapCursor = new MapCursor();
 
-		InitializeUI(resources, rc);
-	}
-
-	#endregion
-
-	#region Methods
-
-	/// <summary>
-	/// Initializes UI elements for this state.
-	/// </summary>
-	private void InitializeUI(IResourceManager resources, IRenderingContext rc)
-	{
+		// Initializes UI elements for this state.
 		_cameraLabel = new Label(resources, rc, $"Camera:({(int)_camera.Position.X},{(int)_camera.Position.Y})",
 			new Vector2(0, 0), new RadialColor(5, 5, 5), new RadialColor(0, 0, 0));
 		UI.Add(_cameraLabel);
@@ -84,10 +73,13 @@ class TileMapTestState : GameState
 
 		_sampleButton = new Button(resources, rc, ButtonStyle.Raised);
 		_sampleButton.Position = new Vector2(32, 32);
-		_sampleButton.Content = new Label(resources, rc, "> Button <",
-			new Vector2(0, 0), new RadialColor(0, 0, 0));
+		_sampleButton.Content = new Label(resources, rc, "> Button <", new Vector2(0, 0), new RadialColor(0, 0, 0));
 		UI.Add(_sampleButton);
 	}
+
+	#endregion
+
+	#region Methods
 
 	/// <summary>
 	/// Loads resources and initializes the state.
@@ -238,7 +230,7 @@ class TileMapTestState : GameState
 				);
 
 				// Optional: Set the tile in the level for persistence
-				// _level.SetTile(tileX, tileY, (int)tileType);
+				_level.SetTile(tileX, tileY, (int)tileType);
 			}
 		}
 	}
@@ -339,6 +331,8 @@ class TileMapTestState : GameState
 	/// <returns>True if the event was handled; otherwise, false.</returns>
 	public override bool MouseMove(MouseMoveEventArgs e)
 	{
+		_mousePosition = e.Position;
+
 		// Update mouse position display
 		_mouseLabel.Text = StringProvider.From($"Mouse:({(int)e.Position.X},{(int)e.Position.Y})");
 
@@ -363,6 +357,12 @@ class TileMapTestState : GameState
 	/// <returns>True if the event was handled; otherwise, false.</returns>
 	public override bool MouseDown(MouseButtonEventArgs e)
 	{
+		if (base.MouseDown(e))
+		{
+			// Give the UI a swing at the event first.
+			return true;
+		}
+
 		if (e.Button == MouseButton.Right)
 		{
 			_isDraggingCamera = true;
@@ -371,7 +371,7 @@ class TileMapTestState : GameState
 		else if (e.Button == MouseButton.Left)
 		{
 			// Get the tile position under the cursor
-			var worldPos = _camera.ScreenToWorld(e.Position).Floor();
+			var worldPos = _camera.ScreenToWorld(_mousePosition).Floor();
 			var tileX = (int)(worldPos.X / TILE_SIZE);
 			var tileY = (int)(worldPos.Y / TILE_SIZE);
 
@@ -385,7 +385,7 @@ class TileMapTestState : GameState
 			return true;
 		}
 
-		return base.MouseDown(e);
+		return false;
 	}
 
 	/// <summary>
@@ -395,13 +395,18 @@ class TileMapTestState : GameState
 	/// <returns>True if the event was handled; otherwise, false.</returns>
 	public override bool MouseUp(MouseButtonEventArgs e)
 	{
+		if (base.MouseUp(e))
+		{
+			return true;
+		}
+
 		if (e.Button == MouseButton.Right)
 		{
 			_isDraggingCamera = false;
 			return true;
 		}
 
-		return base.MouseUp(e);
+		return false;
 	}
 
 	/// <summary>

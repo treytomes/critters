@@ -15,7 +15,7 @@ class BitmapRef : IImageRef
 		_backgroundColor = backgroundColor;
 	}
 
-	public void Render(RenderingContext rc, Vector2 position)
+	public void Render(IRenderingContext rc, Vector2 position)
 	{
 		_bitmap.Render(rc, position, _foregroundColor, _backgroundColor);
 	}

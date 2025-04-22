@@ -41,6 +41,7 @@ class MainMenuState : GameState
 			">     Conway    <",
 			">    FlConway   <",
 			">   Particles   <",
+			">    Terminal   <",
 		};
 
 		for (var n = 0; n < items.Length; n++)
@@ -151,6 +152,9 @@ class MainMenuState : GameState
 				break;
 			case 5:
 				Enter(new ParticlesState(Resources, RC));
+				break;
+			case 6:
+				Enter(new TerminalGameState(Resources, RC));
 				break;
 		}
 	}
