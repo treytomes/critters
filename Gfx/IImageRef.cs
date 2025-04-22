@@ -4,5 +4,5 @@ namespace Critters.Gfx;
 
 interface IImageRef
 {
-	void Render(RenderingContext rc, Vector2 position);
+	void Render(IRenderingContext rc, Vector2 position);
 }

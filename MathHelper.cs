@@ -1,25 +1,77 @@
 namespace Critters;
 
 /// <summary>  
-/// Provides common mathematical helper functions.  
+/// Provides helper methods for common mathematical operations.
 /// </summary>  
 public static class MathHelper
 {
-	/// <summary>  
-	/// Performs floor division, which divides two numbers and rounds the result down to the nearest integer,  
-	/// even for negative numbers.  
-	/// </summary>  
-	/// <param name="dividend">The number to be divided.</param>  
-	/// <param name="divisor">The number to divide by.</param>  
-	/// <returns>The result of the division, rounded down to the nearest integer.</returns>  
-	/// <exception cref="DivideByZeroException">Thrown when divisor is zero.</exception>  
-	public static int FloorDiv(int dividend, int divisor)
+	/// <summary>
+	/// Computes the floor modulus, which works correctly for negative values.
+	/// For example, FloorMod(-1, 5) returns 4, whereas (-1 % 5) returns -1 in C#.
+	/// </summary>
+	/// <param name="x">The dividend.</param>
+	/// <param name="y">The divisor.</param>
+	/// <returns>
+	/// The floor modulus, which is always in the range [0, y) when y is positive.
+	/// </returns>
+	/// <exception cref="DivideByZeroException">Thrown when y is zero.</exception>
+	public static int FloorMod(int x, int y)
 	{
-		if (divisor == 0)
-			throw new DivideByZeroException("The divisor cannot be zero.");
+		if (y == 0)
+			throw new DivideByZeroException("Cannot compute modulus with zero divisor");
 
-		return (dividend / divisor) - ((dividend % divisor < 0) ? 1 : 0);
+		// For positive divisors, ensure the result is in the range [0, y)
+		if (y > 0)
+		{
+			int r = x % y;
+			// If the remainder is negative, add the divisor to get a positive result
+			return r < 0 ? r + y : r;
+		}
+		else
+		{
+			// For negative divisors, ensure the result is in the range (y, 0]
+			int r = x % y;
+			// If the remainder is positive, add the divisor to get a negative result
+			return r > 0 ? r + y : r;
+		}
 	}
+
+	/// <summary>
+	/// Computes the floor division, which rounds towards negative infinity.
+	/// For example, FloorDiv(-1, 5) returns -1, whereas (-1 / 5) returns 0 in C#.
+	/// </summary>
+	/// <param name="x">The dividend.</param>
+	/// <param name="y">The divisor.</param>
+	/// <returns>The floor division result.</returns>
+	/// <exception cref="DivideByZeroException">Thrown when y is zero.</exception>
+	public static int FloorDiv(int x, int y)
+	{
+		if (y == 0)
+			throw new DivideByZeroException("Cannot divide by zero");
+
+		// Integer division in C# truncates toward zero, not toward negative infinity
+		// For positive numbers, truncation and floor division are the same
+		// For negative numbers, we need to adjust if there's a remainder
+
+		int q = x / y;
+		int r = x % y;
+
+		// If the signs are different and the remainder is not zero, adjust the quotient
+		if ((x < 0) != (y < 0) && r != 0)
+		{
+			q--;
+		}
+
+		return q;
+	}
+
+	// public static int FloorDiv(int dividend, int divisor)
+	// {
+	// 	if (divisor == 0)
+	// 		throw new DivideByZeroException("The divisor cannot be zero.");
+
+	// 	return (dividend / divisor) - ((dividend % divisor < 0) ? 1 : 0);
+	// }
 
 	/// <summary>  
 	/// Performs positive modulus operation, ensuring the result is always non-negative.  

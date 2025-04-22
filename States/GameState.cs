@@ -3,7 +3,6 @@ using Critters.Gfx;
 using Critters.Services;
 using Critters.UI;
 using OpenTK.Windowing.Common;
-using System.ComponentModel;
 using System.Reactive.Subjects;
 
 namespace Critters.States;
