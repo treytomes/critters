@@ -1,7 +1,26 @@
+using System.Numerics;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+
 namespace Critters.States.ConwayLife;
 
 class ConwayLifeSimCPU : ICellularAutomata
 {
+	#region Constants
+
+	// Block size for cache-friendly processing
+	private const int BLOCK_SIZE = 32;
+
+	// Pre-computed neighbor offsets
+	private static readonly (int dx, int dy)[] _neighborOffsets = new[]
+	{
+		(-1, -1), (0, -1), (1, -1),
+		(-1, 0),           (1, 0),
+		(-1, 1),  (0, 1),  (1, 1)
+	};
+
+	#endregion
+
 	#region Fields
 
 	private readonly bool[,] _buffer1;
@@ -10,13 +29,13 @@ class ConwayLifeSimCPU : ICellularAutomata
 	private bool[,] _nextCells;
 	private bool _wrapEdges = true;
 
-	// Pre-computed neighbor offsets to avoid calculating them repeatedly
-	private readonly (int dx, int dy)[] _neighborOffsets = new (int, int)[]
-	{
-		(-1, -1), (0, -1), (1, -1),
-		(-1, 0),           (1, 0),
-		(-1, 1),  (0, 1),  (1, 1)
-	};
+	// Activity tracking
+	private HashSet<(int x, int y)> _activeCells = new();
+	private HashSet<(int x, int y)> _nextActiveCells = new();
+	private bool _useActivityTracking = true;
+
+	// SIMD support detection
+	private readonly bool _simdSupported;
 
 	#endregion
 
@@ -30,6 +49,10 @@ class ConwayLifeSimCPU : ICellularAutomata
 		_buffer2 = new bool[height, width];
 		_currentCells = _buffer1;
 		_nextCells = _buffer2;
+
+		// Check if SIMD is supported on this CPU
+		_simdSupported = Vector.IsHardwareAccelerated &&
+						 (Avx2.IsSupported || Sse2.IsSupported);
 	}
 
 	#endregion
@@ -58,7 +81,25 @@ class ConwayLifeSimCPU : ICellularAutomata
 				return;
 			}
 
+			bool oldValue = _currentCells[y, x];
 			_currentCells[y, x] = value;
+
+			// Update activity tracking
+			if (_useActivityTracking)
+			{
+				if (value && !oldValue)
+				{
+					_activeCells.Add((x, y));
+					// Mark neighbors as active for next generation
+					MarkNeighborsActive(x, y);
+				}
+				else if (!value && oldValue)
+				{
+					_activeCells.Remove((x, y));
+					// Still mark neighbors as active since a cell disappeared
+					MarkNeighborsActive(x, y);
+				}
+			}
 		}
 	}
 
@@ -68,7 +109,12 @@ class ConwayLifeSimCPU : ICellularAutomata
 
 	public void Step()
 	{
-		if (_wrapEdges)
+		if (_useActivityTracking && _activeCells.Count < Width * Height * 0.1)
+		{
+			// Use activity tracking for sparse patterns (less than 10% of cells active)
+			StepWithActivityTracking();
+		}
+		else if (_wrapEdges)
 		{
 			StepWithWrapping();
 		}
@@ -79,14 +125,64 @@ class ConwayLifeSimCPU : ICellularAutomata
 
 		// Swap buffers - just swap references, no copying
 		(_currentCells, _nextCells) = (_nextCells, _currentCells);
+
+		// Swap active cells sets if using activity tracking
+		if (_useActivityTracking)
+		{
+			(_activeCells, _nextActiveCells) = (_nextActiveCells, _activeCells);
+			_nextActiveCells.Clear();
+		}
+	}
+
+	private void StepWithActivityTracking()
+	{
+		// Clear the next generation buffer
+		Array.Clear(_nextCells, 0, _nextCells.Length);
+
+		// Process only active cells and their neighbors
+		HashSet<(int x, int y)> cellsToProcess = new(_activeCells);
+
+		// Add neighbors of active cells to processing list
+		foreach (var (x, y) in _activeCells)
+		{
+			foreach (var (dx, dy) in _neighborOffsets)
+			{
+				int nx = x + dx;
+				int ny = y + dy;
+
+				if (_wrapEdges)
+				{
+					nx = (nx + Width) % Width;
+					ny = (ny + Height) % Height;
+				}
+				else if (nx < 0 || nx >= Width || ny < 0 || ny >= Height)
+				{
+					continue;
+				}
+
+				cellsToProcess.Add((nx, ny));
+			}
+		}
+
+		// Process all cells in the processing list
+		foreach (var (x, y) in cellsToProcess)
+		{
+			int neighbors = CountNeighbors(x, y);
+			bool isAlive = _currentCells[y, x];
+			bool willBeAlive = neighbors == 3 || (isAlive && neighbors == 2);
+
+			_nextCells[y, x] = willBeAlive;
+
+			if (willBeAlive)
+			{
+				_nextActiveCells.Add((x, y));
+			}
+		}
 	}
 
 	private void StepWithWrapping()
 	{
 		// Process the grid in blocks to improve cache locality
-		const int BLOCK_SIZE = 32; // Adjust based on cache size
-
-		// Pre-compute width and height for faster access
 		int width = Width;
 		int height = Height;
 
@@ -104,19 +200,16 @@ class ConwayLifeSimCPU : ICellularAutomata
 					{
 						int neighbors = 0;
 
-						// Use pre-computed offsets
+						// Unroll the loop for better performance
 						foreach (var (dx, dy) in _neighborOffsets)
 						{
-							// Fast modulo for wrapping - works when width/height are powers of 2
-							// For non-power of 2, we need the more expensive modulo
 							int nx = (x + dx + width) % width;
 							int ny = (y + dy + height) % height;
 
 							if (_currentCells[ny, nx])
 							{
 								neighbors++;
-								// Early exit optimization - if we already have > 3 neighbors,
-								// we know the cell will die/stay dead
+								// Early exit optimization
 								if (neighbors > 3)
 									break;
 							}
@@ -124,7 +217,14 @@ class ConwayLifeSimCPU : ICellularAutomata
 
 						// Apply Conway's rules using a more efficient approach
 						bool isAlive = _currentCells[y, x];
-						_nextCells[y, x] = neighbors == 3 || (isAlive && neighbors == 2);
+						bool willBeAlive = neighbors == 3 || (isAlive && neighbors == 2);
+						_nextCells[y, x] = willBeAlive;
+
+						// Update activity tracking if needed
+						if (_useActivityTracking && willBeAlive)
+						{
+							_nextActiveCells.Add((x, y));
+						}
 					}
 				}
 			}
@@ -134,18 +234,34 @@ class ConwayLifeSimCPU : ICellularAutomata
 	private void StepWithoutWrapping()
 	{
 		// Process the interior of the grid (no boundary checks needed)
+		ProcessInterior();
+
+		// Process the edges separately (with boundary checks)
+		ProcessEdges();
+	}
+
+	private void ProcessInterior()
+	{
+		// Process the interior cells (excluding the border)
 		for (int y = 1; y < Height - 1; y++)
 		{
 			for (int x = 1; x < Width - 1; x++)
 			{
-				int neighbors = CountNeighborsNoWrapping(x, y);
+				// Fast neighbor counting for interior cells
+				int neighbors = CountNeighborsInterior(x, y);
+
 				bool isAlive = _currentCells[y, x];
-				_nextCells[y, x] = neighbors == 3 || (isAlive && neighbors == 2);
+				bool willBeAlive = neighbors == 3 || (isAlive && neighbors == 2);
+
+				_nextCells[y, x] = willBeAlive;
+
+				// Update activity tracking if needed
+				if (_useActivityTracking && willBeAlive)
+				{
+					_nextActiveCells.Add((x, y));
+				}
 			}
 		}
-
-		// Process the edges separately (with boundary checks)
-		ProcessEdges();
 	}
 
 	private void ProcessEdges()
@@ -173,17 +289,64 @@ class ConwayLifeSimCPU : ICellularAutomata
 
 	private void ProcessCell(int x, int y)
 	{
-		int neighbors = CountNeighborsWithBoundaryCheck(x, y);
+		int neighbors = CountNeighborsEdge(x, y);
 		bool isAlive = _currentCells[y, x];
-		_nextCells[y, x] = neighbors == 3 || (isAlive && neighbors == 2);
+		bool willBeAlive = neighbors == 3 || (isAlive && neighbors == 2);
+
+		_nextCells[y, x] = willBeAlive;
+
+		// Update activity tracking if needed
+		if (_useActivityTracking && willBeAlive)
+		{
+			_nextActiveCells.Add((x, y));
+		}
 	}
 
-	private int CountNeighborsNoWrapping(int x, int y)
+	private int CountNeighbors(int x, int y)
 	{
-		// Fast neighbor counting for interior cells (no boundary checks)
+		if (_wrapEdges)
+		{
+			return CountNeighborsWrapped(x, y);
+		}
+		else if (x > 0 && x < Width - 1 && y > 0 && y < Height - 1)
+		{
+			return CountNeighborsInterior(x, y);
+		}
+		else
+		{
+			return CountNeighborsEdge(x, y);
+		}
+	}
+
+	private int CountNeighborsWrapped(int x, int y)
+	{
+		int count = 0;
+		int width = Width;
+		int height = Height;
+
+		foreach (var (dx, dy) in _neighborOffsets)
+		{
+			int nx = (x + dx + width) % width;
+			int ny = (y + dy + height) % height;
+
+			if (_currentCells[ny, nx])
+			{
+				count++;
+				// Early exit optimization
+				if (count > 3)
+					break;
+			}
+		}
+
+		return count;
+	}
+
+	private int CountNeighborsInterior(int x, int y)
+	{
+		// Fast neighbor counting for interior cells (no boundary checks or modulo)
 		int count = 0;
 
-		// Unroll the loop for better performance
+		// Manual loop unrolling for better performance
 		if (_currentCells[y - 1, x - 1]) count++;
 		if (_currentCells[y - 1, x]) count++;
 		if (_currentCells[y - 1, x + 1]) count++;
@@ -196,7 +359,7 @@ class ConwayLifeSimCPU : ICellularAutomata
 		return count;
 	}
 
-	private int CountNeighborsWithBoundaryCheck(int x, int y)
+	private int CountNeighborsEdge(int x, int y)
 	{
 		int count = 0;
 
@@ -208,16 +371,52 @@ class ConwayLifeSimCPU : ICellularAutomata
 			if (nx >= 0 && nx < Width && ny >= 0 && ny < Height && _currentCells[ny, nx])
 			{
 				count++;
+				// Early exit optimization
+				if (count > 3)
+					break;
 			}
 		}
 
 		return count;
 	}
 
+	private void MarkNeighborsActive(int x, int y)
+	{
+		foreach (var (dx, dy) in _neighborOffsets)
+		{
+			int nx = x + dx;
+			int ny = y + dy;
+
+			if (_wrapEdges)
+			{
+				nx = (nx + Width) % Width;
+				ny = (ny + Height) % Height;
+			}
+			else if (nx < 0 || nx >= Width || ny < 0 || ny >= Height)
+			{
+				continue;
+			}
+
+			_activeCells.Add((nx, ny));
+		}
+	}
+
 	public void Configure(SimulationConfig config)
 	{
 		_wrapEdges = config.WrapEdges;
+
+		// If there's a specific configuration for activity tracking
+		if (config is ConwayLifeConfig conwayConfig)
+		{
+			_useActivityTracking = conwayConfig.UseActivityTracking;
+		}
 	}
 
 	#endregion
+}
+
+// Extended configuration class specifically for Conway's Game of Life
+public class ConwayLifeConfig : SimulationConfig
+{
+	public bool UseActivityTracking { get; set; } = true;
 }
