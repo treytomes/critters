@@ -42,6 +42,7 @@ class MainMenuState : GameState
 			">    FlConway   <",
 			">   Particles   <",
 			">    Terminal   <",
+			">    Circuits   <",
 		};
 
 		for (var n = 0; n < items.Length; n++)
@@ -155,6 +156,9 @@ class MainMenuState : GameState
 				break;
 			case 6:
 				Enter(new TerminalGameState(Resources, RC));
+				break;
+			case 7:
+				Enter(new CircuitSimGameState(Resources, RC));
 				break;
 		}
 	}

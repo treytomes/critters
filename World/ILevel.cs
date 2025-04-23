@@ -1,6 +1,5 @@
 using Critters.Gfx;
 using Critters.IO;
-using Newtonsoft.Json;
 using OpenTK.Mathematics;
 
 namespace Critters.World;
