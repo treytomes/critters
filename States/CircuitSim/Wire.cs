@@ -8,20 +8,37 @@ namespace Critters.States.CircuitSim;
 /// </summary>
 class Wire : CircuitComponent
 {
+	#region Constants
+
+	private const float DEFAULT_MAX_CHARGE = 1.0f;
+	private const float DEFAULT_RESISTANCE = 0.01f;
+
+	#endregion
+
+	#region Constructors
+
+	public Wire()
+	{
+		MaxCharge = DEFAULT_MAX_CHARGE;
+	}
+
+	#endregion
+
+	#region Properties
+
 	/// <summary>
 	/// Resistance of the wire (higher means slower charge transfer)
 	/// </summary>
-	public float Resistance { get; set; } = 0.1f;
+	public float Resistance { get; set; } = DEFAULT_RESISTANCE;
 
 	/// <summary>
 	/// Conductivity of the wire (inverse of resistance)
 	/// </summary>
-	public float Conductivity => 1.0f / Math.Max(0.01f, Resistance);
+	public float Conductivity => 1.0f / Math.Max(CHARGE_INCONSEQUENTIAL, Resistance);
 
-	public Wire()
-	{
-		MaxCharge = 0.8f;
-	}
+	#endregion
+
+	#region Methods
 
 	public override void Update(CircuitSimulator simulator, int x, int y, float deltaTime)
 	{
@@ -30,66 +47,70 @@ class Wire : CircuitComponent
 		// Check and update connections to adjacent components
 		UpdateConnections(simulator, pos);
 
-		// Calculate how much charge can flow out of this wire
-		// Use a higher flow rate to ensure visible charge movement
-		float chargeFlowRate = Conductivity * deltaTime * 5.0f;
+		// Calculate how much charge can flow out of this wire.
+		// Lower the resistance to get a higher flow rate.
+		var chargeFlowRate = Conductivity * deltaTime;
 
 		// Define directions: up, right, down, left
-		int[] dx = { 0, 1, 0, -1 };
-		int[] dy = { -1, 0, 1, 0 };
+		Vector2i[] deltas = [
+			-Vector2i.UnitY,
+			 Vector2i.UnitX,
+			 Vector2i.UnitY,
+			-Vector2i.UnitX,
+		];
 
 		// Track components that can receive charge (have lower charge than us)
 		List<(CircuitComponent component, int direction)> receivers = new List<(CircuitComponent, int)>();
 
 		// Find all potential receivers
-		for (int i = 0; i < 4; i++)
+		for (var i = 0; i < 4; i++)
 		{
 			if (!_connections[i]) continue;
 
-			int nx = x + dx[i];
-			int ny = y + dy[i];
-
-			var neighbor = simulator.GetComponentAt(nx, ny);
-			if (neighbor != null && neighbor.Charge < this.Charge)
+			var offset = pos + deltas[i];
+			var neighbor = simulator.GetComponentAt(offset);
+			if (neighbor != null && neighbor.Charge < Charge)
 			{
 				receivers.Add((neighbor, i));
 			}
 		}
 
 		// If we have charge and receivers, distribute it
-		if (Charge > 0.001f && receivers.Count > 0)
+		if (Charge > CHARGE_INCONSEQUENTIAL && receivers.Count > 0)
 		{
-			// Calculate total charge differential
+			// Calculate total charge differential.
 			var totalDiff = 0.0f;
 			foreach (var (neighbor, _) in receivers)
 			{
-				totalDiff += Math.Max(0, this.Charge - neighbor.Charge);
+				// The Max function shouldn't be needed; we already know that Charge - neighbor.Charge > 0.
+				// totalDiff += Math.Max(0, Charge - neighbor.Charge);
+				totalDiff += Charge - neighbor.Charge;
 			}
 
 			if (totalDiff > 0)
 			{
 				// Determine how much total charge to transfer
-				var totalChargeToTransfer = Math.Min(Charge * chargeFlowRate, Charge * 0.8f);
+				// var totalChargeToTransfer = Math.Min(Charge * chargeFlowRate, Charge * 0.8f); // Not sure what value the "* 0.8f" provides.
+				var totalChargeToTransfer = Charge * chargeFlowRate;
 				var remainingCharge = totalChargeToTransfer;
 
-				// Distribute charge proportionally based on charge differential
+				// Distribute charge proportionally based on charge differential.
 				foreach (var (neighbor, _) in receivers)
 				{
-					var diff = Math.Max(0, this.Charge - neighbor.Charge);
+					var diff = Charge - neighbor.Charge;
 					var proportion = diff / totalDiff;
 					var amountToTransfer = totalChargeToTransfer * proportion;
 
-					if (amountToTransfer > 0.001f && remainingCharge > 0)
+					if (amountToTransfer > CHARGE_INCONSEQUENTIAL && remainingCharge > 0)
 					{
 						var actualTransfer = Math.Min(amountToTransfer, remainingCharge);
 						neighbor.SetCharge(neighbor.Charge + actualTransfer);
 						remainingCharge -= actualTransfer;
-						neighbor.IsDirty = true;
 					}
 				}
 
 				// Update our own charge
-				float actualTotalTransferred = totalChargeToTransfer - remainingCharge;
+				var actualTotalTransferred = totalChargeToTransfer - remainingCharge;
 				if (actualTotalTransferred > 0)
 				{
 					SetCharge(Charge - actualTotalTransferred);
@@ -98,10 +119,10 @@ class Wire : CircuitComponent
 			}
 		}
 
-		// Apply resistance loss
-		if (Charge > 0.01f)
+		// Apply resistance loss.
+		if (Charge > CHARGE_INCONSEQUENTIAL)
 		{
-			float resistanceLoss = Charge * Resistance * 0.01f * deltaTime;
+			var resistanceLoss = Charge * Resistance * deltaTime;
 			SetCharge(Charge - resistanceLoss);
 		}
 		else
@@ -184,4 +205,6 @@ class Wire : CircuitComponent
 			new RadialColor(3, 3, 3)
 		);
 	}
+
+	#endregion
 }

@@ -14,11 +14,13 @@ class Ground : CircuitComponent
 	/// <remarks>
 	/// Reduced from 0.8 to 0.4.
 	/// </remarks>
-	public float AbsorptionRate { get; set; } = 0.4f;
+	// public float AbsorptionRate { get; set; } = 0.4f; // I think this needs to be higher.
+	public float AbsorptionRate { get; set; } = 1.0f; // I think this needs to be higher.
 
 	public Ground()
 	{
-		MaxCharge = 0.1f; // Can hold a small charge before dissipating
+		MaxCharge = 0.0f;
+		// MaxCharge = 0.1f; // Can hold a small charge before dissipating
 	}
 
 	public override void Update(CircuitSimulator simulator, int x, int y, float deltaTime)
@@ -26,9 +28,9 @@ class Ground : CircuitComponent
 		// Ground dissipates charge quickly
 		if (Charge > 0)
 		{
-			// SetCharge(0.0f);
-			var dissipation = Charge * AbsorptionRate * deltaTime * 3.0f; // Not sure if this 3.0f factor is needed.
-			SetCharge(Charge - dissipation);
+			SetCharge(0.0f);
+			// var dissipation = Charge * AbsorptionRate * deltaTime * 3.0f; // Not sure if this 3.0f factor is needed.
+			// SetCharge(Charge - dissipation);
 			IsDirty = true;
 		}
 	}

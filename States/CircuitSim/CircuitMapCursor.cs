@@ -1,5 +1,6 @@
 using Critters.Gfx;
 using Critters.World;
+using OpenTK.Graphics.ES11;
 using OpenTK.Mathematics;
 
 namespace Critters.States.CircuitSim
@@ -114,11 +115,11 @@ namespace Critters.States.CircuitSim
 		/// <summary>
 		/// Cycles to the next component type
 		/// </summary>
-		public void CycleComponentType()
+		public void CycleComponentType(int offset)
 		{
 			var index = CircuitComponentFactory.GetTileIdForComponentType(SelectedComponentType);
 			if (index < 0) index = CircuitComponentFactory.TYPES.Length - 1;
-			var nextIndex = (index + 1) % CircuitComponentFactory.TYPES.Length;
+			var nextIndex = (index + offset) % CircuitComponentFactory.TYPES.Length;
 			SelectedComponentType = CircuitComponentFactory.TYPES[nextIndex];
 		}
 	}

@@ -25,7 +25,7 @@ class CircuitSimGameState : GameState
 	private const byte GRID_INTENSITY = 2;
 	private const float BASE_CAMERA_SPEED = 8 * TILE_SIZE; // 8 tiles per second
 	private const float FAST_CAMERA_MULTIPLIER = 4.0f;
-	private const float SIMULATION_SPEED = 1.0f; // Normal speed multiplier
+	private const float SIMULATION_SPEED = 1000.0f;
 
 	#endregion
 
@@ -329,9 +329,9 @@ class CircuitSimGameState : GameState
 			case Keys.Space:
 				_simulationPaused = !_simulationPaused;
 				return true;
-			case Keys.Tab:
-				_mapCursor.CycleComponentType();
-				return true;
+			// case Keys.Tab:
+			// 	_mapCursor.CycleComponentType();
+			// 	return true;
 			case Keys.Delete:
 			case Keys.Backspace:
 				// Delete component under cursor
@@ -442,8 +442,14 @@ class CircuitSimGameState : GameState
 		}
 		else if (e.Button == MouseButton.Middle)
 		{
-			// Cycle through component types
-			_mapCursor.CycleComponentType();
+			// Get the world position under the mouse
+			var worldPos = _camera.ScreenToWorld(_mousePosition);
+
+			var tileX = (int)(worldPos.X / TILE_SIZE);
+			var tileY = (int)(worldPos.Y / TILE_SIZE);
+
+			var hoverType = _simulator.GetComponentAt(tileX, tileY)?.GetType() ?? null;
+			if (hoverType != null) _mapCursor.SelectedComponentType = hoverType;
 			return true;
 		}
 
@@ -538,14 +544,9 @@ class CircuitSimGameState : GameState
 			return true;
 		}
 
-		// Use mouse wheel to cycle through component types
-		if (e.OffsetY > 0)
-		{
-			_mapCursor.CycleComponentType();
-			return true;
-		}
-
-		return false;
+		// Use mouse wheel to cycle through component types.
+		_mapCursor.CycleComponentType(Math.Sign(e.OffsetY));
+		return true;
 	}
 
 	#endregion
