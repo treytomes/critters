@@ -108,18 +108,7 @@ namespace Critters.States.CircuitSim
 		/// <returns>A new component instance</returns>
 		public CircuitComponent CreateSelectedComponent()
 		{
-			if (SelectedComponentType == typeof(PowerSource))
-				return new PowerSource();
-			else if (SelectedComponentType == typeof(Wire))
-				return new Wire();
-			else if (SelectedComponentType == typeof(Ground))
-				return new Ground();
-			else if (SelectedComponentType == typeof(Switch))
-				return new Switch();
-			else if (SelectedComponentType == typeof(Button))
-				return new Button();
-			else
-				return new Wire(); // Default to wire
+			return CircuitComponentFactory.CreateComponentFromType(SelectedComponentType);
 		}
 
 		/// <summary>
@@ -127,16 +116,10 @@ namespace Critters.States.CircuitSim
 		/// </summary>
 		public void CycleComponentType()
 		{
-			if (SelectedComponentType == typeof(Wire))
-				SelectedComponentType = typeof(PowerSource);
-			else if (SelectedComponentType == typeof(PowerSource))
-				SelectedComponentType = typeof(Ground);
-			else if (SelectedComponentType == typeof(Ground))
-				SelectedComponentType = typeof(Switch);
-			else if (SelectedComponentType == typeof(Switch))
-				SelectedComponentType = typeof(Button);
-			else
-				SelectedComponentType = typeof(Wire);
+			var index = CircuitComponentFactory.GetTileIdForComponentType(SelectedComponentType);
+			if (index < 0) index = CircuitComponentFactory.TYPES.Length - 1;
+			var nextIndex = (index + 1) % CircuitComponentFactory.TYPES.Length;
+			SelectedComponentType = CircuitComponentFactory.TYPES[nextIndex];
 		}
 	}
 }

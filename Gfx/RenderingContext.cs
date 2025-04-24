@@ -737,6 +737,146 @@ class RenderingContext : IRenderingContext
 		}
 	}
 
+	/// <summary>
+	/// Renders a triangle outline with the specified vertices and color.
+	/// </summary>
+	/// <param name="x1">The x-coordinate of the first vertex.</param>
+	/// <param name="y1">The y-coordinate of the first vertex.</param>
+	/// <param name="x2">The x-coordinate of the second vertex.</param>
+	/// <param name="y2">The y-coordinate of the second vertex.</param>
+	/// <param name="x3">The x-coordinate of the third vertex.</param>
+	/// <param name="y3">The y-coordinate of the third vertex.</param>
+	/// <param name="paletteIndex">The palette index of the triangle.</param>
+	public void RenderTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte paletteIndex)
+	{
+		// Draw the three edges of the triangle
+		RenderLine(x1, y1, x2, y2, paletteIndex);
+		RenderLine(x2, y2, x3, y3, paletteIndex);
+		RenderLine(x3, y3, x1, y1, paletteIndex);
+	}
+
+	/// <summary>
+	/// Renders a triangle outline with the specified vertices and color.
+	/// </summary>
+	/// <param name="p1">The first vertex of the triangle.</param>
+	/// <param name="p2">The second vertex of the triangle.</param>
+	/// <param name="p3">The third vertex of the triangle.</param>
+	/// <param name="color">The color of the triangle.</param>
+	public void RenderTriangle(Vector2 p1, Vector2 p2, Vector2 p3, RadialColor color)
+	{
+		RenderTriangle((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, (int)p3.X, (int)p3.Y, color.Index);
+	}
+
+	/// <summary>
+	/// Renders a filled triangle with the specified vertices and color.
+	/// </summary>
+	/// <param name="x1">The x-coordinate of the first vertex.</param>
+	/// <param name="y1">The y-coordinate of the first vertex.</param>
+	/// <param name="x2">The x-coordinate of the second vertex.</param>
+	/// <param name="y2">The y-coordinate of the second vertex.</param>
+	/// <param name="x3">The x-coordinate of the third vertex.</param>
+	/// <param name="y3">The y-coordinate of the third vertex.</param>
+	/// <param name="paletteIndex">The palette index to fill with.</param>
+	public void RenderFilledTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte paletteIndex)
+	{
+		// Sort vertices by y-coordinate (y1 <= y2 <= y3)
+		if (y1 > y2)
+		{
+			(x1, x2) = (x2, x1);
+			(y1, y2) = (y2, y1);
+		}
+		if (y2 > y3)
+		{
+			(x2, x3) = (x3, x2);
+			(y2, y3) = (y3, y2);
+		}
+		if (y1 > y2)
+		{
+			(x1, x2) = (x2, x1);
+			(y1, y2) = (y2, y1);
+		}
+
+		// Clip to bounds
+		int minY = Math.Max(0, y1);
+		int maxY = Math.Min(Height - 1, y3);
+
+		// Early return if triangle is completely outside the viewport
+		if (minY > maxY || (x1 < 0 && x2 < 0 && x3 < 0) || (x1 >= Width && x2 >= Width && x3 >= Width))
+			return;
+
+		// Calculate slopes
+		float dx1 = 0, dx2 = 0, dx3 = 0;
+
+		if (y2 - y1 > 0) dx1 = (float)(x2 - x1) / (y2 - y1);
+		if (y3 - y1 > 0) dx2 = (float)(x3 - x1) / (y3 - y1);
+		if (y3 - y2 > 0) dx3 = (float)(x3 - x2) / (y3 - y2);
+
+		// Start and end x-coordinates for each scanline
+		float sx = x1, ex = x1;
+
+		// First part of the triangle (between y1 and y2)
+		if (y1 != y2)
+		{
+			for (int y = Math.Max(0, y1); y < Math.Min(Height, y2); y++)
+			{
+				int start = (int)Math.Min(sx, ex);
+				int end = (int)Math.Max(sx, ex);
+
+				// Clip horizontally
+				start = Math.Max(0, start);
+				end = Math.Min(Width - 1, end);
+
+				// Draw the scanline
+				for (int x = start; x <= end; x++)
+				{
+					SetPixel(x, y, paletteIndex);
+				}
+
+				sx += dx1;
+				ex += dx2;
+			}
+		}
+
+		// Second part of the triangle (between y2 and y3)
+		if (y2 != y3)
+		{
+			sx = x2;
+
+			for (int y = Math.Max(0, y2); y <= Math.Min(Height - 1, y3); y++)
+			{
+				int start = (int)Math.Min(sx, ex);
+				int end = (int)Math.Max(sx, ex);
+
+				// Clip horizontally
+				start = Math.Max(0, start);
+				end = Math.Min(Width - 1, end);
+
+				// Draw the scanline
+				for (int x = start; x <= end; x++)
+				{
+					SetPixel(x, y, paletteIndex);
+				}
+
+				sx += dx3;
+				ex += dx2;
+			}
+		}
+
+		_isDirty = true;
+	}
+
+	/// <summary>
+	/// Renders a filled triangle with the specified vertices and color.
+	/// </summary>
+	/// <param name="p1">The first vertex of the triangle.</param>
+	/// <param name="p2">The second vertex of the triangle.</param>
+	/// <param name="p3">The third vertex of the triangle.</param>
+	/// <param name="color">The color to fill with.</param>
+	public void RenderFilledTriangle(Vector2 p1, Vector2 p2, Vector2 p3, RadialColor color)
+	{
+		RenderFilledTriangle((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, (int)p3.X, (int)p3.Y, color.Index);
+	}
+
 	/// <summary>  
 	/// Updates the virtual display with the current pixel data if it has changed.  
 	/// </summary>  

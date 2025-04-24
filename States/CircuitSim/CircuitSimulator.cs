@@ -65,7 +65,7 @@ class CircuitSimulator
 		{
 			if (kvp.Value.IsDirty)
 			{
-				_level.SetTile(kvp.Key.Item1, kvp.Key.Item2, GetTileIdForComponent(kvp.Value));
+				_level.SetTile(kvp.Key.Item1, kvp.Key.Item2, CircuitComponentFactory.GetTileIdForComponent(kvp.Value));
 				kvp.Value.IsDirty = false;
 			}
 		}
@@ -87,6 +87,16 @@ class CircuitSimulator
 	}
 
 	/// <summary>
+	/// Gets a component at the specified position
+	/// </summary>
+	/// <param name="pos">Position</param>
+	/// <returns>The component at the position, or null if none exists</returns>
+	public CircuitComponent? GetComponentAt(Vector2i pos)
+	{
+		return GetComponentAt(pos.X, pos.Y);
+	}
+
+	/// <summary>
 	/// Places a component at the specified position
 	/// </summary>
 	/// <param name="x">X position</param>
@@ -103,7 +113,7 @@ class CircuitSimulator
 			_interactiveComponents[(x, y)] = interactiveComponent;
 		}
 
-		_level.SetTile(x, y, GetTileIdForComponent(component));
+		_level.SetTile(x, y, CircuitComponentFactory.GetTileIdForComponent(component));
 		component.IsDirty = false;
 	}
 
@@ -123,28 +133,6 @@ class CircuitSimulator
 			_level.SetTile(x, y, 0); // Empty tile
 		}
 		return removed;
-	}
-
-	/// <summary>
-	/// Maps a component to a tile ID for storage in the level
-	/// </summary>
-	/// <param name="component">Component to map</param>
-	/// <returns>Tile ID representing the component</returns>
-	private int GetTileIdForComponent(CircuitComponent component)
-	{
-		// Use tile IDs to represent different component types
-		if (component is PowerSource)
-			return 1;
-		else if (component is Wire)
-			return 2;
-		else if (component is Ground)
-			return 3;
-		else if (component is Switch)
-			return 4;
-		else if (component is Button)
-			return 5;
-		else
-			return 0;
 	}
 
 	/// <summary>
@@ -265,30 +253,6 @@ class CircuitSimulator
 	}
 
 	/// <summary>
-	/// Creates a component from a tile ID
-	/// </summary>
-	/// <param name="tileId">Tile ID from the level</param>
-	/// <returns>A new component instance or null for empty tiles</returns>
-	public CircuitComponent? CreateComponentFromTileId(int tileId)
-	{
-		switch (tileId)
-		{
-			case 1:
-				return new PowerSource();
-			case 2:
-				return new Wire();
-			case 3:
-				return new Ground();
-			case 4:
-				return new Switch();
-			case 5:
-				return new Button();
-			default:
-				return null;
-		}
-	}
-
-	/// <summary>
 	/// Loads components from the level data
 	/// </summary>
 	public void LoadFromLevel()
@@ -311,7 +275,7 @@ class CircuitSimulator
 				var tile = _level.GetTile(x, y);
 				if (!tile.IsEmpty)
 				{
-					var component = CreateComponentFromTileId(tile.TileId);
+					var component = CircuitComponentFactory.CreateComponentFromTileId(tile.TileId);
 					if (component != null)
 					{
 						_components[(x, y)] = component;

@@ -292,6 +292,48 @@ interface IRenderingContext : IDisposable
 	/// <param name="paletteIndex">The palette index to fill with.</param>  
 	public void FloodFill(int x, int y, byte paletteIndex);
 
+	/// <summary>
+	/// Renders a filled triangle with the specified vertices and color.
+	/// </summary>
+	/// <param name="p1">The first vertex of the triangle.</param>
+	/// <param name="p2">The second vertex of the triangle.</param>
+	/// <param name="p3">The third vertex of the triangle.</param>
+	/// <param name="color">The color to fill with.</param>
+	public void RenderFilledTriangle(Vector2 p1, Vector2 p2, Vector2 p3, RadialColor color);
+
+	/// <summary>
+	/// Renders a filled triangle with the specified vertices and color.
+	/// </summary>
+	/// <param name="x1">The x-coordinate of the first vertex.</param>
+	/// <param name="y1">The y-coordinate of the first vertex.</param>
+	/// <param name="x2">The x-coordinate of the second vertex.</param>
+	/// <param name="y2">The y-coordinate of the second vertex.</param>
+	/// <param name="x3">The x-coordinate of the third vertex.</param>
+	/// <param name="y3">The y-coordinate of the third vertex.</param>
+	/// <param name="paletteIndex">The palette index to fill with.</param>
+	public void RenderFilledTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte paletteIndex);
+
+	/// <summary>
+	/// Renders a triangle outline with the specified vertices and color.
+	/// </summary>
+	/// <param name="p1">The first vertex of the triangle.</param>
+	/// <param name="p2">The second vertex of the triangle.</param>
+	/// <param name="p3">The third vertex of the triangle.</param>
+	/// <param name="color">The color of the triangle.</param>
+	public void RenderTriangle(Vector2 p1, Vector2 p2, Vector2 p3, RadialColor color);
+
+	/// <summary>
+	/// Renders a triangle outline with the specified vertices and color.
+	/// </summary>
+	/// <param name="x1">The x-coordinate of the first vertex.</param>
+	/// <param name="y1">The y-coordinate of the first vertex.</param>
+	/// <param name="x2">The x-coordinate of the second vertex.</param>
+	/// <param name="y2">The y-coordinate of the second vertex.</param>
+	/// <param name="x3">The x-coordinate of the third vertex.</param>
+	/// <param name="y3">The y-coordinate of the third vertex.</param>
+	/// <param name="paletteIndex">The palette index of the triangle.</param>
+	public void RenderTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte paletteIndex);
+
 	/// <summary>  
 	/// Updates the virtual display with the current pixel data if it has changed.  
 	/// </summary>  

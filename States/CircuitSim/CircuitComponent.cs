@@ -8,6 +8,23 @@ namespace Critters.States.CircuitSim;
 /// </summary>
 abstract class CircuitComponent
 {
+	#region Constants
+
+	protected const float CHARGE_INCONSEQUENTIAL = 0.001f;
+
+	#endregion
+
+	#region Fields
+
+	/// <summary>
+	/// Connection flags for each direction (up, right, down, left).
+	/// </summary>
+	protected bool[] _connections = new bool[4];
+
+	#endregion
+
+	#region Properties
+
 	/// <summary>
 	/// Current electrical charge of this component
 	/// </summary>
@@ -16,12 +33,16 @@ abstract class CircuitComponent
 	/// <summary>
 	/// Maximum charge this component can hold
 	/// </summary>
-	public float MaxCharge { get; protected set; } = 1.0f;
+	public float MaxCharge { get; protected set; } = 5.0f;
 
 	/// <summary>
 	/// Whether this component has changed since the last update
 	/// </summary>
 	public bool IsDirty { get; set; } = true;
+
+	#endregion
+
+	#region Methods
 
 	/// <summary>
 	/// Updates the component state
@@ -47,8 +68,9 @@ abstract class CircuitComponent
 	/// <returns>True if the charge was changed</returns>
 	public virtual bool SetCharge(float newCharge)
 	{
-		float clampedCharge = Math.Clamp(newCharge, 0, MaxCharge);
-		if (Math.Abs(Charge - clampedCharge) > 0.001f)
+		var clampedCharge = Math.Clamp(newCharge, 0, MaxCharge);
+		var diff = Math.Abs(Charge - clampedCharge);
+		if (diff > CHARGE_INCONSEQUENTIAL)
 		{
 			Charge = clampedCharge;
 			IsDirty = true;
@@ -75,4 +97,27 @@ abstract class CircuitComponent
 
 		return actualAmount;
 	}
+
+	/// <summary>
+	/// Updates connection information with adjacent components
+	/// </summary>
+	protected void UpdateConnections(CircuitSimulator simulator, Vector2i pos)
+	{
+		// Check adjacent cells (up, right, down, left).
+		Vector2i[] deltas = [
+			-Vector2i.UnitY,
+			 Vector2i.UnitX,
+			 Vector2i.UnitY,
+			-Vector2i.UnitX,
+		];
+
+		for (var i = 0; i < 4; i++)
+		{
+			var offset = deltas[i] + pos;
+			var neighbor = simulator.GetComponentAt(offset);
+			_connections[i] = neighbor != null;
+		}
+	}
+
+	#endregion
 }

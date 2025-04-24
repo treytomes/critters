@@ -5,6 +5,10 @@ namespace Critters;
 /// </summary>  
 public static class MathHelper
 {
+	public const float Pi = (float)Math.PI;
+	public const float PiOver2 = Pi / 2.0f;
+	public const float PiOver4 = Pi / 4.0f;
+
 	/// <summary>
 	/// Computes the floor modulus, which works correctly for negative values.
 	/// For example, FloorMod(-1, 5) returns 4, whereas (-1 % 5) returns -1 in C#.

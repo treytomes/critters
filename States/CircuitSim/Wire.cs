@@ -11,15 +11,12 @@ class Wire : CircuitComponent
 	/// <summary>
 	/// Resistance of the wire (higher means slower charge transfer)
 	/// </summary>
-	public float Resistance { get; set; } = 0.3f;
+	public float Resistance { get; set; } = 0.1f;
 
 	/// <summary>
 	/// Conductivity of the wire (inverse of resistance)
 	/// </summary>
 	public float Conductivity => 1.0f / Math.Max(0.01f, Resistance);
-
-	// Connection flags for each direction (up, right, down, left)
-	private bool[] _connections = new bool[4];
 
 	public Wire()
 	{
@@ -28,8 +25,10 @@ class Wire : CircuitComponent
 
 	public override void Update(CircuitSimulator simulator, int x, int y, float deltaTime)
 	{
+		var pos = new Vector2i(x, y);
+
 		// Check and update connections to adjacent components
-		UpdateConnections(simulator, x, y);
+		UpdateConnections(simulator, pos);
 
 		// Calculate how much charge can flow out of this wire
 		// Use a higher flow rate to ensure visible charge movement
@@ -61,7 +60,7 @@ class Wire : CircuitComponent
 		if (Charge > 0.001f && receivers.Count > 0)
 		{
 			// Calculate total charge differential
-			float totalDiff = 0;
+			var totalDiff = 0.0f;
 			foreach (var (neighbor, _) in receivers)
 			{
 				totalDiff += Math.Max(0, this.Charge - neighbor.Charge);
@@ -70,19 +69,19 @@ class Wire : CircuitComponent
 			if (totalDiff > 0)
 			{
 				// Determine how much total charge to transfer
-				float totalChargeToTransfer = Math.Min(Charge * chargeFlowRate, Charge * 0.8f);
-				float remainingCharge = totalChargeToTransfer;
+				var totalChargeToTransfer = Math.Min(Charge * chargeFlowRate, Charge * 0.8f);
+				var remainingCharge = totalChargeToTransfer;
 
 				// Distribute charge proportionally based on charge differential
 				foreach (var (neighbor, _) in receivers)
 				{
-					float diff = Math.Max(0, this.Charge - neighbor.Charge);
-					float proportion = diff / totalDiff;
-					float amountToTransfer = totalChargeToTransfer * proportion;
+					var diff = Math.Max(0, this.Charge - neighbor.Charge);
+					var proportion = diff / totalDiff;
+					var amountToTransfer = totalChargeToTransfer * proportion;
 
 					if (amountToTransfer > 0.001f && remainingCharge > 0)
 					{
-						float actualTransfer = Math.Min(amountToTransfer, remainingCharge);
+						var actualTransfer = Math.Min(amountToTransfer, remainingCharge);
 						neighbor.SetCharge(neighbor.Charge + actualTransfer);
 						remainingCharge -= actualTransfer;
 						neighbor.IsDirty = true;
@@ -100,29 +99,14 @@ class Wire : CircuitComponent
 		}
 
 		// Apply resistance loss
-		if (Charge > 0.001f)
+		if (Charge > 0.01f)
 		{
 			float resistanceLoss = Charge * Resistance * 0.01f * deltaTime;
 			SetCharge(Charge - resistanceLoss);
 		}
-	}
-
-	/// <summary>
-	/// Updates connection information with adjacent components
-	/// </summary>
-	private void UpdateConnections(CircuitSimulator simulator, int x, int y)
-	{
-		// Check adjacent cells (up, right, down, left)
-		int[] dx = { 0, 1, 0, -1 };
-		int[] dy = { -1, 0, 1, 0 };
-
-		for (int i = 0; i < 4; i++)
+		else
 		{
-			int nx = x + dx[i];
-			int ny = y + dy[i];
-
-			var neighbor = simulator.GetComponentAt(nx, ny);
-			_connections[i] = (neighbor != null);
+			SetCharge(0.0f);
 		}
 	}
 

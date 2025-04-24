@@ -23,9 +23,6 @@ class Switch : CircuitComponent, IInteractiveComponent
 	/// </summary>
 	public float OffResistance { get; set; } = 100.0f;
 
-	// Connection flags for each direction (up, right, down, left)
-	private bool[] _connections = new bool[4];
-
 	public Switch()
 	{
 		MaxCharge = 0.8f;
@@ -33,8 +30,10 @@ class Switch : CircuitComponent, IInteractiveComponent
 
 	public override void Update(CircuitSimulator simulator, int x, int y, float deltaTime)
 	{
+		var pos = new Vector2i(x, y);
+
 		// Update connections
-		UpdateConnections(simulator, x, y);
+		UpdateConnections(simulator, pos);
 
 		if (!IsOn)
 		{
@@ -102,25 +101,6 @@ class Switch : CircuitComponent, IInteractiveComponent
 				SetCharge(Charge - actualTotalTransferred);
 				IsDirty = true;
 			}
-		}
-	}
-
-	/// <summary>
-	/// Updates connection information with adjacent components
-	/// </summary>
-	private void UpdateConnections(CircuitSimulator simulator, int x, int y)
-	{
-		// Check adjacent cells (up, right, down, left)
-		int[] dx = { 0, 1, 0, -1 };
-		int[] dy = { -1, 0, 1, 0 };
-
-		for (int i = 0; i < 4; i++)
-		{
-			int nx = x + dx[i];
-			int ny = y + dy[i];
-
-			var neighbor = simulator.GetComponentAt(nx, ny);
-			_connections[i] = (neighbor != null);
 		}
 	}
 

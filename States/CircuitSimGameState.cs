@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Reflection;
 using Critters.Events;
 using Critters.Gfx;
 using Critters.Services;
@@ -278,18 +280,24 @@ class CircuitSimGameState : GameState
 	/// </summary>
 	private string GetSelectedComponentName()
 	{
-		if (_mapCursor.SelectedComponentType == typeof(Wire))
-			return "Wire";
-		else if (_mapCursor.SelectedComponentType == typeof(PowerSource))
-			return "Power Source";
-		else if (_mapCursor.SelectedComponentType == typeof(Ground))
-			return "Ground";
-		else if (_mapCursor.SelectedComponentType == typeof(Switch))
-			return "Switch";
-		else if (_mapCursor.SelectedComponentType == typeof(CircuitSim.Button))
-			return "Button";
-		else
-			return "Unknown";
+		var type = _mapCursor.SelectedComponentType;
+		return type.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName ?? type.Name;
+		// if (_mapCursor.SelectedComponentType == typeof(Wire))
+		// 	return "Wire";
+		// else if (_mapCursor.SelectedComponentType == typeof(PowerSource))
+		// 	return "Power Source";
+		// else if (_mapCursor.SelectedComponentType == typeof(Ground))
+		// 	return "Ground";
+		// else if (_mapCursor.SelectedComponentType == typeof(Switch))
+		// 	return "Switch";
+		// else if (_mapCursor.SelectedComponentType == typeof(CircuitSim.Button))
+		// 	return "Button";
+		// else if (_mapCursor.SelectedComponentType == typeof(Resistor))
+		// 	return "Resistor";
+		// else if (_mapCursor.SelectedComponentType == typeof(Capacitor))
+		// 	return "Capacitor";
+		// else
+		// 	return "Unknown";
 	}
 
 	/// <summary>

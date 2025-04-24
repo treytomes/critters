@@ -11,7 +11,10 @@ class Ground : CircuitComponent
 	/// <summary>
 	/// How quickly the ground absorbs charge
 	/// </summary>
-	public float AbsorptionRate { get; set; } = 0.8f;
+	/// <remarks>
+	/// Reduced from 0.8 to 0.4.
+	/// </remarks>
+	public float AbsorptionRate { get; set; } = 0.4f;
 
 	public Ground()
 	{
@@ -23,8 +26,10 @@ class Ground : CircuitComponent
 		// Ground dissipates charge quickly
 		if (Charge > 0)
 		{
-			float dissipation = Charge * AbsorptionRate * deltaTime;
+			// SetCharge(0.0f);
+			var dissipation = Charge * AbsorptionRate * deltaTime * 3.0f; // Not sure if this 3.0f factor is needed.
 			SetCharge(Charge - dissipation);
+			IsDirty = true;
 		}
 	}
 

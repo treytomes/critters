@@ -8,21 +8,7 @@ namespace Critters.States.CircuitSim;
 /// </summary>
 class PowerSource : CircuitComponent
 {
-	/// <summary>
-	/// Voltage of the power source.
-	/// </summary>
-	/// <remarks>
-	/// Defaulting to 3; most circuits are 3-5V.
-	/// </remarks>
-	public float Voltage { get; set; } = 5.0f;
-
-	/// <summary>
-	/// Whether the power source is active
-	/// </summary>
-	public bool IsActive { get; set; } = true;
-
-	// Connection flags for each direction (up, right, down, left)
-	private bool[] _connections = new bool[4];
+	#region Constructors
 
 	public PowerSource()
 	{
@@ -30,63 +16,60 @@ class PowerSource : CircuitComponent
 		Charge = MaxCharge;
 	}
 
+	#endregion
+
+	#region Properties
+
+	/// <summary>
+	/// Whether the power source is active
+	/// </summary>
+	public bool IsActive { get; set; } = true;
+
+	#endregion
+
+	#region Methods
+
 	public override void Update(CircuitSimulator simulator, int x, int y, float deltaTime)
 	{
-		if (!IsActive)
-			return;
+		if (!IsActive) return;
+		var pos = new Vector2i(x, y);
 
 		// Maintain full charge
 		SetCharge(MaxCharge);
 
 		// Update connections
-		UpdateConnections(simulator, x, y);
+		UpdateConnections(simulator, pos);
 
 		// Output charge to adjacent components
-		float outputCharge = Voltage * deltaTime * 3.0f; // Increased output rate
+		var outputCharge = Charge * deltaTime;
 
-		// Check adjacent cells (up, right, down, left)
-		int[] dx = { 0, 1, 0, -1 };
-		int[] dy = { -1, 0, 1, 0 };
+		// Check adjacent cells (up, right, down, left).
+		Vector2i[] deltas = [
+			-Vector2i.UnitY,
+			 Vector2i.UnitX,
+			 Vector2i.UnitY,
+			-Vector2i.UnitX,
+		];
 
 		for (int i = 0; i < 4; i++)
 		{
 			if (!_connections[i]) continue;
 
-			int nx = x + dx[i];
-			int ny = y + dy[i];
+			var offset = pos + deltas[i];
 
-			var neighbor = simulator.GetComponentAt(nx, ny);
+			var neighbor = simulator.GetComponentAt(offset);
 			if (neighbor != null && !(neighbor is PowerSource) && neighbor.Charge < neighbor.MaxCharge)
 			{
 				// Calculate how much charge the neighbor can accept
-				float chargeDeficit = neighbor.MaxCharge - neighbor.Charge;
-				float transferAmount = Math.Min(outputCharge, chargeDeficit);
+				var chargeDeficit = neighbor.MaxCharge - neighbor.Charge;
+				var transferAmount = Math.Min(outputCharge, chargeDeficit);
 
-				if (transferAmount > 0.001f)
+				if (transferAmount > CHARGE_INCONSEQUENTIAL)
 				{
 					neighbor.SetCharge(neighbor.Charge + transferAmount);
 					neighbor.IsDirty = true;
 				}
 			}
-		}
-	}
-
-	/// <summary>
-	/// Updates connection information with adjacent components
-	/// </summary>
-	private void UpdateConnections(CircuitSimulator simulator, int x, int y)
-	{
-		// Check adjacent cells (up, right, down, left)
-		int[] dx = { 0, 1, 0, -1 };
-		int[] dy = { -1, 0, 1, 0 };
-
-		for (int i = 0; i < 4; i++)
-		{
-			int nx = x + dx[i];
-			int ny = y + dy[i];
-
-			var neighbor = simulator.GetComponentAt(nx, ny);
-			_connections[i] = (neighbor != null);
 		}
 	}
 
@@ -182,4 +165,6 @@ class PowerSource : CircuitComponent
 		}
 		return false;
 	}
+
+	#endregion
 }
